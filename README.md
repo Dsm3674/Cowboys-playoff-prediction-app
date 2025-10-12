@@ -5,7 +5,7 @@
 
 A full-stack web application that uses advanced analytics to predict the Dallas Cowboys' chances of making the playoffs, winning their division, conference, and the Super Bowl. Built with React, Node.js/Express, and PostgreSQL.
 
-**This is an open source project released under the MIT License. Contributions, forks, and stars are welcome! All you have to do is just be a Cowboys fan just kidding its fine**
+**This is an open source project released under the MIT License. Contributions, forks, and stars are welcome! All you have to do is just be a Cowboys fan, just kidding its a joke**
 
 ## Features
 
@@ -264,4 +264,5 @@ For issues, questions, or contributions, please open an issue on GitHub.
 
 ---
 
-**Go Cowboys! 🏈**
+**Honestly things have not been going well this season so just wait till next season to fully use this app**
+
