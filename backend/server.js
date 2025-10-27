@@ -1,25 +1,30 @@
 // backend/server.js
-import express from "express";
-import cors from "cors";
-import cowboysRouter from "./routes/cowboys.js";
+const express = require('express');
+const cors = require('cors');
+const cowboysRouter = require('./routes/cowboys.js');
+const team2Router = require('./team2.js');
 
 const app = express();
+
 app.use(cors({
   origin: [
-    "https://cowboys-playoff-website.vercel.app", // your deployed website
-    "http://localhost:5173",                      // local dev (Vite default)
+    "https://cowboys-playoff-website.vercel.app",
+    "http://localhost:5173",
   ],
 }));
 
 app.use(express.json());
 
-// Health
+
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-// Cowboys endpoints
+
 app.use("/api/cowboys", cowboysRouter);
 
-// Fallback
+
+app.use("/api/teams", team2Router);
+
+// Error handler
 app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(500).json({ error: "Server error" });
