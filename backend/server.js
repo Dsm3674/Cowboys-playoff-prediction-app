@@ -4,7 +4,13 @@ import cors from "cors";
 import cowboysRouter from "./routes/cowboys.js";
 
 const app = express();
-app.use(cors({ origin: process.env.FRONTEND_URL || "*" }));
+app.use(cors({
+  origin: [
+    "https://cowboys-playoff-website.vercel.app", // your deployed website
+    "http://localhost:5173",                      // local dev (Vite default)
+  ],
+}));
+
 app.use(express.json());
 
 // Health
