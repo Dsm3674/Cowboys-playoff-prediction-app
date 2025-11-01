@@ -1,34 +1,19 @@
-// frontend/src/App.jsx
-import { useState } from "react";
-import RecordCard from "./components/RecordCard";
-import GameTable from "./components/GameTable";
-
-export default function App() {
-  const thisYear = new Date().getFullYear();
-  const [year, setYear] = useState(thisYear);
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-4">
-        <header className="mb-4">
-          <h1 className="text-3xl font-bold">Cowboys Playoff Prediction App</h1>
-          <p className="text-sm text-gray-600">Live Cowboys record and every game (with ties).</p>
-        </header>
-
-        <div className="mb-3">
-          <label className="text-sm mr-2">Season Year:</label>
-          <input
-            type="number"
-            className="border rounded px-2 py-1 w-28"
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-          />
-        </div>
-
-        <RecordCard year={year} />
-        <GameTable year={year} />
-      </div>
-    </div>
-  );
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #f9fafb;
+  color: #111827;
 }
+
+h1 {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+input {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
 
