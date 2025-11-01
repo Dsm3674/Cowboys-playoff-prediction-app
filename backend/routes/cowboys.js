@@ -1,74 +1,99 @@
-const express = require("express");
-const router = express.Router();
-const fetch = require("node-fetch");
-const PredictionEngine = require("../chance");
+import { Router } from "express";
+import {
+  fetchCowboysGamesSeasonToDate,
+  computeRecordFromGames,
+} from "../services/espn.js";
 
-let predictionHistory = [];
+const router = Router();
 
-async function fetchCowboysRecord() {
-  const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/dal");
-  const data = await res.json();
-  const summary = data.team.record?.items?.[0]?.summary || "0-0";
-  const [wins, losses, ties = 0] = summary.split("-").map(Number);
-  return { wins, losses, ties };
-}
+/**
+ * GET Cowboys performance overview
+ * - Record (W-L-T)
+ * - Win percentage
+ * - Offensive rating (avg points scored per game)
+ * - Defensive rating (avg points allowed per game)
+ */
+router.get("/", async (req, res) => {
+  try {
+    const year = Number(req.query.year) || new Date().getFullYear();
 
-async function fetchCowboysStats() {
-  const res = await fetch(
-    "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2025/types/2/teams/6/statistics"
-  );
-  const data = await res.json();
-  const categories = data.splits?.categories || [];
+    // Fetch all completed + live Cowboys games
+    const games = await fetchCowboysGamesSeasonToDate(year);
 
-  let pointsPerGame = 0,
-    yardsPerGame = 0,
-    pointsAllowed = 0,
-    turnovers = 1.5;
-
-  for (const cat of categories) {
-    for (const stat of cat.stats || []) {
-      if (stat.name === "pointsPerGame") pointsPerGame = stat.value;
-      if (stat.name === "yardsPerGame") yardsPerGame = stat.value;
-      if (stat.name === "pointsAllowedPerGame") pointsAllowed = stat.value;
-      if (stat.name === "turnovers") turnovers = stat.value;
+    if (!games || games.length === 0) {
+      return res.json({
+        record: "0-0-0",
+        winPercentage: 0.0,
+        offensiveRating: 0.0,
+        defensiveRating: 0.0,
+      });
     }
-  }
 
-  return {
-    avg_points_scored: pointsPerGame || 0,
-    avg_total_yards: yardsPerGame || 0,
-    avg_points_allowed: pointsAllowed || 0,
-    avg_turnovers: turnovers || 1.5,
-  };
-}
+    // Compute record (from helper)
+    const record = computeRecordFromGames(games);
 
-router.get("/current", async (_req, res) => {
-  try {
-    const [record, stats] = await Promise.all([fetchCowboysRecord(), fetchCowboysStats()]);
-    const prediction = PredictionEngine.calculatePrediction(record, stats);
+    // Compute points for and against
+    let totalPointsFor = 0;
+    let totalPointsAgainst = 0;
+
+    for (const g of games) {
+      // Normalize team identifiers from ESPN API
+      const homeAbbr = g.homeTeam?.abbreviation || g.homeTeam?.shortName || "";
+      const awayAbbr = g.awayTeam?.abbreviation || g.awayTeam?.shortName || "";
+
+      const isCowboysHome =
+        homeAbbr === "DAL" || g.homeTeam?.displayName?.includes("Cowboys");
+
+      const cowboysScore = isCowboysHome
+        ? g.homeScore ?? g.homeTeamScore ?? g.home?.score ?? 0
+        : g.awayScore ?? g.awayTeamScore ?? g.away?.score ?? 0;
+
+      const opponentScore = isCowboysHome
+        ? g.awayScore ?? g.awayTeamScore ?? g.away?.score ?? 0
+        : g.homeScore ?? g.homeTeamScore ?? g.home?.score ?? 0;
+
+      totalPointsFor += cowboysScore;
+      totalPointsAgainst += opponentScore;
+    }
+
+    // Compute average points scored and allowed
+    const offensiveRating = Number((totalPointsFor / games.length).toFixed(1));
+    const defensiveRating = Number((totalPointsAgainst / games.length).toFixed(1));
+
+    // Build response
+    const result = {
+      record: record.text,            // e.g. "3-4-1"
+      winPercentage: record.winPct,   // e.g. 0.375
+      offensiveRating,                // e.g. 22.8
+      defensiveRating,                // e.g. 18.4
+    };
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error computing Cowboys performance:", err);
     res.json({
-      season: { ...record, ...stats, year: new Date().getFullYear() },
-      prediction,
+      record: "0-0-0",
+      winPercentage: 0.0,
+      offensiveRating: 0.0,
+      defensiveRating: 0.0,
     });
-  } catch (err) {
-    console.error("Error computing prediction:", err);
-    res.status(500).json({ error: "Failed to compute prediction" });
   }
 });
 
-router.post("/generate", async (_req, res) => {
+/**
+ * Optional: GET Cowboys schedule only (season-to-date)
+ * Example: /api/cowboys/schedule?year=2025
+ */
+router.get("/schedule", async (req, res) => {
   try {
-    const [record, stats] = await Promise.all([fetchCowboysRecord(), fetchCowboysStats()]);
-    const prediction = PredictionEngine.calculatePrediction(record, stats);
-    predictionHistory.unshift(prediction);
-    if (predictionHistory.length > 10) predictionHistory.pop();
-    res.json({ prediction });
+    const year = Number(req.query.year) || new Date().getFullYear();
+    const games = await fetchCowboysGamesSeasonToDate(year);
+    res.json({ year, games });
   } catch (err) {
-    console.error("Error generating prediction:", err);
-    res.status(500).json({ error: "Failed to generate prediction" });
+    console.error("Error fetching schedule:", err);
+    res.status(500).json({ error: "Failed to fetch Cowboys schedule" });
   }
 });
 
-router.get("/history", (_req, res) => res.json({ history: predictionHistory }));
+export default router;
 
-module.exports = router;
