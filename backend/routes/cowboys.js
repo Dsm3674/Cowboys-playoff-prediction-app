@@ -1,9 +1,10 @@
 // -------------------------
-// COWBOYS ROUTES (REAL DATA VERSION)
+// COWBOYS ROUTES (Hybrid: Live Data + ML Model)
 // -------------------------
 const express = require("express");
 const router = express.Router();
 const fetch = require("node-fetch");
+const PredictionEngine = require("../chance");
 
 let predictionHistory = [];
 
@@ -38,12 +39,15 @@ async function fetchCowboysStats() {
       }
     }
 
-    const offensive_rating = ((pointsPerGame + yardsPerGame / 100) / 10).toFixed(1);
-    const defensive_rating = (100 - (pointsAllowedPerGame + yardsAllowedPerGame / 100) / 10).toFixed(1);
-    return { offensive_rating: Number(offensive_rating), defensive_rating: Number(defensive_rating) };
+    return {
+      avg_points_scored: pointsPerGame,
+      avg_total_yards: yardsPerGame,
+      avg_points_allowed: pointsAllowedPerGame,
+      avg_turnovers: 1.2, // approximate, API doesn’t expose turnovers directly
+    };
   } catch (err) {
     console.error("Error fetching ESPN stats:", err);
-    return { offensive_rating: 0, defensive_rating: 0 };
+    return { avg_points_scored: 0, avg_total_yards: 0, avg_points_allowed: 0, avg_turnovers: 0 };
   }
 }
 
@@ -58,8 +62,6 @@ async function fetchCowboysOdds() {
   const division_probability = Math.round(cowboys.division_odds * 100);
   const conference_probability = Math.round(cowboys.conf_odds * 100);
   const superbowl_probability = Math.round(cowboys.sb_odds * 100);
-
-  // Confidence score derived from ELO (1400-1700 -> 0-100)
   const confidence_score = Math.min(100, Math.max(0, Math.round((cowboys.elo - 1400) / 3)));
 
   return {
@@ -72,16 +74,6 @@ async function fetchCowboysOdds() {
   };
 }
 
-/** GET /api/cowboys/record */
-router.get("/record", async (_req, res) => {
-  try {
-    res.json(await fetchCowboysRecord());
-  } catch (err) {
-    console.error("Error fetching record:", err);
-    res.status(500).json({ wins: 0, losses: 0, ties: 0 });
-  }
-});
-
 /** GET /api/cowboys/current */
 router.get("/current", async (_req, res) => {
   try {
@@ -91,54 +83,59 @@ router.get("/current", async (_req, res) => {
       fetchCowboysOdds(),
     ]);
 
-    const season = {
-      ...record,
-      year: new Date().getFullYear(),
-      factors_json: stats,
-    };
+    // 🧠 Use your ML model to make its own prediction
+    const mlPrediction = PredictionEngine.calculatePrediction(
+      { wins: record.wins, losses: record.losses },
+      stats,
+      [] // players not included in ESPN response
+    );
 
-    const prediction = {
-      playoff_probability: odds.playoff_probability,
-      division_probability: odds.division_probability,
-      conference_probability: odds.conference_probability,
-      superbowl_probability: odds.superbowl_probability,
-      confidence_score: odds.confidence_score,
-    };
-
-    res.json({ season, prediction });
+    res.json({
+      season: { ...record, year: new Date().getFullYear(), factors_json: stats },
+      prediction: {
+        // FiveThirtyEight’s actual model
+        from_538: {
+          playoff_probability: odds.playoff_probability,
+          division_probability: odds.division_probability,
+          conference_probability: odds.conference_probability,
+          superbowl_probability: odds.superbowl_probability,
+          confidence_score: odds.confidence_score,
+          elo: odds.elo,
+        },
+        // Your ML model’s output
+        from_model: mlPrediction,
+      },
+    });
   } catch (err) {
     console.error("Error /current:", err);
     res.status(500).json({
-      season: { wins: 0, losses: 0, ties: 0, factors_json: { offensive_rating: 0, defensive_rating: 0 } },
-      prediction: {
-        playoff_probability: 0,
-        division_probability: 0,
-        conference_probability: 0,
-        superbowl_probability: 0,
-        confidence_score: 0,
-      },
+      error: "Failed to fetch current data",
     });
   }
 });
 
-/** POST /api/cowboys/generate — now re-fetches live odds, not random */
+/** POST /api/cowboys/generate — refresh ML prediction */
 router.post("/generate", async (_req, res) => {
   try {
-    const odds = await fetchCowboysOdds();
-    const prediction = {
-      playoff_probability: odds.playoff_probability,
-      division_probability: odds.division_probability,
-      conference_probability: odds.conference_probability,
-      superbowl_probability: odds.superbowl_probability,
-      confidence_score: odds.confidence_score,
-      prediction_date: new Date().toISOString(),
-    };
-    predictionHistory.unshift(prediction);
+    const [record, stats] = await Promise.all([
+      fetchCowboysRecord(),
+      fetchCowboysStats(),
+    ]);
+
+    const mlPrediction = PredictionEngine.calculatePrediction(
+      { wins: record.wins, losses: record.losses },
+      stats,
+      []
+    );
+
+    mlPrediction.prediction_date = new Date().toISOString();
+    predictionHistory.unshift(mlPrediction);
     if (predictionHistory.length > 10) predictionHistory.pop();
-    res.json({ prediction });
+
+    res.json({ prediction: mlPrediction });
   } catch (err) {
-    console.error("Error generating live prediction:", err);
-    res.status(500).json({ message: "Failed to fetch real prediction data" });
+    console.error("Error generating ML prediction:", err);
+    res.status(500).json({ message: "Failed to generate ML prediction" });
   }
 });
 
@@ -148,3 +145,4 @@ router.get("/history", (_req, res) => {
 });
 
 module.exports = router;
+
