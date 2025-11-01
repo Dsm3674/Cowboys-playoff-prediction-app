@@ -3,7 +3,6 @@ const BASE =
     ? "http://localhost:3001"
     : "https://cowboys-playoff-prediction-app.onrender.com";
 
-
 async function getCowboysRecord(year) {
   const res = await fetch(`${BASE}/api/cowboys/record?year=${year}`);
   if (!res.ok) throw new Error("record fetch failed");
