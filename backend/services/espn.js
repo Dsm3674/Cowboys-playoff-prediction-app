@@ -1,5 +1,5 @@
 
-import fetch from "node-fetch";
+const fetch = require("node-fetch");
 
 // Unofficial ESPN endpoints (no auth). See references in README.
 const SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
