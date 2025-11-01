@@ -1,4 +1,8 @@
-const BASE = "http://localhost:3001";
+const BASE =
+  window.location.hostname === "localhost"
+    ? "http://localhost:3001"
+    : "https://cowboys-playoff-prediction-app.onrender.com";
+
 
 async function getCowboysRecord(year) {
   const res = await fetch(`${BASE}/api/cowboys/record?year=${year}`);
