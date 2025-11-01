@@ -1,50 +1,88 @@
-const pool = require('./databases');
+const express = require("express");
+const router = express.Router();
+const fetch = require("node-fetch");
+const PredictionEngine = require("../chance");
 
-class Prediction {
-  static async create(predictionData) {
-    const query = `
-      INSERT INTO predictions (
-        season_id, playoff_probability, division_probability,
-        conference_probability, superbowl_probability,
-        model_version, confidence_score, factors_json
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *
-    `;
-    const values = [
-      predictionData.seasonId,
-      predictionData.playoffProb,
-      predictionData.divisionProb,
-      predictionData.conferenceProb,
-      predictionData.superbowlProb,
-      predictionData.modelVersion,
-      predictionData.confidenceScore,
-      JSON.stringify(predictionData.factors)
-    ];
-    const result = await pool.query(query, values);
-    return result.rows[0];
-  }
+let predictionHistory = [];
 
-  static async getLatest(seasonId) {
-    const query = `
-      SELECT * FROM predictions 
-      WHERE season_id = $1 
-      ORDER BY prediction_date DESC 
-      LIMIT 1
-    `;
-    const result = await pool.query(query, [seasonId]);
-    return result.rows[0];
-  }
-
-  static async getHistory(seasonId, limit = 10) {
-    const query = `
-      SELECT * FROM predictions 
-      WHERE season_id = $1 
-      ORDER BY prediction_date DESC 
-      LIMIT $2
-    `;
-    const result = await pool.query(query, [seasonId, limit]);
-    return result.rows;
-  }
+/** Fetch Cowboys record from ESPN API */
+async function fetchCowboysRecord() {
+  const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/dal");
+  const data = await res.json();
+  const summary = data.team.record?.items?.[0]?.summary || "0-0";
+  const [wins, losses, ties = 0] = summary.split("-").map(Number);
+  return { wins, losses, ties };
 }
 
-module.exports = Prediction;
+/** Fetch Cowboys team stats from ESPN API */
+async function fetchCowboysStats() {
+  const res = await fetch(
+    "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2025/types/2/teams/6/statistics"
+  );
+  const data = await res.json();
+  const categories = data.splits?.categories || [];
+
+  let pointsPerGame = 0,
+    yardsPerGame = 0,
+    pointsAllowed = 0,
+    turnovers = 1.5;
+
+  for (const cat of categories) {
+    for (const stat of cat.stats || []) {
+      if (stat.name === "pointsPerGame") pointsPerGame = stat.value;
+      if (stat.name === "yardsPerGame") yardsPerGame = stat.value;
+      if (stat.name === "pointsAllowedPerGame") pointsAllowed = stat.value;
+      if (stat.name === "turnovers") turnovers = stat.value;
+    }
+  }
+
+  return {
+    avg_points_scored: pointsPerGame || 0,
+    avg_total_yards: yardsPerGame || 0,
+    avg_points_allowed: pointsAllowed || 0,
+    avg_turnovers: turnovers || 1.5,
+  };
+}
+
+/** GET current prediction */
+router.get("/current", async (_req, res) => {
+  try {
+    const [record, stats] = await Promise.all([fetchCowboysRecord(), fetchCowboysStats()]);
+    const prediction = PredictionEngine.calculatePrediction(record, stats);
+
+    // Add timestamp for frontend (fixes "Invalid Date")
+    prediction.generatedAt = new Date().toISOString();
+
+    res.json({
+      season: { ...record, ...stats, year: new Date().getFullYear() },
+      prediction,
+    });
+  } catch (err) {
+    console.error("Error computing prediction:", err);
+    res.status(500).json({ error: "Failed to compute prediction" });
+  }
+});
+
+/** POST generate new prediction */
+router.post("/generate", async (_req, res) => {
+  try {
+    const [record, stats] = await Promise.all([fetchCowboysRecord(), fetchCowboysStats()]);
+    const prediction = PredictionEngine.calculatePrediction(record, stats);
+
+    // Add timestamp
+    prediction.generatedAt = new Date().toISOString();
+
+    predictionHistory.unshift(prediction);
+    if (predictionHistory.length > 10) predictionHistory.pop();
+
+    res.json({ prediction });
+  } catch (err) {
+    console.error("Error generating prediction:", err);
+    res.status(500).json({ error: "Failed to generate prediction" });
+  }
+});
+
+/** GET prediction history */
+router.get("/history", (_req, res) => res.json({ history: predictionHistory }));
+
+module.exports = router;
