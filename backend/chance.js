@@ -1,66 +1,52 @@
 class PredictionEngine {
-  static calculatePrediction(seasonData, gameStats, players) {
-    const winPct = seasonData.wins / (seasonData.wins + seasonData.losses);
-    
-    const offensiveRating = this.calculateOffensiveRating(gameStats);
-    const defensiveRating = this.calculateDefensiveRating(gameStats);
-    const injuryImpact = this.calculateInjuryImpact(players);
-    
-    const overallScore = (
-      (winPct * 100) * 0.30 +
-      offensiveRating * 0.25 +
-      defensiveRating * 0.25 +
-      (100 + injuryImpact) * 0.20
-    );
-    
-    const playoffProb = Math.min(95, Math.max(5, overallScore * 0.85));
-    const divisionProb = Math.min(80, Math.max(3, overallScore * 0.55));
-    const conferenceProb = Math.min(45, Math.max(2, overallScore * 0.28));
-    const superbowlProb = Math.min(25, Math.max(1, overallScore * 0.15));
-    
+  static calculatePrediction(seasonData, gameStats) {
+    const { wins, losses, ties = 0 } = seasonData;
+    const gamesPlayed = wins + losses + ties;
+    const winPct = gamesPlayed > 0 ? wins / gamesPlayed : 0;
+
+    const {
+      avg_points_scored,
+      avg_total_yards,
+      avg_points_allowed,
+      avg_turnovers,
+    } = gameStats;
+
+    const offenseScore =
+      Math.min(100, (avg_points_scored / 35) * 60 + (avg_total_yards / 400) * 40);
+    const defenseScore = Math.max(0, 100 - (avg_points_allowed / 30) * 100);
+    const turnoverScore = Math.max(0, 100 - avg_turnovers * 10);
+    const momentumScore = winPct >= 0.6 ? 90 : winPct >= 0.5 ? 75 : 50;
+
+    const baseScore =
+      winPct * 100 * 0.35 +
+      offenseScore * 0.25 +
+      defenseScore * 0.20 +
+      turnoverScore * 0.10 +
+      momentumScore * 0.10;
+
+    const finalScore = Math.min(100, Math.max(0, baseScore));
+
+    const playoffProb = Math.round(finalScore * 0.95 * 10) / 10;
+    const divisionProb = Math.round(finalScore * 0.65 * 10) / 10;
+    const conferenceProb = Math.round(finalScore * 0.35 * 10) / 10;
+    const superbowlProb = Math.round(finalScore * 0.15 * 10) / 10;
+    const confidenceScore = Math.round(finalScore * 0.9 * 10) / 10;
+
     return {
-      playoffProb: parseFloat(playoffProb.toFixed(2)),
-      divisionProb: parseFloat(divisionProb.toFixed(2)),
-      conferenceProb: parseFloat(conferenceProb.toFixed(2)),
-      superbowlProb: parseFloat(superbowlProb.toFixed(2)),
-      confidenceScore: parseFloat((overallScore * 0.9).toFixed(2)),
+      playoff_probability: playoffProb,
+      division_probability: divisionProb,
+      conference_probability: conferenceProb,
+      superbowl_probability: superbowlProb,
+      confidence_score: confidenceScore,
       factors: {
-        offensive_rating: parseFloat(offensiveRating.toFixed(2)),
-        defensive_rating: parseFloat(defensiveRating.toFixed(2)),
-        injury_impact: injuryImpact,
-        win_percentage: parseFloat((winPct * 100).toFixed(2))
-      }
+        win_percentage: +(winPct * 100).toFixed(2),
+        offensive_efficiency: +offenseScore.toFixed(2),
+        defensive_efficiency: +defenseScore.toFixed(2),
+        turnover_discipline: +turnoverScore.toFixed(2),
+        momentum: +momentumScore.toFixed(2),
+        base_score: +finalScore.toFixed(2),
+      },
     };
-  }
-
-  static calculateOffensiveRating(gameStats) {
-    const avgPointsScored = parseFloat(gameStats.avg_points_scored);
-    const avgTotalYards = parseFloat(gameStats.avg_total_yards);
-    const avgTurnovers = parseFloat(gameStats.avg_turnovers);
-    
-    const pointsScore = Math.min(100, (avgPointsScored / 35) * 100);
-    const yardsScore = Math.min(100, (avgTotalYards / 400) * 100);
-    const turnoverPenalty = avgTurnovers * 5;
-    
-    return Math.max(0, (pointsScore * 0.6 + yardsScore * 0.4) - turnoverPenalty);
-  }
-
-  static calculateDefensiveRating(gameStats) {
-    const avgPointsAllowed = parseFloat(gameStats.avg_points_allowed);
-    const defensiveScore = Math.max(0, 100 - (avgPointsAllowed / 30) * 100);
-    return Math.min(100, defensiveScore);
-  }
-
-  static calculateInjuryImpact(players) {
-    let impact = 0;
-    players.forEach(player => {
-      if (player.injury_status === 'Injured') {
-        impact -= player.performance_rating > 85 ? 8 : 4;
-      } else if (player.injury_status === 'Questionable') {
-        impact -= player.performance_rating > 85 ? 4 : 2;
-      }
-    });
-    return Math.max(-20, impact);
   }
 }
 
