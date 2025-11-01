@@ -1,43 +1,25 @@
-// -------------------------
-// COWBOYS PLAYOFF PREDICTOR BACKEND (CommonJS version)
-// -------------------------
-
-
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
-// Import Cowboys routes (make sure routes/cowboys.js exists)
+// Routers
 const cowboysRouter = require("./routes/cowboys");
+const predictionRouter = require("./routes/prediction");
 
 const app = express();
+const PORT = process.env.PORT || 3001;
 
-// Middleware
+app.use(cors());
 app.use(express.json());
-app.use(
-  cors({
-    origin: [
-      "https://dsm3674.github.io", // your GitHub Pages site
-      "http://localhost:3000",     // for local testing
-      "http://127.0.0.1:5500"
-    ],
-  })
-);
 
-// Routes
+// API routes
 app.use("/api/cowboys", cowboysRouter);
+app.use("/api/prediction", predictionRouter);
 
-// Root route for Render check
-app.get("/", (req, res) => {
-  res.json({
-    message: "🏈 Cowboys Playoff Predictor API is running successfully!",
-    endpoints: {
-      current: "/api/cowboys/current",
-      generate: "/api/cowboys/generate",
-      history: "/api/cowboys/history",
-    },
-  });
+// Root route
+app.get("/", (_req, res) => {
+  res.json({ message: "Cowboys Prediction API running" });
 });
 
-// Start server
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
+
