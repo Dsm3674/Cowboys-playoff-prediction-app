@@ -1,38 +1,47 @@
-// backend/server.js
-const express = require('express');
-const cors = require('cors');
-const cowboysRouter = require('./routes/cowboys');
-const team2Router = require('./team2');
-const superbowlRouter = require('./superbowlPath');
+// -------------------------
+// COWBOYS PLAYOFF PREDICTOR BACKEND
+// -------------------------
 
+import express from "express";
+import cors from "cors";
+
+// Import your Cowboys routes
+import cowboysRouter from "./routes/cowboys.js"; // make sure this path exists
+
+// Initialize app
 const app = express();
 
-app.use(cors({
-  origin: [
-    "https://cowboys-playoff-prediction-app.vercel.app",
-    "https://cowboys-playoff-prediction-app.onrender.com",
-    "http://localhost:3000",
-  ],
-}));
-
+// Middleware
 app.use(express.json());
 
-// Health check
-app.get("/health", (_req, res) => res.json({ ok: true }));
+// Allow requests from your GitHub Pages frontend
+app.use(
+  cors({
+    origin: [
+      "https://dsm3674.github.io", // your GitHub Pages site
+      "http://localhost:3000",     // for local testing
+      "http://127.0.0.1:5500"
+    ],
+  })
+);
 
 // Routes
 app.use("/api/cowboys", cowboysRouter);
-app.use("/api/teams", team2Router);
-app.use("/api/predictions", superbowlRouter);
 
-// Error handler
-app.use((err, _req, res, _next) => {
-  console.error(err);
-  res.status(500).json({ error: "Server error" });
+// Root test route
+app.get("/", (req, res) => {
+  res.json({
+    message: "🏈 Cowboys Playoff Predictor API is running successfully!",
+    endpoints: {
+      current: "/api/cowboys/current",
+      generate: "/api/cowboys/generate",
+      history: "/api/cowboys/history",
+    },
+  });
 });
 
+// Start server
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`✅ API running at http://localhost:${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
-
