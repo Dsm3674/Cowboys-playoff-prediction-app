@@ -1,38 +1,15 @@
-import { Router } from "express";
-import {
-  fetchCowboysGamesSeasonToDate,
-  computeRecordFromGames,
-} from "../services/espn.js";
+const express = require("express");
+const router = express.Router();
 
-const router = Router();
-
-/**
- * GET live+final Cowboys games (season-to-date, includes today's game).
- * Query: ?year=2025 (defaults to current year)
- */
-router.get("/schedule", async (req, res, next) => {
-  try {
-    const year = Number(req.query.year) || new Date().getFullYear();
-    const games = await fetchCowboysGamesSeasonToDate(year);
-    res.json({ year, games });
-  } catch (e) {
-    next(e);
-  }
+router.get("/current", async (req, res) => {
+  res.json({
+    playoff_probability: 72.5,
+    division_probability: 45.3,
+    conference_probability: 18.7,
+    superbowl_probability: 8.2,
+    confidence_score: 84.5,
+    season: { wins: 8, losses: 5, ties: 0 },
+  });
 });
 
-/**
- * GET Cowboys record (W-L-T) recalculated on the fly (real-time).
- * Query: ?year=2025
- */
-router.get("/record", async (req, res, next) => {
-  try {
-    const year = Number(req.query.year) || new Date().getFullYear();
-    const games = await fetchCowboysGamesSeasonToDate(year);
-    const record = computeRecordFromGames(games);
-    res.json({ year, ...record });
-  } catch (e) {
-    next(e);
-  }
-});
-
-export default router;
+module.exports = router;
