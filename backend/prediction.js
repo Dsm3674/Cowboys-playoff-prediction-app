@@ -5,7 +5,7 @@ const PredictionEngine = require("../chance");
 
 let predictionHistory = [];
 
-/** Fetch Cowboys record from ESPN API */
+// Fetch record
 async function fetchCowboysRecord() {
   const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/dal");
   const data = await res.json();
@@ -14,7 +14,7 @@ async function fetchCowboysRecord() {
   return { wins, losses, ties };
 }
 
-/** Fetch Cowboys team stats from ESPN API */
+// Fetch stats
 async function fetchCowboysStats() {
   const res = await fetch(
     "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2025/types/2/teams/6/statistics"
@@ -44,13 +44,11 @@ async function fetchCowboysStats() {
   };
 }
 
-/** GET current prediction */
+// GET /api/prediction/current
 router.get("/current", async (_req, res) => {
   try {
     const [record, stats] = await Promise.all([fetchCowboysRecord(), fetchCowboysStats()]);
     const prediction = PredictionEngine.calculatePrediction(record, stats);
-
-    // Add timestamp for frontend (fixes "Invalid Date")
     prediction.generatedAt = new Date().toISOString();
 
     res.json({
@@ -63,13 +61,11 @@ router.get("/current", async (_req, res) => {
   }
 });
 
-/** POST generate new prediction */
+// POST /api/prediction/generate
 router.post("/generate", async (_req, res) => {
   try {
     const [record, stats] = await Promise.all([fetchCowboysRecord(), fetchCowboysStats()]);
     const prediction = PredictionEngine.calculatePrediction(record, stats);
-
-    // Add timestamp
     prediction.generatedAt = new Date().toISOString();
 
     predictionHistory.unshift(prediction);
@@ -82,7 +78,7 @@ router.post("/generate", async (_req, res) => {
   }
 });
 
-/** GET prediction history */
+// GET /api/prediction/history
 router.get("/history", (_req, res) => res.json({ history: predictionHistory }));
 
 module.exports = router;
