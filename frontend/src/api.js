@@ -1,5 +1,5 @@
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const BASE = process.env.REACT_APP_API_URL || "http://localhost:3001";
 
 export async function getCowboysRecord(year) {
   const res = await fetch(`${BASE}/api/cowboys/record?year=${year}`);
