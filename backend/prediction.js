@@ -5,7 +5,6 @@ const PredictionEngine = require("../chance");
 
 let predictionHistory = [];
 
-// Fetch record
 async function fetchCowboysRecord() {
   const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/dal");
   const data = await res.json();
@@ -14,7 +13,6 @@ async function fetchCowboysRecord() {
   return { wins, losses, ties };
 }
 
-// Fetch stats
 async function fetchCowboysStats() {
   const res = await fetch(
     "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2025/types/2/teams/6/statistics"
@@ -44,33 +42,25 @@ async function fetchCowboysStats() {
   };
 }
 
-// GET /api/prediction/current
 router.get("/current", async (_req, res) => {
   try {
     const [record, stats] = await Promise.all([fetchCowboysRecord(), fetchCowboysStats()]);
     const prediction = PredictionEngine.calculatePrediction(record, stats);
     prediction.generatedAt = new Date().toISOString();
-
-    res.json({
-      season: { ...record, ...stats, year: new Date().getFullYear() },
-      prediction,
-    });
+    res.json({ season: { ...record, ...stats, year: new Date().getFullYear() }, prediction });
   } catch (err) {
     console.error("Error computing prediction:", err);
     res.status(500).json({ error: "Failed to compute prediction" });
   }
 });
 
-// POST /api/prediction/generate
 router.post("/generate", async (_req, res) => {
   try {
     const [record, stats] = await Promise.all([fetchCowboysRecord(), fetchCowboysStats()]);
     const prediction = PredictionEngine.calculatePrediction(record, stats);
     prediction.generatedAt = new Date().toISOString();
-
     predictionHistory.unshift(prediction);
     if (predictionHistory.length > 10) predictionHistory.pop();
-
     res.json({ prediction });
   } catch (err) {
     console.error("Error generating prediction:", err);
@@ -78,7 +68,6 @@ router.post("/generate", async (_req, res) => {
   }
 });
 
-// GET /api/prediction/history
 router.get("/history", (_req, res) => res.json({ history: predictionHistory }));
 
 module.exports = router;
