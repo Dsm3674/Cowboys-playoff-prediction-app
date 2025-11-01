@@ -1,20 +1,17 @@
 // -------------------------
-// COWBOYS PLAYOFF PREDICTOR BACKEND
+// COWBOYS PLAYOFF PREDICTOR BACKEND (CommonJS version)
 // -------------------------
 
-import express from "express";
-import cors from "cors";
+const express = require("express");
+const cors = require("cors");
 
-// Import your Cowboys routes
-import cowboysRouter from "./routes/cowboys.js"; // make sure this path exists
+// Import Cowboys routes (make sure routes/cowboys.js exists)
+const cowboysRouter = require("./routes/cowboys");
 
-// Initialize app
 const app = express();
 
 // Middleware
 app.use(express.json());
-
-// Allow requests from your GitHub Pages frontend
 app.use(
   cors({
     origin: [
@@ -28,7 +25,7 @@ app.use(
 // Routes
 app.use("/api/cowboys", cowboysRouter);
 
-// Root test route
+// Root route for Render check
 app.get("/", (req, res) => {
   res.json({
     message: "🏈 Cowboys Playoff Predictor API is running successfully!",
@@ -42,6 +39,4 @@ app.get("/", (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
