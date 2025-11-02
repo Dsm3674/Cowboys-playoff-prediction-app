@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const fetch = require("node-fetch");
-const PredictionEngine = require("../chance");
+const PredictionEngine = require("./chance"); // ✅ FIXED: changed from ../chance to ./chance
 
 let predictionHistory = [];
 
