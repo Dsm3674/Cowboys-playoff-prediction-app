@@ -3,14 +3,33 @@ const BASE =
     ? "http://localhost:3001"
     : "https://cowboys-playoff-prediction-app.onrender.com";
 
-async function getCowboysRecord(year) {
+// Make functions global so JSX components can use them
+window.getCowboysRecord = async function(year) {
   const res = await fetch(`${BASE}/api/cowboys/record?year=${year}`);
   if (!res.ok) throw new Error("record fetch failed");
   return res.json();
 }
 
-async function getCowboysSchedule(year) {
+window.getCowboysSchedule = async function(year) {
   const res = await fetch(`${BASE}/api/cowboys/schedule?year=${year}`);
   if (!res.ok) throw new Error("schedule fetch failed");
+  return res.json();
+}
+
+window.getCurrentPrediction = async function() {
+  const res = await fetch(`${BASE}/api/prediction/current`);
+  if (!res.ok) throw new Error("prediction fetch failed");
+  return res.json();
+}
+
+window.generatePrediction = async function() {
+  const res = await fetch(`${BASE}/api/prediction/generate`, { method: 'POST' });
+  if (!res.ok) throw new Error("prediction generation failed");
+  return res.json();
+}
+
+window.getPredictionHistory = async function() {
+  const res = await fetch(`${BASE}/api/prediction/history`);
+  if (!res.ok) throw new Error("history fetch failed");
   return res.json();
 }
