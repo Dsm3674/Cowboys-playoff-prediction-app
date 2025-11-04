@@ -1,7 +1,9 @@
 async function fetchCowboysGamesSeasonToDate(year) {
   try {
     const fetch = (await import("node-fetch")).default;
-    const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/dal/schedule?season=${year}`;
+    
+    // Use the scoreboard API which has complete score data
+    const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/6/schedule?season=${year}`;
     
     console.log('Fetching from:', url);
     
@@ -19,49 +21,68 @@ async function fetchCowboysGamesSeasonToDate(year) {
     
     console.log(`Total events: ${data.events.length}`);
     
-    const games = data.events.map((e, idx) => {
+    const games = [];
+    
+    for (let i = 0; i < data.events.length; i++) {
+      const event = data.events[i];
+      
       try {
-        const competition = e.competitions?.[0];
-        if (!competition) return null;
+        const competition = event.competitions[0];
+        const competitors = competition.competitors;
         
-        const competitors = competition.competitors || [];
-        const homeComp = competitors.find(c => c.homeAway === "home");
-        const awayComp = competitors.find(c => c.homeAway === "away");
+        // Find home and away teams
+        const homeTeam = competitors.find(c => c.homeAway === "home");
+        const awayTeam = competitors.find(c => c.homeAway === "away");
         
-        if (!homeComp || !awayComp) return null;
+        if (!homeTeam || !awayTeam) continue;
         
-        // Parse scores - handle string and number formats
-        const homeScore = Number(homeComp.score) || 0;
-        const awayScore = Number(awayComp.score) || 0;
+        // Get scores - try multiple possible locations
+        let homeScore = 0;
+        let awayScore = 0;
         
-        // Check if game is completed - try multiple ways
-        const status = competition.status?.type;
-        const completed = status?.completed === true || 
-                         status?.state === "post" ||
-                         competition.status?.type?.description === "Final";
+        // Method 1: Direct score field (string)
+        if (homeTeam.score) {
+          homeScore = parseInt(homeTeam.score) || 0;
+        }
+        if (awayTeam.score) {
+          awayScore = parseInt(awayTeam.score) || 0;
+        }
+        
+        // Check completion status
+        const status = competition.status.type;
+        const isCompleted = status.completed === true || status.state === "post";
         
         const game = {
-          homeTeam: homeComp.team || { abbreviation: "UNK", displayName: "Unknown" },
-          awayTeam: awayComp.team || { abbreviation: "UNK", displayName: "Unknown" },
+          homeTeam: {
+            abbreviation: homeTeam.team.abbreviation,
+            displayName: homeTeam.team.displayName,
+            name: homeTeam.team.name
+          },
+          awayTeam: {
+            abbreviation: awayTeam.team.abbreviation,
+            displayName: awayTeam.team.displayName,
+            name: awayTeam.team.name
+          },
           homeScore,
           awayScore,
-          completed,
-          status: status?.name || "Unknown"
+          completed: isCompleted,
+          status: status.name
         };
         
-        console.log(`Game ${idx + 1}: ${game.awayTeam.abbreviation} @ ${game.homeTeam.abbreviation} | ${game.awayScore}-${game.homeScore} | Completed: ${game.completed} | Status: ${game.status}`);
+        console.log(`Game ${i + 1}: ${game.awayTeam.abbreviation} @ ${game.homeTeam.abbreviation} | ${game.awayScore}-${game.homeScore} | Completed: ${game.completed}`);
         
-        return game;
+        games.push(game);
+        
       } catch (err) {
-        console.error('Error parsing game:', err);
-        return null;
+        console.error(`Error parsing game ${i + 1}:`, err);
       }
-    }).filter(game => game !== null);
+    }
     
-    console.log(`Total games parsed: ${games.length}`);
+    console.log(`Successfully parsed ${games.length} games`);
     return games;
+    
   } catch (error) {
-    console.error('Error fetching Cowboys games:', error);
+    console.error('Error fetching Cowboys schedule:', error);
     return [];
   }
 }
@@ -69,56 +90,48 @@ async function fetchCowboysGamesSeasonToDate(year) {
 function computeRecordFromGames(games) {
   let wins = 0, losses = 0, ties = 0;
   
-  if (!games || !Array.isArray(games)) {
-    console.log('No games array provided');
+  if (!games || !Array.isArray(games) || games.length === 0) {
+    console.log('No games to compute');
     return { wins: 0, losses: 0, ties: 0, winPct: 0, text: "0-0-0" };
   }
   
-  console.log(`Computing record from ${games.length} games`);
+  console.log(`\n=== Computing Cowboys Record ===`);
   
   for (const game of games) {
     // Only count completed games
     if (!game.completed) {
-      console.log(`Skipping incomplete game: ${game.awayTeam.abbreviation} @ ${game.homeTeam.abbreviation}`);
-      continue;
-    }
-    
-    // Skip games with missing data
-    if (!game.homeTeam?.abbreviation || !game.awayTeam?.abbreviation) {
-      console.log('Skipping game with missing team data');
       continue;
     }
     
     const isDalHome = game.homeTeam.abbreviation === "DAL";
     const isDalAway = game.awayTeam.abbreviation === "DAL";
     
-    // Skip if Dallas isn't playing
     if (!isDalHome && !isDalAway) {
-      console.log(`Skipping non-Dallas game: ${game.awayTeam.abbreviation} @ ${game.homeTeam.abbreviation}`);
-      continue;
+      continue; // Not a Cowboys game
     }
     
+    // Determine win/loss/tie
     if (isDalHome) {
       if (game.homeScore > game.awayScore) {
         wins++;
-        console.log(`✅ WIN (Home): DAL ${game.homeScore} - ${game.awayScore} ${game.awayTeam.abbreviation}`);
+        console.log(`✅ WIN: DAL ${game.homeScore} vs ${game.awayTeam.abbreviation} ${game.awayScore}`);
       } else if (game.homeScore < game.awayScore) {
         losses++;
-        console.log(`❌ LOSS (Home): DAL ${game.homeScore} - ${game.awayScore} ${game.awayTeam.abbreviation}`);
+        console.log(`❌ LOSS: DAL ${game.homeScore} vs ${game.awayTeam.abbreviation} ${game.awayScore}`);
       } else {
         ties++;
-        console.log(`🟰 TIE (Home): DAL ${game.homeScore} - ${game.awayScore} ${game.awayTeam.abbreviation}`);
+        console.log(`🟰 TIE: DAL ${game.homeScore} vs ${game.awayTeam.abbreviation} ${game.awayScore}`);
       }
     } else if (isDalAway) {
       if (game.awayScore > game.homeScore) {
         wins++;
-        console.log(`✅ WIN (Away): ${game.homeTeam.abbreviation} ${game.homeScore} - ${game.awayScore} DAL`);
+        console.log(`✅ WIN: DAL ${game.awayScore} @ ${game.homeTeam.abbreviation} ${game.homeScore}`);
       } else if (game.awayScore < game.homeScore) {
         losses++;
-        console.log(`❌ LOSS (Away): ${game.homeTeam.abbreviation} ${game.homeScore} - ${game.awayScore} DAL`);
+        console.log(`❌ LOSS: DAL ${game.awayScore} @ ${game.homeTeam.abbreviation} ${game.homeScore}`);
       } else {
         ties++;
-        console.log(`🟰 TIE (Away): ${game.homeTeam.abbreviation} ${game.homeScore} - ${game.awayScore} DAL`);
+        console.log(`🟰 TIE: DAL ${game.awayScore} @ ${game.homeTeam.abbreviation} ${game.homeScore}`);
       }
     }
   }
@@ -126,7 +139,8 @@ function computeRecordFromGames(games) {
   const total = wins + losses + ties;
   const winPct = total > 0 ? Number((wins / total).toFixed(3)) : 0;
   
-  console.log(`📊 Final Record: ${wins}-${losses}-${ties} (${winPct})`);
+  console.log(`\n📊 FINAL RECORD: ${wins}-${losses}-${ties} (Win %: ${(winPct * 100).toFixed(1)}%)`);
+  console.log(`===========================\n`);
   
   return { 
     wins, 
@@ -138,4 +152,3 @@ function computeRecordFromGames(games) {
 }
 
 module.exports = { fetchCowboysGamesSeasonToDate, computeRecordFromGames };
-
