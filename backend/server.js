@@ -7,16 +7,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ Existing Cowboys routes (record, schedule, etc.)
 const cowboysRoutes = require("./routes/cowboys");
 app.use("/api/cowboys", cowboysRoutes);
 
-// ✅ Root route for sanity check
+const predictionRoutes = require("./prediction");
+app.use("/api/prediction", predictionRoutes);
+
 app.get("/", (req, res) => {
   res.send("🏈 Cowboys Playoff Predictor API is running");
 });
 
-// ✅ (optional) Serve frontend if deployed together
 if (process.env.NODE_ENV === "production") {
   const frontendPath = path.join(__dirname, "../frontend");
   app.use(express.static(frontendPath));
@@ -28,4 +28,3 @@ if (process.env.NODE_ENV === "production") {
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
-
