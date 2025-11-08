@@ -23,7 +23,7 @@ async function fetchCowboysStats() {
   try {
     const fetch = (await import("node-fetch")).default;
     const res = await fetch(
-      "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2025/types/2/teams/6/statistics"
+      "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2024/types/2/teams/6/statistics"
     );
     if (!res.ok) throw new Error("stats fetch failed");
     const data = await res.json();
