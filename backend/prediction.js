@@ -1,28 +1,27 @@
 const express = require("express");
 const router = express.Router();
-const fetch = require("node-fetch");
 const PredictionEngine = require("./chance");
 
 let predictionHistory = [];
 
-// ✅ Fetch Cowboys record from your own live API (accurate week-to-week)
 async function fetchCowboysRecord() {
   try {
+    const fetch = (await import("node-fetch")).default;
     const res = await fetch(
       "https://cowboys-playoff-prediction-app.onrender.com/api/cowboys/record"
     );
     if (!res.ok) throw new Error("record fetch failed");
     const data = await res.json();
-    return data; // { wins, losses, ties, winPct, text }
+    return data;
   } catch (err) {
     console.error("Error fetching Cowboys record:", err.message);
     return { wins: 0, losses: 0, ties: 0 };
   }
 }
 
-// ✅ Fetch live stats from ESPN (still fine to use directly)
 async function fetchCowboysStats() {
   try {
+    const fetch = (await import("node-fetch")).default;
     const res = await fetch(
       "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2025/types/2/teams/6/statistics"
     );
@@ -61,7 +60,6 @@ async function fetchCowboysStats() {
   }
 }
 
-// ✅ Get combined prediction (record + stats)
 router.get("/current", async (_req, res) => {
   try {
     const [record, stats] = await Promise.all([
@@ -86,7 +84,6 @@ router.get("/current", async (_req, res) => {
   }
 });
 
-// ✅ Generate new prediction and save to short-term memory
 router.post("/generate", async (_req, res) => {
   try {
     const [record, stats] = await Promise.all([
@@ -106,7 +103,6 @@ router.post("/generate", async (_req, res) => {
   }
 });
 
-// ✅ Retrieve short-term prediction history
 router.get("/history", (_req, res) => res.json({ history: predictionHistory }));
 
 module.exports = router;
