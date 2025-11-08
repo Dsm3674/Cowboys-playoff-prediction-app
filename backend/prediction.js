@@ -9,13 +9,14 @@
  *  - Added simple console logs for debugging
  */
 
-import fetch from "node-fetch";
+const fetch = (...args) =>
+  import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 /**
  * Fetch Cowboys season statistics from ESPN’s public API.
  * Returns avg_points_scored, avg_points_allowed, avg_total_yards, avg_turnovers.
  */
-export async function fetchCowboysStats() {
+async function fetchCowboysStats() {
   try {
     // ✅ 1. Use the current season year dynamically
     const year = new Date().getFullYear();
@@ -97,9 +98,8 @@ export async function fetchCowboysStats() {
 /**
  * Example function (if used by your endpoint)
  * This generates playoff probabilities from stats.
- * You already have this in your backend, included for completeness.
  */
-export function generatePrediction(stats) {
+function generatePrediction(stats) {
   const { avg_points_scored, avg_points_allowed } = stats;
 
   // Basic model — can be replaced with your real one
@@ -118,3 +118,5 @@ export function generatePrediction(stats) {
     generatedAt: new Date().toISOString(),
   };
 }
+
+module.exports = { fetchCowboysStats, generatePrediction };
