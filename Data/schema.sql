@@ -52,16 +52,6 @@ CREATE TABLE players (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE opponents (
-    opponent_id SERIAL PRIMARY KEY,
-    stat_id INT REFERENCES game_stats(stat_id) ON DELETE CASCADE,
-    opponent_name VARCHAR(100) NOT NULL,
-    strength_rating DECIMAL(5,2),
-    opponent_wins INT,
-    opponent_losses INT,
-    win_probability DECIMAL(5,2)
-);
-
 CREATE TABLE predictions (
     prediction_id SERIAL PRIMARY KEY,
     season_id INT REFERENCES seasons(season_id) ON DELETE CASCADE,
@@ -75,26 +65,37 @@ CREATE TABLE predictions (
     factors_json JSONB
 );
 
+-- == NEW TABLES FOR PDF FEATURES == --
+
+-- Feature 4: User Profiles & Alerts
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100),
+    password_hash VARCHAR(255),
+    theme_preference VARCHAR(20) DEFAULT 'cowboys',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Feature 10: Community Engagement
+CREATE TABLE community_votes (
+    vote_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id),
+    season_id INT,
+    week INT,
+    prediction_winner VARCHAR(50),
+    confidence_level INT
+);
+
+-- Feature 11: Player Score Impact Index (PSII)
+CREATE TABLE player_impact_metrics (
+    metric_id SERIAL PRIMARY KEY,
+    player_id INT REFERENCES players(player_id),
+    week INT,
+    impact_index DECIMAL(5,2),
+    radar_data JSONB, -- Stores Skill Areas for Feature 5
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX idx_seasons_year ON seasons(year);
 CREATE INDEX idx_game_stats_season ON game_stats(season_id);
-CREATE INDEX idx_players_season ON players(season_id);
-CREATE INDEX idx_predictions_date ON predictions(prediction_date);
-
-CREATE VIEW latest_predictions AS
-SELECT 
-    p.prediction_id,
-    t.team_name,
-    s.year,
-    s.wins,
-    s.losses,
-    p.playoff_probability,
-    p.superbowl_probability,
-    p.prediction_date
-FROM predictions p
-JOIN seasons s ON p.season_id = s.season_id
-JOIN teams t ON s.team_id = t.team_id
-WHERE p.prediction_date = (
-    SELECT MAX(prediction_date) 
-    FROM predictions 
-    WHERE season_id = p.season_id
-);
