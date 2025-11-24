@@ -1,10 +1,14 @@
+/**
+ * ESPN Cowboys schedule service
+ * Fully robust for 2025 JSON structure
+ */
+
 async function fetchCowboysGamesSeasonToDate(year) {
   try {
     const fetch = (await import("node-fetch")).default;
 
-    // ✅ FIX: Use the team-specific endpoint instead of scoreboard
     const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/dal/schedule?season=${year}`;
-    console.log(`Fetching Cowboys schedule: ${url}`);
+    console.log(`📡 Fetching Cowboys schedule: ${url}`);
 
     const res = await fetch(url);
     if (!res.ok) {
@@ -13,13 +17,39 @@ async function fetchCowboysGamesSeasonToDate(year) {
     }
 
     const data = await res.json();
-    
-    // Handle the different response structure
     const events = data.events || [];
-    if (events.length === 0) {
-      console.log("No games found for Cowboys");
-      return [];
-    }
+
+    const getScore = (comp) => {
+      if (!comp) return 0;
+
+      if (typeof comp.score === "string" || typeof comp.score === "number") {
+        const s = parseInt(comp.score, 10);
+        if (!Number.isNaN(s)) return s;
+      }
+
+      if (comp.score && comp.score.value) {
+        const s = parseInt(comp.score.value, 10);
+        if (!Number.isNaN(s)) return s;
+      }
+
+      if (Array.isArray(comp.linescores)) {
+        const last = comp.linescores.at(-1);
+        if (last && last.score != null) {
+          const s = parseInt(last.score, 10);
+          if (!Number.isNaN(s)) return s;
+        }
+      }
+
+      return 0;
+    };
+
+    const getCompleted = (statusType = {}) => {
+      const desc = (statusType.description || "").toLowerCase();
+      const name = (statusType.name || "").toLowerCase();
+      const state = (statusType.state || "").toLowerCase();
+      if (statusType.completed === true) return true;
+      return desc.includes("final") || name.includes("final") || state === "post";
+    };
 
     const allGames = [];
 
@@ -27,55 +57,79 @@ async function fetchCowboysGamesSeasonToDate(year) {
       const comp = event.competitions?.[0];
       if (!comp) continue;
 
-      const home = comp.competitors.find(c => c.homeAway === "home");
-      const away = comp.competitors.find(c => c.homeAway === "away");
+      const statusType = comp.status?.type || {};
+      const competitors = comp.competitors || [];
+
+      const home = competitors.find((c) => c.homeAway === "home");
+      const away = competitors.find((c) => c.homeAway === "away");
+
       if (!home || !away) continue;
 
+      const homeTeam = home.team || {};
+      const awayTeam = away.team || {};
+
       allGames.push({
-        week: event.week?.number || null,
-        homeTeam: home.team,
-        awayTeam: away.team,
-        homeScore: parseInt(home.score) || 0,
-        awayScore: parseInt(away.score) || 0,
-        completed: comp.status?.type?.completed ?? false,
-        status: comp.status?.type?.name || "Scheduled",
-        date: event.date
+        week: event.week?.number ?? null,
+        date: event.date,
+
+        homeTeam,
+        awayTeam,
+
+        homeTeamName:
+          homeTeam.displayName ||
+          homeTeam.name ||
+          homeTeam.shortDisplayName ||
+          "Home",
+        awayTeamName:
+          awayTeam.displayName ||
+          awayTeam.name ||
+          awayTeam.shortDisplayName ||
+          "Away",
+
+        homeTeamAbbr: homeTeam.abbreviation || null,
+        awayTeamAbbr: awayTeam.abbreviation || null,
+
+        homeScore: getScore(home),
+        awayScore: getScore(away),
+
+        completed: getCompleted(statusType),
+        status: statusType.description || statusType.name || "Scheduled",
       });
     }
 
-    console.log(`✅ Found ${allGames.length} Cowboys games`);
+    console.log(`✅ Normalized ${allGames.length} games`);
     return allGames;
-  } catch (e) {
-    console.error("ESPN fetch error:", e);
+  } catch (err) {
+    console.error("ESPN fetch error:", err);
     return [];
   }
 }
 
-// ===============================
-// RESTORE THIS FUNCTION (Required)
-// ===============================
+
 function computeRecordFromGames(games) {
-  let wins = 0, losses = 0, ties = 0;
+  let wins = 0,
+    losses = 0,
+    ties = 0;
 
-  if (!games || !games.length) {
-    return { wins: 0, losses: 0, ties: 0, winPct: 0, text: "0-0-0" };
-  }
+  for (const g of games) {
+    if (!g.completed) continue;
 
-  for (const game of games) {
-    if (!game.completed) continue;
+    const home = g.homeTeamAbbr;
+    const away = g.awayTeamAbbr;
 
-    const isDalHome = game.homeTeam.abbreviation === "DAL";
-    const isDalAway = game.awayTeam.abbreviation === "DAL";
+    if (home !== "DAL" && away !== "DAL") continue;
 
-    if (isDalHome) {
-      if (game.homeScore > game.awayScore) wins++;
-      else if (game.homeScore < game.awayScore) losses++;
-      else ties++;
-    } else if (isDalAway) {
-      if (game.awayScore > game.homeScore) wins++;
-      else if (game.awayScore < game.homeScore) losses++;
-      else ties++;
+    if (g.homeScore === g.awayScore) {
+      ties++;
+      continue;
     }
+
+    const cowboysWon =
+      (home === "DAL" && g.homeScore > g.awayScore) ||
+      (away === "DAL" && g.awayScore > g.homeScore);
+
+    if (cowboysWon) wins++;
+    else losses++;
   }
 
   const total = wins + losses + ties;
@@ -86,12 +140,13 @@ function computeRecordFromGames(games) {
     losses,
     ties,
     winPct,
-    text: `${wins}-${losses}-${ties}`
+    text: `${wins}-${losses}-${ties}`,
   };
 }
 
-// Export BOTH functions
+
 module.exports = {
   fetchCowboysGamesSeasonToDate,
-  computeRecordFromGames
+  computeRecordFromGames,
 };
+
