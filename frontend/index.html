@@ -7,26 +7,17 @@
     
     <link rel="stylesheet" href="./style.css" />
     
-    <!-- 1. LOAD REACT (The Core) -->
-   <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
-   <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-
+    <!-- LOAD REACT 17 -->
+    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     
-    <!-- 2. LOAD PROP-TYPES (CRITICAL FIX) -->
-    <!-- This was missing. Recharts needs this to run. -->
-    <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
-    
-    <!-- 3. LOAD RECHARTS (The Graphing Library) -->
-    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
-    
-    <!-- 4. LOAD BABEL (Translates your JSX code) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- LOAD BABEL -->
+    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
   </head>
   <body>
     <div id="root"></div>
 
-    <!-- 5. YOUR APP CODE -->
-    <!-- Note: We load api.js first so the functions exist before the UI uses them -->
+    <!-- YOUR APP CODE -->
     <script type="text/babel" src="./src/api.js"></script>
     <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
     <script type="text/babel" src="./src/components/GameTable.jsx"></script>
