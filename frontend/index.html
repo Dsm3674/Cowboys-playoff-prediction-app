@@ -3,20 +3,35 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LoneStar Analytics</title>
+    <title>LoneStar Analytics Dashboard</title>
+    
+    <!-- CSS -->
     <link rel="stylesheet" href="./style.css" />
-    <!-- React -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- 1. LOAD REACT CORE (Must be first) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- 2. LOAD BABEL (To read JSX) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Feature 5: Visualization Library -->
-    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+    
+    <!-- 3. LOAD RECHARTS (Must be AFTER React) -->
+    <!-- Using a specific stable version to prevent errors -->
+    <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script>
+
+    <!-- 4. LOAD LODASH (Helper sometimes needed) -->
+    <script src="https://unpkg.com/lodash@4.17.21/lodash.min.js"></script>
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- 5. LOAD YOUR APP SCRIPTS -->
+    <!-- These must be type="text/babel" -->
     <script type="text/babel" src="./src/api.js"></script>
     <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
     <script type="text/babel" src="./src/components/GameTable.jsx"></script>
+    
+    <!-- Main App Logic -->
     <script type="text/babel" src="./scr.jsx"></script>
   </body>
 </html>
