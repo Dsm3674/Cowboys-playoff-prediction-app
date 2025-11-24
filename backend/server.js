@@ -7,11 +7,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
 const cowboysRoutes = require("./routes/cowboys");
 app.use("/api/cowboys", cowboysRoutes);
 
-const predictionRoutes = require("./prediction");
+const predictionRoutes = require("./superbowlPath"); // Assuming this is the correct path from your structure
 app.use("/api/prediction", predictionRoutes);
+
+
+const simulationRoutes = require("./routes/simulation");
+app.use("/api/simulation", simulationRoutes);
 
 app.get("/", (req, res) => {
   res.send("🏈 Cowboys Playoff Predictor API is running");
