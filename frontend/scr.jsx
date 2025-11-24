@@ -1,11 +1,5 @@
-// 1. DESTRUCTURE RECHARTS (Required for CDN usage)
-const { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar 
-} = Recharts;
-
 // =========================================
 // COMPONENT: PredictionPanel
-// (RecordCard and GameTable already defined in separate files)
 // =========================================
 function PredictionPanel() {
   const [pred, setPred] = React.useState(null);
@@ -99,6 +93,6 @@ function App() {
 }
 
 // =========================================
-// RENDER APPLICATION - FIXED FOR REACT 17
+// RENDER APPLICATION
 // =========================================
 ReactDOM.render(<App />, document.getElementById("root"));
