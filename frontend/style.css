@@ -1,19 +1,114 @@
+/* Feature 6: Theming Variables */
+:root {
+  --primary: #003594;
+  --secondary: #869397;
+  --bg-color: #f4f4f9;
+  --card-bg: #ffffff;
+  --text-main: #333;
+}
+
+body.dark {
+  --primary: #4f8aff;
+  --secondary: #4b5563;
+  --bg-color: #111827;
+  --card-bg: #1f2937;
+  --text-main: #f3f4f6;
+}
+
+body.retro {
+  --primary: #008080;
+  --secondary: #c0c0c0;
+  --bg-color: #c0c0c0;
+  --card-bg: #e0e0e0;
+  --text-main: #000;
+  font-family: "Courier New", monospace;
+}
+
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
-  background: #f9fafb;
-  color: #111827;
+  background: var(--bg-color);
+  color: var(--text-main);
+  transition: background 0.3s;
 }
 
-h1 {
-  font-size: 2rem;
+/* Nav */
+.main-nav {
+  background: var(--primary);
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-links button {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+}
+
+.nav-links button.active {
+  color: white;
+  border-bottom: 2px solid white;
+}
+
+/* Layouts */
+.content-area {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.grid-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+}
+
+.card {
+  background: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  margin-bottom: 1.5rem;
+}
+
+/* Simulator Styles */
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+select, input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.btn-primary {
+  width: 100%;
+  padding: 0.8rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
   font-weight: bold;
 }
 
-input {
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 4px 8px;
-}
+.stat-val.high { color: green; font-weight: bold; }
+.stat-val.medium { color: orange; font-weight: bold; }
+
+.fade-in { animation: fadeIn 0.5s ease-in; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
 
 
