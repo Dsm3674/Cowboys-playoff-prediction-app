@@ -2,21 +2,28 @@ async function fetchCowboysGamesSeasonToDate(year) {
   try {
     const fetch = (await import("node-fetch")).default;
 
-    const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=${year}&seasontype=2`;
-    console.log(`Fetching Cowboys full season scoreboard: ${url}`);
+    // ✅ FIX: Use the team-specific endpoint instead of scoreboard
+    const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/dal/schedule?season=${year}`;
+    console.log(`Fetching Cowboys schedule: ${url}`);
 
     const res = await fetch(url);
     if (!res.ok) {
-      console.error("ESPN error:", res.status);
+      console.error("ESPN API error:", res.status);
       return [];
     }
 
     const data = await res.json();
-    if (!data.events || data.events.length === 0) return [];
+    
+    // Handle the different response structure
+    const events = data.events || [];
+    if (events.length === 0) {
+      console.log("No games found for Cowboys");
+      return [];
+    }
 
     const allGames = [];
 
-    for (const event of data.events) {
+    for (const event of events) {
       const comp = event.competitions?.[0];
       if (!comp) continue;
 
@@ -24,11 +31,8 @@ async function fetchCowboysGamesSeasonToDate(year) {
       const away = comp.competitors.find(c => c.homeAway === "away");
       if (!home || !away) continue;
 
-      // Only Cowboys games
-      if (home.team.abbreviation !== "DAL" && away.team.abbreviation !== "DAL") continue;
-
       allGames.push({
-        week: comp.week?.number || null,
+        week: event.week?.number || null,
         homeTeam: home.team,
         awayTeam: away.team,
         homeScore: parseInt(home.score) || 0,
@@ -39,13 +43,13 @@ async function fetchCowboysGamesSeasonToDate(year) {
       });
     }
 
+    console.log(`✅ Found ${allGames.length} Cowboys games`);
     return allGames;
   } catch (e) {
     console.error("ESPN fetch error:", e);
     return [];
   }
 }
-
 
 // ===============================
 // RESTORE THIS FUNCTION (Required)
@@ -91,5 +95,3 @@ module.exports = {
   fetchCowboysGamesSeasonToDate,
   computeRecordFromGames
 };
-
-
