@@ -3,16 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cowboys Predictor</title>
+    <title>LoneStar Analytics</title>
     <link rel="stylesheet" href="./style.css" />
-    <!-- React and Babel from CDN -->
+    <!-- React -->
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Feature 5: Visualization Library -->
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
   </head>
   <body>
     <div id="root"></div>
-    <!-- Load scripts in correct order -->
     <script type="text/babel" src="./src/api.js"></script>
     <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
     <script type="text/babel" src="./src/components/GameTable.jsx"></script>
