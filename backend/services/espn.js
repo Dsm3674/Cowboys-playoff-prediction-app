@@ -1,6 +1,6 @@
 /**
  * ESPN Cowboys schedule service
- * Fully robust for 2025 JSON structure
+ * Robust for current (2025) JSON structure.
  */
 
 async function fetchCowboysGamesSeasonToDate(year) {
@@ -19,21 +19,25 @@ async function fetchCowboysGamesSeasonToDate(year) {
     const data = await res.json();
     const events = data.events || [];
 
+    // Safe score extraction for 2025+ JSON
     const getScore = (comp) => {
       if (!comp) return 0;
 
+      // 1) score as simple string/number
       if (typeof comp.score === "string" || typeof comp.score === "number") {
         const s = parseInt(comp.score, 10);
         if (!Number.isNaN(s)) return s;
       }
 
-      if (comp.score && comp.score.value) {
+      // 2) score.value pattern
+      if (comp.score && comp.score.value != null) {
         const s = parseInt(comp.score.value, 10);
         if (!Number.isNaN(s)) return s;
       }
 
-      if (Array.isArray(comp.linescores)) {
-        const last = comp.linescores.at(-1);
+      // 3) fallback: last linescore
+      if (Array.isArray(comp.linescores) && comp.linescores.length > 0) {
+        const last = comp.linescores[comp.linescores.length - 1];
         if (last && last.score != null) {
           const s = parseInt(last.score, 10);
           if (!Number.isNaN(s)) return s;
@@ -43,10 +47,12 @@ async function fetchCowboysGamesSeasonToDate(year) {
       return 0;
     };
 
+    // Determine if game is completed
     const getCompleted = (statusType = {}) => {
       const desc = (statusType.description || "").toLowerCase();
       const name = (statusType.name || "").toLowerCase();
       const state = (statusType.state || "").toLowerCase();
+
       if (statusType.completed === true) return true;
       return desc.includes("final") || name.includes("final") || state === "post";
     };
@@ -54,7 +60,7 @@ async function fetchCowboysGamesSeasonToDate(year) {
     const allGames = [];
 
     for (const event of events) {
-      const comp = event.competitions?.[0];
+      const comp = event.competitions && event.competitions[0];
       if (!comp) continue;
 
       const statusType = comp.status?.type || {};
@@ -62,7 +68,6 @@ async function fetchCowboysGamesSeasonToDate(year) {
 
       const home = competitors.find((c) => c.homeAway === "home");
       const away = competitors.find((c) => c.homeAway === "away");
-
       if (!home || !away) continue;
 
       const homeTeam = home.team || {};
@@ -72,9 +77,11 @@ async function fetchCowboysGamesSeasonToDate(year) {
         week: event.week?.number ?? null,
         date: event.date,
 
+        // Raw team objects (useful if needed)
         homeTeam,
         awayTeam,
 
+        // Pre-computed names for the UI
         homeTeamName:
           homeTeam.displayName ||
           homeTeam.name ||
@@ -86,12 +93,15 @@ async function fetchCowboysGamesSeasonToDate(year) {
           awayTeam.shortDisplayName ||
           "Away",
 
+        // Abbreviations used by computeRecordFromGames
         homeTeamAbbr: homeTeam.abbreviation || null,
         awayTeamAbbr: awayTeam.abbreviation || null,
 
+        // Scores
         homeScore: getScore(home),
         awayScore: getScore(away),
 
+        // Game status
         completed: getCompleted(statusType),
         status: statusType.description || statusType.name || "Scheduled",
       });
@@ -105,18 +115,25 @@ async function fetchCowboysGamesSeasonToDate(year) {
   }
 }
 
-
+/**
+ * Compute Cowboys record from normalized games
+ */
 function computeRecordFromGames(games) {
-  let wins = 0,
-    losses = 0,
-    ties = 0;
+  let wins = 0;
+  let losses = 0;
+  let ties = 0;
+
+  if (!Array.isArray(games)) {
+    return { wins: 0, losses: 0, ties: 0, winPct: 0, text: "0-0-0" };
+  }
 
   for (const g of games) {
-    if (!g.completed) continue;
+    if (!g || !g.completed) continue;
 
     const home = g.homeTeamAbbr;
     const away = g.awayTeamAbbr;
 
+    // Skip games that don't involve DAL for any reason
     if (home !== "DAL" && away !== "DAL") continue;
 
     if (g.homeScore === g.awayScore) {
@@ -144,9 +161,9 @@ function computeRecordFromGames(games) {
   };
 }
 
-
 module.exports = {
   fetchCowboysGamesSeasonToDate,
   computeRecordFromGames,
 };
+
 
