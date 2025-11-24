@@ -182,6 +182,12 @@ function Simulator() {
 // PLAYER INTEL TAB
 // ============================
 function PlayerIntel() {
+  // Prevent runtime crash if Recharts loads slowly
+  if (!RadarChart || !Radar) {
+    return <div>Loading player visualization...</div>;
+  }
+
+function PlayerIntel() {
   const radarData = [
     { subject: 'Passing', A: 120, fullMark: 150 },
     { subject: 'IQ', A: 98, fullMark: 150 },
