@@ -1,276 +1,194 @@
-// ============================
-// SAFE RECHARTS IMPORT
-// ============================
-const {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer
-} = window.Recharts || {};
+// 1. DESTUCTURE RECHARTS (Required for CDN usage)
+const { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar 
+} = Recharts;
 
-
-// ============================
-// MAIN APP
-// ============================
-function App() {
-  const [theme, setTheme] = React.useState('cowboys');
-  const [activeTab, setActiveTab] = React.useState('dashboard');
+// =========================================
+// COMPONENT: RecordCard
+// =========================================
+function RecordCard({ year }) {
+  const [record, setRecord] = React.useState({ wins: 0, losses: 0, ties: 0 });
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
 
   React.useEffect(() => {
-    document.body.className = theme;
-  }, [theme]);
+    setLoading(true);
+    window.getCowboysRecord(year)
+      .then(data => setRecord(data))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [year]);
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard': return <Dashboard />;
-      case 'simulator': return <Simulator />;
-      case 'players': return <PlayerIntel />;
-      case 'profile': return <UserProfile />;
-      default: return <Dashboard />;
-    }
-  };
+  if (loading) return <div className="p-4">Loading record...</div>;
+  if (error) return <div className="error">Error: {error}</div>;
 
   return (
-    <div className="app-container">
-      <nav className="main-nav">
-        <div className="nav-brand">🏈 LoneStar Analytics</div>
-        <div className="nav-links">
-          <button className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => setActiveTab('dashboard')}>Dashboard</button>
-          <button className={activeTab === 'simulator' ? 'active' : ''} onClick={() => setActiveTab('simulator')}>AI Simulator</button>
-          <button className={activeTab === 'players' ? 'active' : ''} onClick={() => setActiveTab('players')}>Player Intel</button>
-          <button className={activeTab === 'profile' ? 'active' : ''} onClick={() => setActiveTab('profile')}>Profile</button>
-        </div>
-
-        <div className="theme-selector">
-          <select value={theme} onChange={(e) => setTheme(e.target.value)}>
-            <option value="cowboys">🤠 Classic</option>
-            <option value="dark">🌑 Night Mode</option>
-            <option value="retro">📺 Retro 90s</option>
-          </select>
-        </div>
-      </nav>
-
-      <main className="content-area">
-        {renderContent()}
-      </main>
+    <div style={{ 
+      background: "white", 
+      padding: "1.5rem", 
+      borderRadius: "10px", 
+      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+      textAlign: "center"
+    }}>
+      <h3 style={{ margin: "0 0 0.5rem 0", color: "#666" }}>{year} Regular Season</h3>
+      <div style={{ fontSize: "3.5rem", fontWeight: "800", color: "#003594", lineHeight: "1" }}>
+        {record.wins}-{record.losses}
+        {record.ties > 0 && <span>-{record.ties}</span>}
+      </div>
+      <p style={{ margin: "0.5rem 0 0 0", fontWeight: "bold", color: "#888" }}>
+        Win Pct: {record.winPct ? (record.winPct * 100).toFixed(1) : "0.0"}%
+      </p>
     </div>
   );
 }
 
-
-
-// ============================
-// DASHBOARD TAB
-// ============================
-function Dashboard() {
-  const [prediction, setPrediction] = React.useState(null);
-  const year = new Date().getFullYear();
+// =========================================
+// COMPONENT: GameTable
+// =========================================
+function GameTable({ year }) {
+  const [games, setGames] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    window.getCurrentPrediction().then(res => setPrediction(res.prediction));
-  }, []);
+    setLoading(true);
+    window.getCowboysSchedule(year)
+      .then(data => setGames(data.games || []))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, [year]);
+
+  if (loading) return <div>Loading schedule...</div>;
 
   return (
-    <div className="grid-layout">
-      <div className="col-left">
-        <RecordCard year={year} />
-
-        {prediction && (
-          <div className="card prediction-card">
-            <h3>Live Playoff Odds</h3>
-            <div className="stat-big">{(prediction.playoff_probability || 72.5)}%</div>
-            <p>Super Bowl Chance: {prediction.superbowl_probability || 8.2}%</p>
-            <div className="confidence-pill">Confidence: {prediction.confidence_score}%</div>
-          </div>
-        )}
-      </div>
-
-      <div className="col-right">
-        <GameTable year={year} />
+    <div style={{ background: "white", padding: "1rem", borderRadius: "10px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+      <h3 style={{ marginTop: 0 }}>Season Schedule</h3>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "500px" }}>
+          <thead>
+            <tr style={{ background: "#f4f4f4" }}>
+              <th style={{ padding: "10px", textAlign: "left" }}>Wk</th>
+              <th style={{ padding: "10px", textAlign: "left" }}>Date</th>
+              <th style={{ padding: "10px", textAlign: "left" }}>Opponent</th>
+              <th style={{ padding: "10px", textAlign: "center" }}>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            {games.map((g, idx) => {
+              const isHome = g.homeTeam.abbreviation === 'DAL';
+              const opponent = isHome ? g.awayTeam : g.homeTeam;
+              const isWin = (isHome && g.homeScore > g.awayScore) || (!isHome && g.awayScore > g.homeScore);
+              
+              return (
+                <tr key={idx} style={{ borderBottom: "1px solid #eee" }}>
+                  <td style={{ padding: "10px" }}>{g.week}</td>
+                  <td style={{ padding: "10px" }}>{new Date(g.date).toLocaleDateString()}</td>
+                  <td style={{ padding: "10px" }}>
+                    <span style={{ color: isHome ? "black" : "#666" }}>{isHome ? "vs " : "@ "}</span>
+                    <strong>{opponent.displayName || opponent.name}</strong>
+                  </td>
+                  <td style={{ padding: "10px", textAlign: "center", fontWeight: "bold", color: isWin ? "green" : "red" }}>
+                    {g.completed ? `${g.awayScore} - ${g.homeScore}` : g.status}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
 
-
-
-// ============================
-// SIMULATOR TAB
-// ============================
-function Simulator() {
-  const [model, setModel] = React.useState('RandomForest');
-  const [scenario, setScenario] = React.useState('');
-  const [result, setResult] = React.useState(null);
+// =========================================
+// COMPONENT: PredictionPanel
+// =========================================
+function PredictionPanel() {
+  const [pred, setPred] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
 
-  const runSimulation = async () => {
+  const fetchPrediction = () => {
     setLoading(true);
-    try {
-      const res = await fetch('http://localhost:3001/api/simulation/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelType: model, scenario })
-      });
-
-      const data = await res.json();
-      setResult(data.results);
-    } catch (err) {
-      console.error(err);
-    }
-    setLoading(false);
+    window.generatePrediction()
+      .then(data => {
+        if(data.success) setPred(data.prediction);
+      })
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
   };
 
   return (
-    <div className="simulator-wrapper">
-      <div className="card controls">
-        <h2>🤖 AI Engine Configuration</h2>
-
-        <div className="form-group">
-          <label>Machine Learning Model (Feature 9)</label>
-          <select value={model} onChange={(e) => setModel(e.target.value)}>
-            <option value="RandomForest">Random Forest (Balanced)</option>
-            <option value="LSTM">LSTM (Trend Sensitive)</option>
-            <option value="Elo">Elo Rating (Conservative)</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>"What If?" Scenario (Feature 2)</label>
-          <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
-            <option value="">No External Stimulus</option>
-            <option value="injury_qb">Major Injury: Quarterback</option>
-            <option value="weather_snow">Heavy Snow Game</option>
-            <option value="easy_schedule">Strength of Schedule: Easy</option>
-          </select>
-        </div>
-
-        <button className="btn-primary" onClick={runSimulation} disabled={loading}>
-          {loading ? 'Crunching Numbers...' : '▶ Run Simulation'}
+    <div style={{ background: "white", padding: "1.5rem", borderRadius: "10px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+        <h3 style={{ margin: 0 }}>Playoff Odds (AI Model)</h3>
+        <button 
+          onClick={fetchPrediction} 
+          disabled={loading}
+          style={{
+            background: "#003594", color: "white", border: "none", padding: "8px 16px", borderRadius: "4px", cursor: "pointer"
+          }}
+        >
+          {loading ? "Running Sim..." : "Run Simulation"}
         </button>
       </div>
 
-      {result && (
-        <div className="card results fade-in">
-          <h3>Simulation Outcome</h3>
-
-          <div className="result-grid">
-            <div className="result-item">
-              <span>Win Probability</span>
-              <strong>{result.winProbability}%</strong>
-            </div>
-            <div className="result-item">
-              <span>Projected Record</span>
-              <strong>{result.projectedRecord}</strong>
+      {pred ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+          <div style={{ padding: "10px", background: "#f0f9ff", borderRadius: "8px", textAlign: "center" }}>
+            <div style={{ fontSize: "0.9rem", color: "#555" }}>Make Playoffs</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#003594" }}>
+              {(pred.playoff_probability * 100).toFixed(1)}%
             </div>
           </div>
-
-          <div className="story-box">
-            <strong>AI Storyline:</strong>
-            <p>{result.story}</p>
+          <div style={{ padding: "10px", background: "#fff0f0", borderRadius: "8px", textAlign: "center" }}>
+            <div style={{ fontSize: "0.9rem", color: "#555" }}>Super Bowl</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#d50a0a" }}>
+              {(pred.superbowl_probability * 100).toFixed(1)}%
+            </div>
           </div>
         </div>
+      ) : (
+        <p style={{ color: "#666", fontStyle: "italic" }}>Click 'Run Simulation' to view latest odds.</p>
       )}
     </div>
   );
 }
 
-
-
-// ============================
-// PLAYER INTEL TAB
-// ============================
-function PlayerIntel() {
-  // Prevent runtime crash if Recharts loads slowly
-  if (!RadarChart || !Radar) {
-    return <div>Loading player visualization...</div>;
-  }
-
-function PlayerIntel() {
-  const radarData = [
-    { subject: 'Passing', A: 120, fullMark: 150 },
-    { subject: 'IQ', A: 98, fullMark: 150 },
-    { subject: 'Clutch', A: 86, fullMark: 150 },
-    { subject: 'Health', A: 99, fullMark: 150 },
-    { subject: 'Mobility', A: 85, fullMark: 150 },
-  ];
+// =========================================
+// COMPONENT: App (Main Layout)
+// =========================================
+function App() {
+  const currentYear = new Date().getFullYear();
 
   return (
-    <div className="player-intel">
-      <h2>Player Impact & Visualization</h2>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "2rem", fontFamily: "Arial, sans-serif" }}>
+      
+      {/* HEADER */}
+      <header style={{ marginBottom: "2rem", borderBottom: "2px solid #eee", paddingBottom: "1rem" }}>
+        <h1 style={{ color: "#003594", margin: 0 }}>LoneStar Analytics 🏈</h1>
+        <p style={{ color: "#666", margin: "5px 0 0 0" }}>Dallas Cowboys Real-time Dashboard</p>
+      </header>
 
-      <div className="grid-layout">
-        <div className="card">
-          <h3>Dak Prescott - Skill Radar</h3>
-
-          <div style={{ width: '100%', height: 300 }}>
-            <ResponsiveContainer>
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="subject" />
-                <PolarRadiusAxis />
-                <Radar name="Dak" dataKey="A" stroke="#003594" fill="#003594" fillOpacity={0.6} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
+      {/* GRID LAYOUT */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "2rem" }}>
+        
+        {/* LEFT COLUMN */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+          <RecordCard year={currentYear} />
+          <PredictionPanel />
         </div>
 
-        <div className="card">
-          <h3>Player Score Impact Index (PSII)</h3>
-          <ul className="stat-list">
-            <li>
-              <span>Dak Prescott</span>
-              <span className="stat-val high">+12.4% Win Prob</span>
-            </li>
-            <li>
-              <span>CeeDee Lamb</span>
-              <span className="stat-val medium">+8.2% Win Prob</span>
-            </li>
-            <li>
-              <span>Micah Parsons</span>
-              <span className="stat-val high">+10.1% Win Prob</span>
-            </li>
-          </ul>
+        {/* RIGHT COLUMN */}
+        <div style={{ flex: 2 }}>
+          <GameTable year={currentYear} />
         </div>
+
       </div>
     </div>
   );
 }
 
-
-
-// ============================
-// PROFILE TAB
-// ============================
-function UserProfile() {
-  return (
-    <div className="profile-wrapper">
-      <div className="card login-box">
-        <h2>User Login</h2>
-        <input type="text" placeholder="Username" />
-        <input type="password" placeholder="Password" />
-        <button className="btn-primary">Login</button>
-        <p><small>Login to save predictions and set alerts.</small></p>
-      </div>
-
-      <div className="card community">
-        <h3>Community Engagement</h3>
-        <p>What is your prediction for next week?</p>
-
-        <div className="vote-buttons">
-          <button className="btn-outline">Cowboys Win</button>
-          <button className="btn-outline">Cowboys Lose</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-
-// ============================
-// RENDER ROOT
-// ============================
+// =========================================
+// RENDER APPLICATION
+// =========================================
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<App />);
