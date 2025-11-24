@@ -1,24 +1,30 @@
 {
-  "name": "cowboys-superbowl-api",
+  "name": "cowboys-playoff-predictor",
   "version": "1.0.0",
-  "description": "Cowboys Super Bowl Prediction API with PostgreSQL",
-  "main": "server.js",
-  "type": "commonjs",
+  "description": "Dallas Cowboys Playoff Prediction API",
+  "main": "backend/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "init-db": "node initDatabase.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node backend/initDatabase.js && node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "seed": "node backend/initDatabase.js"
   },
+  "keywords": [
+    "nfl",
+    "cowboys",
+    "api",
+    "prediction"
+  ],
+  "author": "Divyanshu & Aniketh",
+  "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
-    "pg": "^8.11.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
-    "body-parser": "^1.20.2",
-    "node-fetch": "^3.3.0"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "node-fetch": "^2.7.0",
+    "pg": "^8.11.3"
   },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
-
