@@ -1,20 +1,26 @@
 function PlayerRadar() {
-  const [data, setData] = React.useState(null);
-  const [error, setError] = React.useState(null);
+  const [payload, setPayload] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+
+  // which player we’re “focused” on for the text section
+  const [activeId, setActiveId] = React.useState("dak");
+
+  // which players are drawn on the chart
+  const [visible, setVisible] = React.useState({
+    dak: true,
+    ceedee: true,
+    bland: true,
+  });
 
   const canvasRef = React.useRef(null);
   const chartRef = React.useRef(null);
 
-  // Visibility toggles
-  const [visible, setVisible] = React.useState({
-    dak: true,
-    ceedee: true,
-    micah: true,
-  });
-
-  // Load radar data from backend
+  // ---- Fetch data from backend ----------------------------------
   React.useEffect(() => {
+    setLoading(true);
+    setError(null);
+
     const BASE =
       window.location.hostname === "localhost"
         ? "http://localhost:3001"
@@ -25,58 +31,101 @@ function PlayerRadar() {
         if (!res.ok) throw new Error("failed to load player radar");
         return res.json();
       })
-      .then((json) => setData(json))
+      .then((json) => {
+        // Normalize structure a bit defensively
+        const labels = json.labels || [
+          "Offense",
+          "Explosiveness",
+          "Consistency",
+          "Clutch",
+          "Durability",
+        ];
+
+        const players = (json.players || []).map((p) => {
+          const lower = (p.name || "").toLowerCase();
+          let id = p.id || "dak";
+          if (lower.includes("prescott")) id = "dak";
+          else if (lower.includes("lamb")) id = "ceedee";
+          else if (lower.includes("bland")) id = "bland";
+
+          const m = p.metrics || {};
+          return {
+            id,
+            name: p.name,
+            position: p.position,
+            role: p.role || "",
+            metrics: {
+              offense: m.offense || 0,
+              explosiveness: m.explosiveness || 0,
+              consistency: m.consistency || 0,
+              clutch: m.clutch || 0,
+              durability: m.durability || 0,
+            },
+          };
+        });
+
+        setPayload({ labels, players });
+        if (players.some((p) => p.id === "bland")) {
+          setActiveId("bland"); // focus Bland by default if present
+        }
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
-  // Render radar chart
+  // ---- Build / update Chart.js radar ----------------------------
   React.useEffect(() => {
-    if (!data || !canvasRef.current) return;
+    if (!payload || !canvasRef.current || !window.Chart) return;
 
-    // destroy old chart
+    // clean up old chart
     if (chartRef.current) {
       chartRef.current.destroy();
       chartRef.current = null;
     }
 
-    const players = data.players || [];
-    const labels = data.labels || [];
     const ctx = canvasRef.current.getContext("2d");
+    const labels = payload.labels;
 
-    const colors = {
-      dak: { bg: "rgba(0,53,148,0.25)", border: "#003594" },
-      ceedee: { bg: "rgba(255,107,53,0.25)", border: "#ff6b35" },
-      micah: { bg: "rgba(34,197,94,0.25)", border: "#22c55e" },
+    const palette = {
+      dak: {
+        bg: "rgba(0, 53, 148, 0.25)",
+        border: "rgba(0, 53, 148, 1)",
+      },
+      ceedee: {
+        bg: "rgba(255, 107, 53, 0.25)",
+        border: "rgba(255, 107, 53, 1)",
+      },
+      bland: {
+        bg: "rgba(30, 144, 255, 0.25)", // DodgerBlue-ish
+        border: "rgba(30, 144, 255, 1)",
+      },
     };
 
-    const datasets = players.map((p) => {
-      const id = p.name.toLowerCase().includes("prescott")
-        ? "dak"
-        : p.name.toLowerCase().includes("lamb")
-        ? "ceedee"
-        : "micah";
+    const datasets = payload.players
+      .filter((p) => visible[p.id])
+      .map((p) => {
+        const m = p.metrics;
+        const vals = [
+          m.offense,
+          m.explosiveness,
+          m.consistency,
+          m.clutch,
+          m.durability,
+        ];
+        const colors = palette[p.id] || palette.dak;
 
-      const stats = p.metrics || {};
-      return {
-        label: p.name,
-        data: [
-          stats.offense,
-          stats.explosiveness,
-          stats.consistency,
-          stats.clutch,
-          stats.durability,
-        ],
-        fill: true,
-        borderWidth: 2,
-        hidden: !visible[id],
-        backgroundColor: colors[id].bg,
-        borderColor: colors[id].border,
-        pointBackgroundColor: colors[id].border,
-      };
-    });
+        return {
+          label: p.name,
+          data: vals,
+          fill: true,
+          backgroundColor: colors.bg,
+          borderColor: colors.border,
+          pointBackgroundColor: colors.border,
+          borderWidth: 2,
+        };
+      });
 
-    chartRef.current = new Chart(ctx, {
+    chartRef.current = new window.Chart(ctx, {
       type: "radar",
       data: {
         labels,
@@ -85,157 +134,213 @@ function PlayerRadar() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 900,
-          easing: "easeOutQuart",
-        },
         scales: {
           r: {
             suggestedMin: 60,
             suggestedMax: 100,
+            ticks: {
+              stepSize: 10,
+            },
             grid: {
-              color:
-                getComputedStyle(document.body).getPropertyValue(
-                  "--border-subtle"
-                ) || "rgba(148,163,184,0.4)",
+              color: "rgba(148, 163, 184, 0.4)",
             },
             angleLines: {
-              color:
-                getComputedStyle(document.body).getPropertyValue(
-                  "--border-subtle"
-                ) || "rgba(148,163,184,0.4)",
-            },
-            pointLabels: {
-              color:
-                getComputedStyle(document.body).getPropertyValue("--text-main"),
-              font: { size: 12, weight: "bold" },
+              color: "rgba(148, 163, 184, 0.4)",
             },
           },
         },
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: {
+            position: "bottom",
+          },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                return `${ctx.dataset.label}: ${ctx.formattedValue}`;
+              },
+            },
+          },
+        },
       },
     });
 
-    return () => chartRef.current?.destroy();
-  }, [data, visible]);
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
+    };
+  }, [payload, visible]);
 
-  const togglePlayer = (id) => {
-    setVisible((prev) => ({ ...prev, [id]: !prev[id] }));
+  // ---- UI helpers -----------------------------------------------
+  const toggleVisible = (id) => {
+    setVisible((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
   };
 
-  // Loading states
+  const setActive = (id) => {
+    setActiveId(id);
+    // if they accidentally hid a player, make sure it shows when activated
+    setVisible((prev) => ({
+      ...prev,
+      [id]: true,
+    }));
+  };
+
+  const getActivePlayer = () => {
+    if (!payload) return null;
+    return (
+      payload.players.find((p) => p.id === activeId) || payload.players[0] || null
+    );
+  };
+
+  const activePlayer = getActivePlayer();
+
   if (loading) {
     return (
-      <div className="card fade-in">
+      <div className="card">
         <h3>Player Impact Radar</h3>
-        <p>Loading your chart...</p>
+        <p>Loading player impact...</p>
       </div>
     );
   }
+
   if (error) {
     return (
-      <div className="card fade-in">
+      <div className="card">
         <h3>Player Impact Radar</h3>
-        <p style={{ color: "red" }}>{error}</p>
+        <p style={{ color: "red" }}>Error: {error}</p>
       </div>
     );
   }
 
-  const players = data.players || [];
+  if (!payload) return null;
 
   return (
-    <div className="card fade-in pulse-glow">
+    <div className="card">
       <h3>Player Impact Radar</h3>
-      <p className="eyebrow">Dak • CeeDee • Micah</p>
+      <p style={{ color: "#555", fontSize: "0.9rem" }}>
+        How Dallas&rsquo;s core stars shape win probability across offense,
+        explosiveness, consistency, clutch, and durability.
+      </p>
 
-      {/* Player toggle buttons */}
+      {/* Toggle bar */}
       <div
         style={{
           display: "flex",
-          gap: "0.5rem",
-          marginBottom: "1rem",
-          flexWrap: "wrap",
+          gap: "0.75rem",
+          margin: "0.75rem 0 1rem",
         }}
       >
-        <button
-          className="btn-primary"
-          style={{
-            flex: 1,
-            background: "#003594",
-            opacity: visible.dak ? 1 : 0.4,
-          }}
-          onClick={() => togglePlayer("dak")}
-        >
-          Dak Prescott
-        </button>
+        {["dak", "ceedee", "bland"].map((id) => {
+          const p = payload.players.find((pl) => pl.id === id);
+          if (!p) return null;
 
-        <button
-          className="btn-primary"
-          style={{
-            flex: 1,
-            background: "#ff6b35",
-            opacity: visible.ceedee ? 1 : 0.4,
-          }}
-          onClick={() => togglePlayer("ceedee")}
-        >
-          CeeDee Lamb
-        </button>
+          const isActive = activeId === id;
+          const isVisible = visible[id];
 
-        <button
-          className="btn-primary"
-          style={{
+          const baseStyles = {
             flex: 1,
-            background: "#22c55e",
-            opacity: visible.micah ? 1 : 0.4,
-          }}
-          onClick={() => togglePlayer("micah")}
-        >
-          Micah Parsons
-        </button>
+            borderRadius: "10px",
+            padding: "0.6rem 0.75rem",
+            fontSize: "0.8rem",
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            border: "2px solid #000",
+            cursor: "pointer",
+            boxShadow: isActive ? "4px 4px 0 #000" : "2px 2px 0 #000",
+            opacity: isVisible ? 1 : 0.4,
+            color: "#fff",
+          };
+
+          let bg = "#003594";
+          if (id === "ceedee") bg = "#ff6b35";
+          if (id === "bland") bg = "#1e90ff";
+
+          return (
+            <button
+              key={id}
+              type="button"
+              style={{ ...baseStyles, background: bg }}
+              onClick={() => setActive(id)}
+              onDoubleClick={() => toggleVisible(id)}
+              title={
+                isVisible
+                  ? "Double-click to hide from chart"
+                  : "Double-click to show on chart"
+              }
+            >
+              {p.name}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Radar canvas */}
-      <div style={{ height: 300, marginBottom: "1rem" }}>
-        <canvas ref={canvasRef} />
-      </div>
-
-      {/* Metric Explanation */}
-      <h4>What These Metrics Mean</h4>
-      <ul
+      {/* Radar Chart */}
+      <div
         style={{
-          fontSize: "0.9rem",
-          lineHeight: "1.45",
+          height: "320px",
           marginBottom: "1rem",
-          paddingLeft: "1rem",
+          position: "relative",
         }}
       >
-        <li>
-          <strong>Offense</strong> – Drive impact, scoring production.
-        </li>
-        <li>
-          <strong>Explosiveness</strong> – Big-play creation ability.
-        </li>
-        <li>
-          <strong>Consistency</strong> – Week-to-week reliability.
-        </li>
-        <li>
-          <strong>Clutch</strong> – High-stakes performance.
-        </li>
-        <li>
-          <strong>Durability</strong> – Availability & injury resistance.
-        </li>
-      </ul>
+        <canvas
+          ref={canvasRef}
+          style={{ width: "100%", height: "100%" }}
+        />
+      </div>
 
-      {/* Player List */}
-      <h4>Players Analyzed</h4>
-      <ul style={{ listStyle: "none", paddingLeft: 0 }}>
-        {players.map((p, i) => (
-          <li key={i} style={{ marginBottom: "0.4rem" }}>
-            <strong>{p.name}</strong> — {p.position}
-          </li>
-        ))}
-      </ul>
+      {/* Active player detail */}
+      {activePlayer && (
+        <div style={{ marginTop: "0.5rem", fontSize: "0.9rem" }}>
+          <div style={{ marginBottom: "0.5rem" }}>
+            <strong>
+              {activePlayer.name} &mdash; {activePlayer.position}
+            </strong>
+            {activePlayer.role && (
+              <span style={{ color: "#6b7280" }}> · {activePlayer.role}</span>
+            )}
+          </div>
+
+          <ul
+            style={{
+              listStyle: "none",
+              paddingLeft: 0,
+              margin: 0,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+              gap: "0.25rem 1rem",
+            }}
+          >
+            {[
+              ["Offense", activePlayer.metrics.offense],
+              ["Explosiveness", activePlayer.metrics.explosiveness],
+              ["Consistency", activePlayer.metrics.consistency],
+              ["Clutch", activePlayer.metrics.clutch],
+              ["Durability", activePlayer.metrics.durability],
+            ].map(([label, value]) => (
+              <li key={label}>
+                <strong>{label}:</strong> {value}
+              </li>
+            ))}
+          </ul>
+
+          <hr style={{ margin: "1rem 0 0.75rem" }} />
+
+          <p style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+            <strong>What these metrics mean:</strong> Offense &mdash; drive
+            impact and scoring production. Explosiveness &mdash; big-play
+            creation. Consistency &mdash; week-to-week reliability. Clutch
+            &mdash; high-leverage performance. Durability &mdash; availability
+            and ability to hold up over a full season.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
+
 
