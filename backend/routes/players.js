@@ -1,11 +1,8 @@
-
-
 const express = require("express");
 const router = express.Router();
 const Team = require("../teams");
 const Season = require("../seasons");
 const pool = require("../databases");
-
 
 router.get("/radar", async (req, res) => {
   try {
@@ -40,39 +37,55 @@ router.get("/radar", async (req, res) => {
         (p.player_name || "").toLowerCase().includes(name.toLowerCase())
       );
 
+    // 🔵 Dak Prescott
     const dak = findByName("prescott") || {
       player_name: "Dak Prescott",
       position: "QB",
       performance_rating: 90,
     };
+
+    // 🟠 CeeDee Lamb
     const ceedee = findByName("lamb") || {
       player_name: "CeeDee Lamb",
       position: "WR",
       performance_rating: 92,
     };
-    const micah = findByName("parsons") || {
-      player_name: "Micah Parsons",
-      position: "LB",
-      performance_rating: 95,
+
+    // 🔵 Daron Bland (instead of Micah)
+    const bland = findByName("bland") || {
+      player_name: "Daron Bland",
+      position: "CB",
+      performance_rating: 88,
     };
 
     const buildMetrics = (p) => {
       const base = Number(p.performance_rating) || 85;
+      const name = (p.player_name || "").toLowerCase();
+      const pos = (p.position || "").toUpperCase();
 
-      // Simple derived metrics; you can later swap with real model outputs
-      return {
-        offense:
-          p.position === "QB" || /prescott/i.test(p.player_name)
-            ? Math.min(99, base + 4)
-            : Math.max(70, base - 2),
-        explosiveness:
-          p.position === "WR" || /lamb/i.test(p.player_name)
-            ? Math.min(99, base + 6)
-            : base,
-        consistency: Math.max(70, base - 3),
-        clutch: Math.min(99, base + 2),
-        durability: Math.max(65, base - 8),
-      };
+      // You can tweak these heuristics later if you connect real model outputs
+      const offense =
+        pos === "QB" || name.includes("prescott")
+          ? Math.min(99, base + 4)
+          : pos === "WR" || name.includes("lamb")
+          ? Math.min(99, base + 3)
+          : Math.max(70, base - 4);
+
+      const explosiveness =
+        pos === "WR" || name.includes("lamb")
+          ? Math.min(99, base + 6)
+          : Math.max(70, base - 2);
+
+      const consistency = Math.max(70, base - 1);
+      const clutch = Math.min(99, base + 2);
+
+      // For Bland, treat "durability" as ball-hawk / availability vibe
+      const durability =
+        name.includes("bland") || pos === "CB"
+          ? Math.min(99, base + 3)
+          : Math.max(65, base - 5);
+
+      return { offense, explosiveness, consistency, clutch, durability };
     };
 
     const labels = [
@@ -87,19 +100,25 @@ router.get("/radar", async (req, res) => {
       labels,
       players: [
         {
+          id: "dak",
           name: dak.player_name,
           position: dak.position || "QB",
           metrics: buildMetrics(dak),
+          role: "Offensive Engine",
         },
         {
+          id: "ceedee",
           name: ceedee.player_name,
           position: ceedee.position || "WR",
           metrics: buildMetrics(ceedee),
+          role: "Explosive Playmaker",
         },
         {
-          name: micah.player_name,
-          position: micah.position || "LB",
-          metrics: buildMetrics(micah),
+          id: "bland",
+          name: bland.player_name,
+          position: bland.position || "CB",
+          metrics: buildMetrics(bland),
+          role: "Turnover Machine",
         },
       ],
     };
