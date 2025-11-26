@@ -23,55 +23,24 @@ function GameTable({ year }) {
   if (!games.length) return <div>No games found for {year}</div>;
 
   return (
-    <div
-      style={{
-        background: "white",
-        padding: "1rem",
-        borderRadius: "10px",
-        marginTop: "1rem",
-      }}
-    >
-      <h2>Schedule</h2>
+    <div className="card">
+      <h2 style={{ marginTop: 0 }}>Schedule</h2>
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table>
         <thead>
           <tr>
-            <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>
-              Home
-            </th>
-            <th style={{ padding: "8px", borderBottom: "2px solid #ddd" }}>
-              Away
-            </th>
-            <th
-              style={{
-                padding: "8px",
-                borderBottom: "2px solid #ddd",
-                textAlign: "center",
-              }}
-            >
-              Score
-            </th>
+            <th>Home</th>
+            <th>Away</th>
+            <th style={{ textAlign: "center" }}>Score</th>
           </tr>
         </thead>
 
         <tbody>
           {games.map((g, i) => (
             <tr key={i}>
-              <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                {g.homeTeamName}
-              </td>
-
-              <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                {g.awayTeamName}
-              </td>
-
-              <td
-                style={{
-                  padding: "8px",
-                  borderBottom: "1px solid #eee",
-                  textAlign: "center",
-                }}
-              >
+              <td>{g.homeTeamName}</td>
+              <td>{g.awayTeamName}</td>
+              <td style={{ textAlign: "center" }}>
                 {g.homeScore} - {g.awayScore}
               </td>
             </tr>
@@ -81,4 +50,3 @@ function GameTable({ year }) {
     </div>
   );
 }
-
