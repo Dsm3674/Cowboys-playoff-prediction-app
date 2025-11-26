@@ -1,12 +1,9 @@
-
-
 function UserProfileCard() {
   const [username, setUsername] = React.useState("");
   const [theme, setTheme] = React.useState("default");
   const [hasProfile, setHasProfile] = React.useState(false);
   const [pollChoice, setPollChoice] = React.useState(null);
   const [pollResults, setPollResults] = React.useState({ yes: 0, no: 0 });
-
 
   React.useEffect(() => {
     try {
@@ -52,7 +49,6 @@ function UserProfileCard() {
     const value = e.target.value;
     setTheme(value);
     applyTheme(value);
-    // If profile exists, persist immediately
     if (hasProfile && username.trim()) {
       localStorage.setItem(
         "ls_profile",
@@ -73,6 +69,21 @@ function UserProfileCard() {
       "ls_pollResults",
       JSON.stringify({ choice, results: updated })
     );
+  };
+
+  const logout = () => {
+    try {
+      localStorage.removeItem("ls_profile");
+      localStorage.removeItem("ls_pollResults");
+    } catch (e) {
+      console.warn("UserProfileCard: failed to clear profile", e);
+    }
+    setUsername("");
+    setTheme("default");
+    setHasProfile(false);
+    setPollChoice(null);
+    setPollResults({ yes: 0, no: 0 });
+    applyTheme("default");
   };
 
   return (
@@ -127,6 +138,18 @@ function UserProfileCard() {
             Theme + profile are stored locally in your browser.
           </small>
 
+          <button
+            type="button"
+            className="btn-primary"
+            style={{
+              marginTop: "0.75rem",
+              background: "#6b7280",
+            }}
+            onClick={logout}
+          >
+            Log out
+          </button>
+
           <hr style={{ margin: "1.5rem 0" }} />
 
           <h4 style={{ marginTop: 0 }}>Community Poll</h4>
@@ -134,7 +157,13 @@ function UserProfileCard() {
             Will the Cowboys make the NFC Championship this season?
           </p>
 
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              marginBottom: "0.5rem",
+            }}
+          >
             <button
               type="button"
               className="btn-primary"
