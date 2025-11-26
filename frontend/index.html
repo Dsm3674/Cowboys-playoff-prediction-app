@@ -5,7 +5,6 @@
   <title>Cowboys Predictor App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  
   <style>
     body {
       margin: 0;
@@ -13,7 +12,7 @@
       background: #0a0a0a;
       color: white;
     }
-    #app {
+    #root {
       width: 100%;
       height: 100%;
     }
@@ -35,18 +34,14 @@
     }
   </style>
 
- 
   <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
- 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-  
   <div class="nav-bar">
     <div class="nav-link" onclick="window.setPage('dashboard')">Dashboard</div>
     <div class="nav-link" onclick="window.setPage('simulator')">AI Simulator</div>
@@ -55,10 +50,10 @@
     <div class="nav-link" onclick="window.setPage('history')">Our Story</div>
   </div>
 
- 
-  <div id="app"></div>
 
-  <!-- Load API + Components -->
+  <div id="root"></div>
+
+ 
   <script type="text/babel" src="./src/api.js"></script>
   <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
   <script type="text/babel" src="./src/components/GameTable.jsx"></script>
@@ -67,7 +62,7 @@
   <script type="text/babel" src="./src/components/AIStorySimulator.jsx"></script>
   <script type="text/babel" src="./src/components/HistoryPage.jsx"></script>
 
- =
+ 
   <script type="text/babel" src="./scr.jsx"></script>
 
 </body>
