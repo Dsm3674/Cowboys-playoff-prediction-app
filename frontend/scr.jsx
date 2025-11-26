@@ -277,6 +277,10 @@ function App() {
 // ---- Simple global router for nav bar ----
 window.currentPage = window.currentPage || "dashboard";
 
+function renderApp() {
+  ReactDOM.render(<App />, document.getElementById("root"));
+}
+
 window.setPage = function (page) {
   window.currentPage = page;
 
@@ -288,10 +292,10 @@ window.setPage = function (page) {
     else el.classList.remove("active");
   });
 
-  ReactDOM.render(<App />, document.getElementById("root"));
+  renderApp();
 };
 
-// initial render
-ReactDOM.render(<App />, document.getElementById("root"));
+// initial render with correct active tab
+window.setPage(window.currentPage);
 
 
