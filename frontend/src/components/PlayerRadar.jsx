@@ -1,5 +1,3 @@
-
-
 function PlayerRadar() {
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState(null);
@@ -37,7 +35,23 @@ function PlayerRadar() {
 
     const ctx = canvasRef.current.getContext("2d");
     const labels = data.labels || [];
-    const datasets = (data.players || []).map((p) => {
+
+    const palette = [
+      {
+        bg: "rgba(0, 53, 148, 0.25)",
+        border: "rgba(0, 53, 148, 1)",
+      },
+      {
+        bg: "rgba(255, 107, 53, 0.25)",
+        border: "rgba(255, 107, 53, 1)",
+      },
+      {
+        bg: "rgba(34, 197, 94, 0.25)",
+        border: "rgba(34, 197, 94, 1)",
+      },
+    ];
+
+    const datasets = (data.players || []).map((p, idx) => {
       const m = p.metrics || {};
       const vals = [
         m.offense || 0,
@@ -46,11 +60,15 @@ function PlayerRadar() {
         m.clutch || 0,
         m.durability || 0,
       ];
+      const colors = palette[idx % palette.length];
 
       return {
         label: p.name,
         data: vals,
         fill: true,
+        backgroundColor: colors.bg,
+        borderColor: colors.border,
+        pointBackgroundColor: colors.border,
         borderWidth: 2,
       };
     });
@@ -63,6 +81,7 @@ function PlayerRadar() {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         scales: {
           r: {
             suggestedMin: 60,
@@ -70,11 +89,24 @@ function PlayerRadar() {
             ticks: {
               stepSize: 10,
             },
+            grid: {
+              color: "rgba(148, 163, 184, 0.4)",
+            },
+            angleLines: {
+              color: "rgba(148, 163, 184, 0.4)",
+            },
           },
         },
         plugins: {
           legend: {
             position: "bottom",
+          },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                return `${ctx.dataset.label}: ${ctx.formattedValue}`;
+              },
+            },
           },
         },
       },
@@ -108,6 +140,8 @@ function PlayerRadar() {
 
   if (!data) return null;
 
+  const players = data.players || [];
+
   return (
     <div className="card">
       <h3>Player Impact Radar</h3>
@@ -115,7 +149,29 @@ function PlayerRadar() {
         Visualize how Dak, CeeDee, and Micah shape win probability across
         offense, explosiveness, consistency, clutch, and durability.
       </p>
-      <canvas ref={canvasRef} height="260" />
+
+      <div style={{ height: 260, marginBottom: "0.75rem" }}>
+        <canvas ref={canvasRef} />
+      </div>
+
+      {players.length > 0 && (
+        <ul
+          style={{
+            listStyle: "none",
+            paddingLeft: 0,
+            margin: 0,
+            fontSize: "0.85rem",
+            color: "#4b5563",
+          }}
+        >
+          {players.map((p) => (
+            <li key={p.name}>
+              <strong>{p.name}</strong> &mdash; {p.position}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
+
