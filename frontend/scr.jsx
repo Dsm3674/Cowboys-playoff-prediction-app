@@ -1,10 +1,50 @@
-// =========================================
-// COMPONENT: PredictionPanel
-// =========================================
+
 function PredictionPanel() {
   const [pred, setPred] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
+  const [history, setHistory] = React.useState([]);
+
+  // helper to load history for current user
+  const loadHistory = () => {
+    try {
+      const profile = JSON.parse(localStorage.getItem("ls_profile") || "null");
+      if (!profile || !profile.username) {
+        setHistory([]);
+        return;
+      }
+      const key = `ls_predictions_${profile.username}`;
+      const saved = JSON.parse(localStorage.getItem(key) || "[]");
+      setHistory(saved);
+    } catch (e) {
+      console.warn("PredictionPanel: failed to load history", e);
+      setHistory([]);
+    }
+  };
+
+  React.useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const saveToHistory = (prediction) => {
+    try {
+      const profile = JSON.parse(localStorage.getItem("ls_profile") || "null");
+      if (!profile || !profile.username) return;
+
+      const key = `ls_predictions_${profile.username}`;
+      const existing = JSON.parse(localStorage.getItem(key) || "[]");
+      const entry = {
+        ts: new Date().toISOString(),
+        playoffs: prediction.playoff_probability,
+        superBowl: prediction.superbowl_probability,
+      };
+      const updated = [entry, ...existing].slice(0, 10); // keep last 10
+      localStorage.setItem(key, JSON.stringify(updated));
+      setHistory(updated);
+    } catch (e) {
+      console.warn("PredictionPanel: failed to save history", e);
+    }
+  };
 
   const fetchPrediction = () => {
     setLoading(true);
@@ -13,8 +53,12 @@ function PredictionPanel() {
     window
       .generatePrediction()
       .then((data) => {
-        if (data.success) setPred(data.prediction);
-        else setError("Prediction service returned no result");
+        if (data.success) {
+          setPred(data.prediction);
+          saveToHistory(data.prediction);
+        } else {
+          setError("Prediction service returned no result");
+        }
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -26,7 +70,7 @@ function PredictionPanel() {
         background: "white",
         padding: "1.5rem",
         borderRadius: "10px",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
       }}
     >
       <div
@@ -56,9 +100,7 @@ function PredictionPanel() {
         </button>
       </div>
 
-      {error && (
-        <p style={{ color: "#d00", marginTop: 0 }}>{error}</p>
-      )}
+      {error && <p style={{ color: "#d00", marginTop: 0 }}>{error}</p>}
 
       {!pred ? (
         <p style={{ fontStyle: "italic", color: "#666" }}>
@@ -113,13 +155,34 @@ function PredictionPanel() {
           </div>
         </div>
       )}
+
+      {history.length > 0 && (
+        <div style={{ marginTop: "1rem" }}>
+          <h4 style={{ marginBottom: "0.5rem" }}>Your Prediction History</h4>
+          <ul style={{ listStyle: "none", paddingLeft: 0, fontSize: "0.85rem" }}>
+            {history.map((h, idx) => (
+              <li key={idx}>
+                <strong>
+                  {new Date(h.ts).toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </strong>
+                {": "}
+                Playoffs {(h.playoffs * 100).toFixed(1)}%, SB{" "}
+                {(h.superBowl * 100).toFixed(1)}%
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
 
-// =========================================
-// COMPONENT: What-If Scenario Simulator
-// =========================================
+
 function WhatIfSimulator() {
   const [modelType, setModelType] = React.useState("RandomForest");
   const [scenario, setScenario] = React.useState("");
@@ -167,12 +230,13 @@ function WhatIfSimulator() {
         background: "white",
         padding: "1.5rem",
         borderRadius: "10px",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
       }}
     >
       <h3 style={{ marginTop: 0 }}>AI Story Simulator</h3>
       <p style={{ color: "#555", fontSize: "0.9rem" }}>
-        Explore “What If?” season outcomes using AI + Monte Carlo simulation.
+        Run <strong>"What If?"</strong> scenarios. See how a major injury, snow
+        game, or easy schedule impacts the season using Monte Carlo simulations.
       </p>
 
       <form onSubmit={runSim}>
@@ -231,7 +295,9 @@ function WhatIfSimulator() {
           </p>
           <p>
             Win Rate:{" "}
-            <strong>{Number(result.results.winProbability).toFixed(1)}%</strong>
+            <strong>
+              {Number(result.results.winProbability).toFixed(1)}%
+            </strong>
           </p>
           <p>
             Confidence:{" "}
@@ -257,9 +323,7 @@ function WhatIfSimulator() {
   );
 }
 
-// =========================================
-// COMPONENT: App (Main Layout)
-// =========================================
+
 function App() {
   const currentYear = new Date().getFullYear();
 
@@ -293,21 +357,22 @@ function App() {
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+          <UserProfileCard />
           <RecordCard year={currentYear} />
           <PredictionPanel />
           <WhatIfSimulator />
         </div>
 
-        <div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
           <GameTable year={currentYear} />
+          <PlayerRadar />
         </div>
       </div>
     </div>
   );
 }
 
-// =========================================
-// RENDER
-// =========================================
+
 ReactDOM.render(<App />, document.getElementById("root"));
+
 
