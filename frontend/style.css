@@ -1,4 +1,6 @@
-/* Feature 6: Theming Variables */
+/* File: /frontend/style.css */
+
+/* Theming Variables */
 :root {
   --primary: #003594;
   --secondary: #869397;
@@ -32,7 +34,7 @@ body {
   transition: background 0.3s;
 }
 
-/* Nav */
+/* Nav (optional if you add it later) */
 .main-nav {
   background: var(--primary);
   color: white;
@@ -45,7 +47,7 @@ body {
 .nav-links button {
   background: none;
   border: none;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
@@ -70,11 +72,12 @@ body {
   gap: 2rem;
 }
 
+/* Cards */
 .card {
   background: var(--card-bg);
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   margin-bottom: 1.5rem;
 }
 
@@ -87,7 +90,8 @@ body {
   font-weight: bold;
   margin-bottom: 0.5rem;
 }
-select, input {
+select,
+input {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid #ccc;
@@ -104,11 +108,28 @@ select, input {
   font-weight: bold;
 }
 
-.stat-val.high { color: green; font-weight: bold; }
-.stat-val.medium { color: orange; font-weight: bold; }
+.stat-val.high {
+  color: green;
+  font-weight: bold;
+}
+.stat-val.medium {
+  color: orange;
+  font-weight: bold;
+}
 
-.fade-in { animation: fadeIn 0.5s ease-in; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
 
 
 
