@@ -4,23 +4,34 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LoneStar Analytics Dashboard</title>
-    
+
     <link rel="stylesheet" href="./style.css" />
-    
-    <!-- LOAD REACT 17 -->
-    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    
+
+  
+    <script
+      crossorigin
+      src="https://unpkg.com/react@17/umd/react.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"
+    ></script>
+
     <!-- LOAD BABEL -->
     <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+
+    <!-- LOAD CHART.JS FOR RADAR CHART -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   </head>
   <body>
     <div id="root"></div>
 
-    <!-- YOUR APP CODE -->
+   
     <script type="text/babel" src="./src/api.js"></script>
     <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
     <script type="text/babel" src="./src/components/GameTable.jsx"></script>
+    <script type="text/babel" src="./src/components/PlayerRadar.jsx"></script>
+    <script type="text/babel" src="./src/components/UserProfileCard.jsx"></script>
     <script type="text/babel" src="./scr.jsx"></script>
   </body>
 </html>
