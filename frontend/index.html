@@ -1,71 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Cowboys Predictor App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <head>
+    <meta charset="UTF-8" />
+    <title>LoneStar Analytics – Dallas Cowboys Playoff Predictor</title>
 
-  <!-- ✅ Load global styles -->
-  <link rel="stylesheet" href="./style.css" />
+  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- React + Babel + Chart.js -->
-  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
+   
+    <meta
+      name="description"
+      content="LoneStar Analytics is a fan-made Dallas Cowboys dashboard that blends data, Monte Carlo simulations, and interactive charts to explore playoff odds, schedule, and player impact."
+    />
+    <meta
+      name="keywords"
+      content="Dallas Cowboys, NFL, playoff odds, simulations, statistics, dashboard, data visualization, Monte Carlo"
+    />
+    <meta name="author" content="LoneStar Analytics" />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#003594" />
 
-<body>
-  <!-- ✅ Top navigation with data-page for router -->
-  <div class="nav-bar">
-    <div
-      class="nav-link"
-      data-page="dashboard"
-      onclick="window.setPage('dashboard')"
-    >
-      Dashboard
+    <!-- Social / Open Graph -->
+    <meta property="og:title" content="LoneStar Analytics – Dallas Cowboys Playoff Predictor" />
+    <meta
+      property="og:description"
+      content="Interactive dashboard for Dallas Cowboys fans: playoff simulations, schedule, player radar, and more."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://example.com" />
+    <meta
+      property="og:image"
+      content="https://static.www.nfl.com/image/private/t_q-best/league/hrniir7nje46u1nvx7f2"
+    />
+
+    <!-- Favicon (replace with your own if you want) -->
+    <link
+      rel="icon"
+      href="https://static.www.nfl.com/league/api/clubs/logos/DAL"
+      type="image/png"
+    />
+
+    <!-- Global styles -->
+    <link rel="stylesheet" href="./style.css" />
+
+    <!-- React + Babel + Chart.js (UMD) -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Structured data (just a simple Website schema) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "LoneStar Analytics – Dallas Cowboys Playoff Predictor",
+        "url": "https://example.com",
+        "description": "Fan-made dashboard for visualizing Dallas Cowboys playoff odds, schedule, and stats."
+      }
+    </script>
+  </head>
+
+  <body>
+    <!-- Accessibility skip link -->
+    <a href="#root" class="skip-link">Skip to main content</a>
+
+    <!-- Top of page announcement / disclaimer, styled in CSS -->
+    <div class="notice-banner">
+      <span class="notice-badge">Fan Project</span>
+      <span>
+        LoneStar Analytics is an independent, fan-made dashboard. Not affiliated with the
+        NFL, Dallas Cowboys, or ESPN.
+      </span>
     </div>
-    <div
-      class="nav-link"
-      data-page="simulator"
-      onclick="window.setPage('simulator')"
-    >
-      AI Simulator
-    </div>
-    <div
-      class="nav-link"
-      data-page="radar"
-      onclick="window.setPage('radar')"
-    >
-      Player Radar
-    </div>
-    <div
-      class="nav-link"
-      data-page="profile"
-      onclick="window.setPage('profile')"
-    >
-      Profile
-    </div>
-    <div
-      class="nav-link"
-      data-page="history"
-      onclick="window.setPage('history')"
-    >
-      Our Story
-    </div>
-  </div>
 
-  <div id="root"></div>
+   
+    <nav class="nav-bar" aria-label="Primary Navigation">
+      <div
+        class="nav-link"
+        data-page="dashboard"
+        onclick="window.setPage('dashboard')"
+      >
+        Dashboard
+      </div>
+      <div
+        class="nav-link"
+        data-page="simulator"
+        onclick="window.setPage('simulator')"
+      >
+        AI Simulator
+      </div>
+      <div
+        class="nav-link"
+        data-page="radar"
+        onclick="window.setPage('radar')"
+      >
+        Player Radar
+      </div>
+      <div
+        class="nav-link"
+        data-page="profile"
+        onclick="window.setPage('profile')"
+      >
+        Profile
+      </div>
+      <div
+        class="nav-link"
+        data-page="history"
+        onclick="window.setPage('history')"
+      >
+        Our Story
+      </div>
+    </nav>
 
-  <!-- Frontend scripts -->
-  <script type="text/babel" src="./src/api.js"></script>
-  <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
-  <script type="text/babel" src="./src/components/GameTable.jsx"></script>
-  <script type="text/babel" src="./src/components/PlayerRadar.jsx"></script>
-  <script type="text/babel" src="./src/components/UserProfileCard.jsx"></script>
-  <script type="text/babel" src="./src/components/AIStorySimulator.jsx"></script>
-  <script type="text/babel" src="./src/components/HistoryPage.jsx"></script>
+    <!-- Main application shell -->
+    <main id="app-shell" aria-label="LoneStar Analytics App">
+      <div id="root"></div>
+    </main>
 
-  <script type="text/babel" src="./scr.jsx"></script>
-</body>
+    <!-- Footer lives outside React so it always shows -->
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+        <div class="site-footer__col">
+          <h4>LoneStar Analytics</h4>
+          <p>
+            A data playground for Dallas Cowboys fans. Built with Node, React, and a lot of
+            fourth-quarter stress.
+          </p>
+        </div>
+        <div class="site-footer__col">
+          <h5>Data Sources</h5>
+          <ul>
+            <li>ESPN public APIs for schedule &amp; stats</li>
+            <li>Custom Monte Carlo simulation models</li>
+            <li>Local database for prediction history</li>
+          </ul>
+        </div>
+        <div class="site-footer__col">
+          <h5>Disclaimers</h5>
+          <p>
+            This project is for educational &amp; entertainment use only. Projections are
+            <em>not</em> betting advice.
+          </p>
+        </div>
+      </div>
+      <div class="site-footer__bottom">
+        <span>&copy; <span id="year-span"></span> LoneStar Analytics</span>
+        <span class="site-footer__tiny">
+          Not affiliated with or endorsed by the NFL or Dallas Cowboys.
+        </span>
+      </div>
+    </footer>
+
+    <!-- No-JS fallback -->
+    <noscript>
+      <div class="noscript-message">
+        <h2>JavaScript Required</h2>
+        <p>
+          This dashboard is built with React and requires JavaScript to be enabled. Please
+          turn on JavaScript in your browser to explore playoff odds, schedule, and player
+          impact.
+        </p>
+      </div>
+    </noscript>
+
+    <!-- Frontend scripts: API helpers and React components -->
+    <script type="text/babel" src="./src/api.js"></script>
+    <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
+    <script type="text/babel" src="./src/components/GameTable.jsx"></script>
+    <script type="text/babel" src="./src/components/PlayerRadar.jsx"></script>
+    <script type="text/babel" src="./src/components/UserProfileCard.jsx"></script>
+    <script type="text/babel" src="./src/components/AIStorySimulator.jsx"></script>
+    <script type="text/babel" src="./src/components/HistoryPage.jsx"></script>
+
+    <!-- Root app / router -->
+    <script type="text/babel" src="./scr.jsx"></script>
+
+    <!-- Small inline script for dynamic year in footer (no Babel needed) -->
+    <script>
+      (function () {
+        try {
+          var span = document.getElementById("year-span");
+          if (span) span.textContent = new Date().getFullYear();
+        } catch (e) {}
+      })();
+    </script>
+  </body>
 </html>
