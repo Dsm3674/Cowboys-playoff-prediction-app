@@ -64,11 +64,9 @@ function PredictionPanel() {
 
   return (
     <div
+      className="card"
       style={{
         background: "white",
-        padding: "1.5rem",
-        borderRadius: "10px",
-        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
       }}
     >
       <div
@@ -79,7 +77,10 @@ function PredictionPanel() {
           marginBottom: "1rem",
         }}
       >
-        <h3 style={{ margin: 0 }}>Playoff Odds (AI Model)</h3>
+        <div>
+          <div className="eyebrow">Monte Carlo Engine</div>
+          <h3 style={{ margin: 0 }}>Playoff Odds (AI Model)</h3>
+        </div>
 
         <button
           onClick={fetchPrediction}
@@ -92,24 +93,36 @@ function PredictionPanel() {
             borderRadius: "4px",
             cursor: "pointer",
             opacity: loading ? 0.6 : 1,
+            fontSize: "0.8rem",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
           }}
         >
           {loading ? "Running..." : "Run Simulation"}
         </button>
       </div>
 
+      <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 0 }}>
+        Under the hood: we take real scoring data, estimate team strength, and
+        then simulate thousands of seasons to estimate how often a playoff run
+        appears. It’s not a crystal ball, but it’s a fun stress test.
+      </p>
+
       {error && <p style={{ color: "#d00", marginTop: 0 }}>{error}</p>}
 
       {!pred ? (
         <p style={{ fontStyle: "italic", color: "#666" }}>
-          Run the simulation to see playoff odds.
+          Run the simulation to see current playoff and Super Bowl odds.
         </p>
       ) : (
         <div
+          className="pulse-glow"
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             gap: "1rem",
+            marginTop: "0.5rem",
           }}
         >
           <div
@@ -155,8 +168,12 @@ function PredictionPanel() {
       )}
 
       {history.length > 0 && (
-        <div style={{ marginTop: "1rem" }}>
+        <div style={{ marginTop: "1.25rem" }}>
           <h4 style={{ marginBottom: "0.5rem" }}>Your Prediction History</h4>
+          <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 0 }}>
+            Saved locally to your browser and tied to your current username.
+            Change your profile name to track different “what if” universes.
+          </p>
           <ul
             style={{ listStyle: "none", paddingLeft: 0, fontSize: "0.85rem" }}
           >
@@ -182,6 +199,71 @@ function PredictionPanel() {
   );
 }
 
+/* --- NEW: tiny components to expand app experience --- */
+
+function NoticeCard() {
+  return (
+    <div className="card card--accent">
+      <div className="eyebrow">How to use this dashboard</div>
+      <h3 style={{ marginTop: 0 }}>Game plan for data nerds & fans</h3>
+      <ul
+        style={{
+          margin: 0,
+          paddingLeft: "1.25rem",
+          fontSize: "0.9rem",
+          lineHeight: 1.6,
+        }}
+      >
+        <li>
+          <strong>Dashboard:</strong> current record, schedule, star player radar,
+          and quick playoff odds.
+        </li>
+        <li>
+          <strong>AI Simulator:</strong> flip wild switches like QB injuries or easy
+          schedules and see how the model reacts.
+        </li>
+        <li>
+          <strong>Player Radar:</strong> visualize how Dak, CeeDee, and Bland shape
+          the team across consistency, explosiveness, and more.
+        </li>
+        <li>
+          <strong>Profile:</strong> save a username, theme, and your own prediction
+          history in local storage.
+        </li>
+        <li>
+          <strong>Our Story:</strong> browse a database-backed history of prediction
+          snapshots over time.
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+function AboutProjectCard() {
+  return (
+    <div className="card">
+      <div className="eyebrow">About the project</div>
+      <h3 style={{ marginTop: 0 }}>Why LoneStar Analytics exists</h3>
+      <p style={{ fontSize: "0.9rem", color: "#4b5563" }}>
+        This app started as a “can we quantify the feeling of watching the Cowboys
+        blow a 4th quarter lead?” experiment. It grew into a full-stack project
+        mixing real data, simulation, and a little bit of storytelling.
+      </p>
+      <p style={{ fontSize: "0.9rem", color: "#4b5563" }}>
+        On the backend we pull schedule and stats from public ESPN endpoints,
+        store predictions in a database, and expose everything through a small
+        Node/Express API. On the frontend we stitch it together using React,
+        Chart.js, and some old-school browser-based JSX.
+      </p>
+      <p style={{ fontSize: "0.9rem", color: "#4b5563" }}>
+        It&apos;s designed to be{' '}
+        <strong>readable, hackable, and extendable</strong> so you can plug in new
+        models, add teams, or re-skin it for other sports.
+      </p>
+    </div>
+  );
+}
+
 function App() {
   const currentYear = new Date().getFullYear();
   const page = window.currentPage || "dashboard";
@@ -189,38 +271,91 @@ function App() {
   const renderPage = () => {
     if (page === "dashboard") {
       return (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "2rem",
-          }}
-        >
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
+        <div className="content-area">
+          <header
+            style={{
+              marginBottom: "2rem",
+              borderBottom: "3px solid #111827",
+              paddingBottom: "1.3rem",
+            }}
           >
-            <UserProfileCard />
-            <RecordCard year={currentYear} />
-            <PredictionPanel />
-          </div>
+            <div className="hero-kicker">Dallas · Data · Drama</div>
+            <h1 className="hero-title">
+              LoneStar <span>Analytics</span>
+            </h1>
+            <p style={{ color: "#4b5563", maxWidth: "620px", fontSize: "0.95rem" }}>
+              A live, fan-made dashboard that blends NFL data, Monte Carlo simulations,
+              and visuals to explore how often the Dallas Cowboys punch their ticket to
+              January football.
+            </p>
+          </header>
 
           <div
-            style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1.4fr)",
+              gap: "2rem",
+            }}
           >
-            <GameTable year={currentYear} />
-            <PlayerRadar />
+            <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+              <UserProfileCard />
+              <RecordCard year={currentYear} />
+              <PredictionPanel />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+              <GameTable year={currentYear} />
+              <PlayerRadar />
+              <NoticeCard />
+            </div>
           </div>
+
+          <AboutProjectCard />
         </div>
       );
     }
 
     if (page === "simulator") {
-      return <AIStorySimulator />;
+      return (
+        <div className="content-area">
+          <header
+            style={{
+              marginBottom: "1.5rem",
+              borderBottom: "2px solid #111827",
+              paddingBottom: "0.8rem",
+            }}
+          >
+            <div className="eyebrow">What-if Engine</div>
+            <h2 style={{ margin: 0 }}>AI Story Simulator</h2>
+            <p style={{ color: "#4b5563", maxWidth: "560px", fontSize: "0.9rem" }}>
+              Switch between model types, dial in scenarios, and generate a narrative
+              about how the Cowboys season might twist based on injuries, schedule
+              quirks, and weather chaos.
+            </p>
+          </header>
+          <AIStorySimulator />
+        </div>
+      );
     }
 
     if (page === "radar") {
       return (
         <div className="content-area">
+          <header
+            style={{
+              marginBottom: "1.5rem",
+              borderBottom: "2px solid #111827",
+              paddingBottom: "0.8rem",
+            }}
+          >
+            <div className="eyebrow">Star Impact Map</div>
+            <h2 style={{ margin: 0 }}>Player Impact Radar</h2>
+            <p style={{ color: "#4b5563", maxWidth: "560px", fontSize: "0.9rem" }}>
+              Compare Dak Prescott, CeeDee Lamb, and Daron Bland across offense,
+              explosiveness, consistency, clutch, and durability. Toggle each star to see
+              how the shape of the team changes.
+            </p>
+          </header>
           <div className="card">
             <PlayerRadar />
           </div>
@@ -231,44 +366,72 @@ function App() {
     if (page === "profile") {
       return (
         <div className="content-area">
+          <header
+            style={{
+              marginBottom: "1.5rem",
+              borderBottom: "2px solid #111827",
+              paddingBottom: "0.8rem",
+            }}
+          >
+            <div className="eyebrow">Customization</div>
+            <h2 style={{ margin: 0 }}>Your Fan Profile</h2>
+            <p style={{ color: "#4b5563", maxWidth: "560px", fontSize: "0.9rem" }}>
+              Pick a username, lock in a theme, and let the app remember your prediction
+              history. Everything is stored locally on your device—no accounts, no
+              tracking.
+            </p>
+          </header>
           <UserProfileCard />
         </div>
       );
     }
 
     if (page === "history") {
-      return <HistoryPage />;
+      return (
+        <div className="content-area">
+          <header
+            style={{
+              marginBottom: "1.5rem",
+              borderBottom: "2px solid #111827",
+              paddingBottom: "0.8rem",
+            }}
+          >
+            <div className="eyebrow">Time Machine</div>
+            <h2 style={{ margin: 0 }}>Prediction History</h2>
+            <p style={{ color: "#4b5563", maxWidth: "560px", fontSize: "0.9rem" }}>
+              Every time your backend generates a new prediction, it can be persisted to
+              the database. This table lets you scroll back through those snapshots and
+              see how optimism (or pain) evolved week by week.
+            </p>
+          </header>
+            <HistoryPage />
+        </div>
+      );
     }
 
     return (
       <div className="content-area">
-        <p>Unknown page.</p>
+        <div className="card">
+          <h2>Unknown page.</h2>
+          <p>
+            The page you requested doesn&apos;t exist in this build. Try the
+            <strong> Dashboard</strong> tab instead.
+          </p>
+        </div>
       </div>
     );
   };
 
+  // outer container (App root)
   return (
     <div
       style={{
         maxWidth: "1200px",
         margin: "0 auto",
-        padding: "2rem",
+        padding: "2rem 1.25rem 3rem",
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <header
-        style={{
-          marginBottom: "2rem",
-          borderBottom: "2px solid #eee",
-          paddingBottom: "1rem",
-        }}
-      >
-        <h1 style={{ color: "#003594", margin: 0 }}>LoneStar Analytics 🏈</h1>
-        <p style={{ color: "#666", marginTop: "0.5rem" }}>
-          Dallas Cowboys Real-time Dashboard
-        </p>
-      </header>
-
       {renderPage()}
     </div>
   );
