@@ -1,33 +1,38 @@
 /* --------- THEME TOKENS --------- */
 :root {
-  --primary: #003594;
-  --primary-soft: rgba(0, 53, 148, 0.08);
-  --accent: #ff6b35;
-  --accent-soft: rgba(255, 107, 53, 0.12);
-  --secondary: #6b7280;
-  --bg-color: #f5f5f7;
+  /* Dallas Cowboys */
+  --primary: #041e42;
+  --primary-soft: rgba(4, 30, 66, 0.08);
+  --accent: #869397;
+  --accent-soft: rgba(134, 147, 151, 0.14);
+  --secondary: #475569;
+
+  --bg-color: #f4f6f8;
   --card-bg: #ffffff;
-  --text-main: #111827;
-  --border-strong: #111827;
+  --text-main: #0f172a;
+
+  --border-strong: rgba(15, 23, 42, 0.28);
   --border-subtle: rgba(15, 23, 42, 0.12);
-  --shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.12);
+  --shadow-soft: 0 10px 28px rgba(15, 23, 42, 0.1);
 }
 
 body.dark {
   --primary: #4f8aff;
-  --primary-soft: rgba(79, 138, 255, 0.12);
-  --accent: #f97316;
-  --accent-soft: rgba(249, 115, 22, 0.16);
+  --primary-soft: rgba(79, 138, 255, 0.14);
+  --accent: #9ca3af;
+  --accent-soft: rgba(156, 163, 175, 0.18);
   --secondary: #9ca3af;
+
   --bg-color: #020617;
   --card-bg: #020617;
   --text-main: #e5e7eb;
-  --border-strong: #e5e7eb;
-  --border-subtle: rgba(148, 163, 184, 0.4);
-  --shadow-soft: 0 20px 40px rgba(15, 23, 42, 0.65);
+  --border-strong: rgba(148, 163, 184, 0.4);
+  --border-subtle: rgba(148, 163, 184, 0.3);
+  --shadow-soft: 0 22px 42px rgba(15, 23, 42, 0.65);
 }
 
 body.retro {
+  /* untouched */
   --primary: #008080;
   --primary-soft: rgba(0, 128, 128, 0.18);
   --accent: #ff00aa;
@@ -55,26 +60,17 @@ body {
   overflow-x: hidden;
 }
 
-/* brutalist background texture */
+/* softened brutalist texture (kept) */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(
-      90deg,
-      rgba(148, 163, 184, 0.1) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      180deg,
-      rgba(148, 163, 184, 0.08) 1px,
-      transparent 1px
-    );
-  background-size: 80px 80px, 80px 80px;
-  opacity: 0.35;
-  mix-blend-mode: multiply;
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px;
+  opacity: 0.25;
   z-index: -1;
 }
 
@@ -88,7 +84,7 @@ body::before {
   position: absolute;
   left: -999px;
   top: 0;
-  background: #111827;
+  background: #020617;
   color: #fff;
   padding: 0.5rem 1rem;
   z-index: 100;
@@ -105,29 +101,30 @@ body::before {
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 1.25rem;
-  background: #0f172a;
+  background: #020617;
   color: #e5e7eb;
   font-size: 0.8rem;
-  border-bottom: 2px solid #000;
+  border-bottom: 1px solid var(--border-strong);
 }
+
 .notice-badge {
   display: inline-flex;
   align-items: center;
   padding: 0.18rem 0.6rem;
   border-radius: 999px;
-  border: 1px solid #fbbf24;
+  border: 1px solid var(--accent);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  background: rgba(250, 204, 21, 0.1);
-  color: #facc15;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* --------- NAV BAR --------- */
 
 .nav-bar {
   display: flex;
-  gap: 1.5rem;
+  gap: 1.75rem;
   padding: 1rem 1.5rem;
   background: var(--primary);
   font-weight: 700;
@@ -136,18 +133,17 @@ body::before {
   position: sticky;
   top: 0;
   z-index: 20;
-  border-bottom: 3px solid #000;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.5);
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.35);
 }
 
 .nav-link {
   position: relative;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.75);
   cursor: pointer;
   padding-bottom: 0.35rem;
   text-transform: uppercase;
   font-size: 0.75rem;
-  transition: color 0.15s ease, transform 0.1s ease;
 }
 
 .nav-link::after {
@@ -161,19 +157,12 @@ body::before {
   transition: width 0.18s ease-out;
 }
 
-.nav-link:hover {
-  color: #ffffff;
-  transform: translateY(-1px);
-}
-
-.nav-link:hover::after {
-  width: 100%;
-}
-
+.nav-link:hover,
 .nav-link.active {
   color: #ffffff;
 }
 
+.nav-link:hover::after,
 .nav-link.active::after {
   width: 100%;
 }
@@ -208,7 +197,6 @@ h4 {
   letter-spacing: 0.03em;
 }
 
-/* hero-ish title style */
 h1 {
   font-size: clamp(2rem, 3vw, 2.6rem);
   text-transform: uppercase;
@@ -222,9 +210,7 @@ h1 {
 }
 
 .hero-title span {
-  background: linear-gradient(120deg, var(--accent), var(--primary));
-  -webkit-background-clip: text;
-  color: transparent;
+  color: var(--accent);
 }
 
 .hero-kicker {
@@ -235,7 +221,6 @@ h1 {
   margin-bottom: 0.75rem;
 }
 
-/* small eyebrow label */
 .eyebrow {
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -250,45 +235,25 @@ h1 {
   background: var(--card-bg);
   padding: 1.6rem 1.5rem;
   border-radius: 10px;
-  border: 2px solid var(--border-strong);
+  border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-soft);
   margin-bottom: 1.75rem;
   position: relative;
   overflow: hidden;
-  transform: translateY(0);
-  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out,
-    border-color 0.12s ease-out, background 0.18s ease;
-}
-
-.card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border: 0 solid var(--accent-soft);
-  mix-blend-mode: soft-light;
-  opacity: 0;
-  transition: opacity 0.2s ease, border-width 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.28);
-  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.18);
 }
 
-.card:hover::after {
-  opacity: 1;
-  border-width: 3px;
-}
-
-/* accent variant if you ever add className="card card--accent" */
 .card.card--accent {
   background: var(--primary-soft);
   border-style: dashed;
 }
 
-/* --------- TABLES (Schedule + History) --------- */
+/* --------- TABLES --------- */
 
 table {
   width: 100%;
@@ -299,8 +264,7 @@ table {
 th,
 td {
   padding: 0.6rem 0.75rem;
-  border-bottom: 2px solid var(--border-subtle);
-  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 th {
@@ -310,18 +274,8 @@ th {
   color: var(--secondary);
 }
 
-tbody tr {
-  transition: background 0.1s ease, transform 0.08s ease;
-}
-
 tbody tr:hover {
   background: var(--primary-soft);
-  transform: translateX(1px);
-}
-
-/* center helper for score column */
-.text-center {
-  text-align: center;
 }
 
 /* --------- FORMS / INPUTS --------- */
@@ -329,12 +283,12 @@ tbody tr:hover {
 .form-group {
   margin-bottom: 1.1rem;
 }
+
 .form-group label {
   display: block;
   font-weight: 600;
   margin-bottom: 0.4rem;
   font-size: 0.9rem;
-  letter-spacing: 0.04em;
 }
 
 select,
@@ -342,23 +296,17 @@ input[type="text"],
 input[type="number"] {
   width: 100%;
   padding: 0.55rem 0.7rem;
-  border: 2px solid var(--border-subtle);
+  border: 1px solid var(--border-subtle);
   border-radius: 6px;
   background: var(--card-bg);
   color: var(--text-main);
   font-size: 0.9rem;
-  box-shadow: 2px 2px 0 rgba(15, 23, 42, 0.12);
-  transition: border-color 0.12s ease, box-shadow 0.12s ease,
-    transform 0.08s ease;
 }
 
 select:focus,
-input[type="text"]:focus,
-input[type="number"]:focus {
+input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 3px 3px 0 rgba(15, 23, 42, 0.25);
-  transform: translate(-1px, -1px);
+  border-color: var(--primary);
 }
 
 /* --------- BUTTONS --------- */
@@ -368,95 +316,25 @@ input[type="number"]:focus {
   padding: 0.85rem 1rem;
   background: var(--primary);
   color: #fff;
-  border: 2px solid #000;
   border-radius: 6px;
+  border: none;
   cursor: pointer;
   font-weight: 700;
   font-size: 0.9rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: transform 0.08s ease, box-shadow 0.12s ease,
-    background 0.12s ease, opacity 0.12s ease;
-  box-shadow: 4px 4px 0 #000;
 }
 
 .btn-primary:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 7px 7px 0 #000;
-  background: var(--accent);
-}
-
-.btn-primary:active {
-  transform: translate(0, 0);
-  box-shadow: 2px 2px 0 #000;
+  background: #062a5e;
 }
 
 .btn-primary:disabled {
   opacity: 0.65;
   cursor: default;
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
 }
 
-/* subtle secondary button if you reuse */
-.btn-ghost {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  background: transparent;
-  color: var(--text-main);
-  border: 2px dashed var(--border-strong);
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition: background 0.12s ease, transform 0.08s ease;
-}
-
-.btn-ghost:hover {
-  background: var(--primary-soft);
-  transform: translateY(-1px);
-}
-
-/* --------- RADAR CARD SPECIFICS --------- */
-
-.card canvas {
-  /* let Chart.js fill properly */
-  max-width: 100%;
-}
-
-/* --------- MICRO COMPONENT UTILS --------- */
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  border: 2px solid var(--border-strong);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  background: var(--accent-soft);
-}
-
-.pill {
-  display: inline-block;
-  padding: 0.25rem 0.7rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-subtle);
-  font-size: 0.8rem;
-}
-
-.stat-val.high {
-  color: #16a34a;
-  font-weight: 600;
-}
-.stat-val.medium {
-  color: #ea580c;
-  font-weight: 600;
-}
-
-/* ---- FADE IN / MOTION ---- */
+/* --------- MICRO UTILS --------- */
 
 .fade-in {
   animation: fadeInUp 0.4s ease-out;
@@ -473,114 +351,54 @@ input[type="number"]:focus {
   }
 }
 
-/* a subtle brutalist “wiggle” you can apply via className="jitter" if you want */
-.jitter {
-  animation: jitter 0.14s linear 0s 1;
-}
-@keyframes jitter {
-  0% {
-    transform: translate(0, 0);
-  }
-  25% {
-    transform: translate(-1px, 0);
-  }
-  50% {
-    transform: translate(1px, 0);
-  }
-  75% {
-    transform: translate(-1px, 0);
-  }
-  100% {
-    transform: translate(0, 0);
-  }
-}
-
-/* glow pulse if you want to highlight results (className="pulse-glow") */
-.pulse-glow {
-  position: relative;
-}
 .pulse-glow::before {
   content: "";
   position: absolute;
   inset: -4px;
   border-radius: 12px;
   border: 2px solid var(--accent-soft);
-  opacity: 0;
   animation: glowPulse 1.5s ease-out infinite;
 }
+
 @keyframes glowPulse {
-  0% {
-    opacity: 0.2;
-    transform: scale(0.98);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.02);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.05);
-  }
+  0% { opacity: 0.2; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0; }
 }
 
 /* --------- FOOTER --------- */
 
 .site-footer {
   margin-top: 3rem;
-  border-top: 3px solid #000;
   background: #020617;
   color: #e5e7eb;
-  padding: 1.5rem 1.5rem 0.75rem;
+  padding: 1.5rem;
 }
 
 .site-footer__inner {
   max-width: 1200px;
-  margin: 0 auto 1rem;
+  margin: 0 auto;
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr;
   gap: 1.5rem;
   font-size: 0.85rem;
 }
 
-.site-footer__col h4,
-.site-footer__col h5 {
-  margin: 0 0 0.5rem;
-}
-
-.site-footer__col ul {
-  list-style: disc;
-  padding-left: 1.25rem;
-  margin: 0.25rem 0 0;
-}
-
 .site-footer__bottom {
-  max-width: 1200px;
-  margin: 0 auto;
+  margin-top: 1rem;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(148, 163, 184, 0.4);
+  border-top: 1px solid rgba(255,255,255,0.2);
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font-size: 0.8rem;
-}
-
-.site-footer__tiny {
-  color: #9ca3af;
 }
 
 @media (max-width: 800px) {
   .site-footer__inner {
     grid-template-columns: 1fr;
   }
-
-  .site-footer__bottom {
-    flex-direction: column;
-    gap: 0.25rem;
-    align-items: flex-start;
-  }
 }
 
-/* --------- NOSCRIPT MESSAGE --------- */
+/* --------- NOSCRIPT --------- */
 
 .noscript-message {
   max-width: 640px;
@@ -590,10 +408,7 @@ input[type="number"]:focus {
   border: 2px solid #b91c1c;
   border-radius: 8px;
   color: #450a0a;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
 }
-
 
 
 
