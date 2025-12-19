@@ -27,37 +27,73 @@ async function fetchCowboysGamesSeasonToDate(year = getNFLSeasonYear()) {
 
     const isCompleted = (type = {}) =>
       type.completed === true ||
-      (type.state || '').toLowerCase() === 'post';
+      (type.state || "").toLowerCase() === "post";
 
-    return events.map((event) => {
-      const comp = event.competitions?.[0];
-      if (!comp) return null;
+    return events
+      .map((event) => {
+        const comp = event.competitions?.[0];
+        if (!comp) return null;
 
-      const home = comp.competitors?.find(c => c.homeAway === 'home');
-      const away = comp.competitors?.find(c => c.homeAway === 'away');
+        const home = comp.competitors?.find((c) => c.homeAway === "home");
+        const away = comp.competitors?.find((c) => c.homeAway === "away");
 
-      if (!home || !away) return null;
+        if (!home || !away) return null;
 
-      return {
-        week: event.week?.number ?? null,
-        date: event.date,
-        homeTeamName: home.team?.displayName ?? 'Home',
-        awayTeamName: away.team?.displayName ?? 'Away',
-        homeTeamAbbr: home.team?.abbreviation,
-        awayTeamAbbr: away.team?.abbreviation,
-        homeScore: getScore(home),
-        awayScore: getScore(away),
-        completed: isCompleted(comp.status?.type),
-        status: comp.status?.type?.description ?? 'Scheduled'
-      };
-    }).filter(Boolean);
+        return {
+          week: event.week?.number ?? null,
+          date: event.date,
+          homeTeamName: home.team?.displayName ?? "Home",
+          awayTeamName: away.team?.displayName ?? "Away",
+          homeTeamAbbr: home.team?.abbreviation,
+          awayTeamAbbr: away.team?.abbreviation,
+          homeScore: getScore(home),
+          awayScore: getScore(away),
+          completed: isCompleted(comp.status?.type),
+          status: comp.status?.type?.description ?? "Scheduled",
+        };
+      })
+      .filter(Boolean);
   } catch (err) {
     console.error("ESPN fetch error:", err);
     return [];
   }
 }
 
+/* ✅ REQUIRED: compute record from games */
+function computeRecordFromGames(games) {
+  let wins = 0;
+  let losses = 0;
+  let ties = 0;
+
+  games.forEach((g) => {
+    if (!g.completed) return;
+
+    if (g.homeScore === g.awayScore) {
+      ties++;
+      return;
+    }
+
+    const cowboysHome = g.homeTeamAbbr === "DAL";
+    const cowboysScore = cowboysHome ? g.homeScore : g.awayScore;
+    const oppScore = cowboysHome ? g.awayScore : g.homeScore;
+
+    if (cowboysScore > oppScore) wins++;
+    else losses++;
+  });
+
+  const total = wins + losses + ties;
+
+  return {
+    wins,
+    losses,
+    ties,
+    winPct: total ? wins / total : 0,
+  };
+}
+
 module.exports = {
-  fetchCowboysGamesSeasonToDate
+  fetchCowboysGamesSeasonToDate,
+  computeRecordFromGames,
 };
+
 
