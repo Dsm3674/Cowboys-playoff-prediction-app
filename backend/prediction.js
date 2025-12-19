@@ -1,125 +1,108 @@
+const {
+  fetchCowboysGamesSeasonToDate,
+  computeRecordFromGames,
+} = require("./services/espn");
 
 
-const fetch = (...args) =>
-  import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
+function getWinProbFromModel(model, stats) {
+  const { avgFor, avgAgainst } = stats;
+  const diff = avgFor - avgAgainst;
 
-function getNFLSeasonYear() {
-  const now = new Date();
-  const month = now.getMonth(); // Jan = 0
-  return month < 2 ? now.getFullYear() - 1 : now.getFullYear();
-}
-
-
-async function fetchCowboysStats() {
-  try {
-    const year = getNFLSeasonYear();
-
-    const url = `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/${year}/types/2/teams/6/statistics`;
-
-    console.log(`📡 Fetching ESPN Cowboys stats for ${year}`);
-
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`ESPN request failed: ${res.status}`);
-    }
-
-    const data = await res.json();
-
-    let pointsFor = 0;
-    let pointsAgainst = 0;
-    let yardsPerGame = 0;
-    let turnovers = 1.5; // default fallback
-
-    // ESPN changes stat keys often — be defensive
-    for (const category of data.splits?.categories || []) {
-      for (const stat of category.stats || []) {
-        const key = (stat.name || "").toLowerCase();
-
-        if (
-          key.includes("pointspergame") ||
-          key.includes("points_for") ||
-          key === "ppg"
-        ) {
-          pointsFor = Number(stat.value);
-        }
-
-        if (
-          key.includes("pointsallowedpergame") ||
-          key.includes("points_against") ||
-          key === "papg"
-        ) {
-          pointsAgainst = Number(stat.value);
-        }
-
-        if (key.includes("yardspergame")) {
-          yardsPerGame = Number(stat.value);
-        }
-
-        if (key === "turnovers") {
-          turnovers = Number(stat.value);
-        }
-      }
-    }
-
-    // Fallback if ESPN returns zeros or missing fields
-    if (!pointsFor && !pointsAgainst) {
-      console.warn("⚠️ ESPN returned missing stats — using defaults");
-      pointsFor = 27.1;
-      pointsAgainst = 18.6;
-    }
-
-    const result = {
-      avg_points_scored: pointsFor,
-      avg_points_allowed: pointsAgainst,
-      avg_total_yards: yardsPerGame,
-      avg_turnovers: turnovers,
-      year,
-    };
-
-    console.log("✅ Normalized Cowboys stats:", result);
-    return result;
-
-  } catch (err) {
-    console.error("❌ Error fetching Cowboys stats:", err.message);
-
-    // Always return safe defaults
-    return {
-      avg_points_scored: 0,
-      avg_points_allowed: 0,
-      avg_total_yards: 0,
-      avg_turnovers: 0,
-      year: getNFLSeasonYear(),
-    };
+  if (model === "Elo") {
+    return Math.max(0.25, Math.min(0.75, 0.5 + diff * 0.025));
   }
+
+  if (model === "RandomForest") {
+    return Math.max(0.3, Math.min(0.75, 0.52 + diff * 0.03));
+  }
+
+  if (model === "LSTM") {
+    // more volatile
+    return Math.max(0.2, Math.min(0.8, 0.5 + diff * 0.04));
+  }
+
+  return 0.5;
 }
 
 
-function generatePrediction(stats) {
-  const { avg_points_scored, avg_points_allowed } = stats;
 
-  // Normalize offense / defense
-  const offenseFactor = avg_points_scored / 30;
-  const defenseFactor = 25 / (avg_points_allowed + 1);
+function monteCarloSeason({
+  wins,
+  losses,
+  ties,
+  gamesRemaining,
+  winProb,
+  iterations = 20000,
+}) {
+  let playoffHits = 0;
+  let totalWins = 0;
 
-  const base = (offenseFactor + defenseFactor) / 2;
+  for (let i = 0; i < iterations; i++) {
+    let w = wins;
 
-  const playoffChance = Math.min(1, base);
-  const divisionChance = playoffChance * 0.8;
-  const conferenceChance = playoffChance * 0.5;
-  const superBowlChance = playoffChance * 0.25;
+    for (let g = 0; g < gamesRemaining; g++) {
+      if (Math.random() < winProb) w++;
+    }
+
+    totalWins += w;
+
+    // NFC playoff baseline
+    if (w >= 9) playoffHits++;
+  }
 
   return {
-    playoffs: Number(playoffChance.toFixed(3)),
-    division: Number(divisionChance.toFixed(3)),
-    conference: Number(conferenceChance.toFixed(3)),
-    superBowl: Number(superBowlChance.toFixed(3)),
+    playoffProbability: playoffHits / iterations,
+    expectedWins: totalWins / iterations,
+  };
+}
+
+/* ---------------- MAIN ENTRY ---------------- */
+
+async function generateEspnPrediction({ year, modelType }) {
+  const games = await fetchCowboysGamesSeasonToDate(year);
+  const record = computeRecordFromGames(games);
+
+  const completed = games.filter((g) => g.completed);
+  const remaining = games.length - completed.length;
+
+  let pf = 0;
+  let pa = 0;
+
+  completed.forEach((g) => {
+    const home = g.homeTeamAbbr === "DAL";
+    pf += home ? g.homeScore : g.awayScore;
+    pa += home ? g.awayScore : g.homeScore;
+  });
+
+  const avgFor = completed.length ? pf / completed.length : 21;
+  const avgAgainst = completed.length ? pa / completed.length : 21;
+
+  const winProb = getWinProbFromModel(modelType, {
+    avgFor,
+    avgAgainst,
+  });
+
+  const sim = monteCarloSeason({
+    wins: record.wins,
+    losses: record.losses,
+    ties: record.ties,
+    gamesRemaining: remaining,
+    winProb,
+  });
+
+  return {
+    modelUsed: modelType,
+    currentRecord: record,
+    gamesRemaining: remaining,
+    winProbabilityPerGame: Number(winProb.toFixed(3)),
+    projectedWins: Number(sim.expectedWins.toFixed(1)),
+    playoffProbability: Number(sim.playoffProbability.toFixed(3)),
     generatedAt: new Date().toISOString(),
   };
 }
 
 module.exports = {
-  fetchCowboysStats,
-  generatePrediction,
+  generateEspnPrediction,
 };
 
