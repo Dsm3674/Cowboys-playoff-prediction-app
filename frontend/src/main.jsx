@@ -48,7 +48,7 @@ function PredictionPanel() {
     setLoading(true);
     setError(null);
 
-    window
+    window.api
       .generatePrediction()
       .then((data) => {
         if (data.success) {
