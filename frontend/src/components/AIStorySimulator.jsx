@@ -18,7 +18,7 @@ function AIStorySimulator() {
       iterations: Number(iterations) || 500,
     };
 
-    window
+    window.api
       .runWhatIfSimulation(payload)
       .then((data) => {
         if (!data.success) {
