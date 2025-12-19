@@ -7,7 +7,7 @@ function HistoryPage() {
     setLoading(true);
     setError(null);
 
-    window
+    window.api
       .getPredictionHistory()
       .then((data) => {
         setRows(data.history || []);
