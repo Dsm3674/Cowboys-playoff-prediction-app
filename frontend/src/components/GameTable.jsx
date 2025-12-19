@@ -7,7 +7,7 @@ function GameTable({ year }) {
     setLoading(true);
     setError(null);
 
-    window
+    window.api
       .getCowboysSchedule(year)
       .then((data) => {
         setGames(data.games || []);
