@@ -6,9 +6,10 @@ const { getNFLSeasonYear } = require("../services/espn");
 
 /**
  * NOTE:
- * This route now passes scenario + iterations THROUGH
- * to the prediction engine instead of post-adjusting.
- * Nothing removed.
+ * This route passes scenario + iterations THROUGH
+ * to the prediction engine.
+ * Only change here: projected record now preserves decimals
+ * so Monte Carlo results are not collapsed to 8–9.
  */
 
 router.post("/run", async (req, res) => {
@@ -19,23 +20,23 @@ router.post("/run", async (req, res) => {
       iterations = 1000,
     } = req.body;
 
-    
+    // ---------------- scenario modifier ----------------
     let scenarioModifier = 0;
     if (scenario === "injury_qb") scenarioModifier = -0.18;
     if (scenario === "easy_schedule") scenarioModifier = 0.12;
     if (scenario === "weather_snow") scenarioModifier = -0.07;
 
-  
+    // ---------------- run simulation ----------------
     const base = await generateEspnPrediction({
       year: getNFLSeasonYear(),
       modelType,
-      iterations,              // NEW: forwarded
-      scenarioModifier,        // NEW: forwarded
+      iterations,
+      scenarioModifier,
     });
 
-   
-    const projectedWins = Math.round(base.expectedWins);
-    const projectedLosses = 17 - projectedWins;
+    // ---------------- FIX: DO NOT ROUND ----------------
+    const projectedWins = Number(base.expectedWins.toFixed(1));
+    const projectedLosses = Number((17 - base.expectedWins).toFixed(1));
 
     res.json({
       success: true,
