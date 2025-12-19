@@ -6,15 +6,23 @@ const Prediction = require("./predictions");
 
 const { generateEspnPrediction } = require("./prediction");
 
+/* ---------------------------------------------------
+   POST /api/prediction/generate
+   Generates a new prediction and saves it to DB
+--------------------------------------------------- */
 router.post("/generate", async (req, res) => {
   try {
     const { modelType = "RandomForest" } = req.body;
 
     const cowboys = await Team.findByName("Dallas Cowboys");
-    if (!cowboys) return res.status(404).json({ error: "Cowboys not found" });
+    if (!cowboys) {
+      return res.status(404).json({ error: "Cowboys not found" });
+    }
 
     const season = await Season.getCurrentSeason(cowboys.team_id);
-    if (!season) return res.status(404).json({ error: "No season found" });
+    if (!season) {
+      return res.status(404).json({ error: "No season found" });
+    }
 
     const result = await generateEspnPrediction({
       year: season.year,
@@ -27,11 +35,11 @@ router.post("/generate", async (req, res) => {
       divisionProb: Math.min(result.playoffProbability * 0.6, 0.9),
       conferenceProb: Math.min(result.playoffProbability * 0.35, 0.7),
       superbowlProb: Math.min(result.playoffProbability * 0.15, 0.4),
-      confidenceScore: 80,
+      confidenceScore: Math.round(result.playoffProbability * 100),
       factors: {
         model: result.modelUsed,
-        winProbPerGame: result.winProbabilityPerGame,
-        projectedWins: result.projectedWins,
+        perGameWinProbabilities: result.perGameWinProbabilities,
+        expectedWins: result.expectedWins,
         source: "ESPN",
       },
       modelVersion: `espn-mc-${modelType.toLowerCase()}`,
@@ -44,7 +52,7 @@ router.post("/generate", async (req, res) => {
         division_probability: saved.division_probability,
         conference_probability: saved.conference_probability,
         superbowl_probability: saved.superbowl_probability,
-        projected_wins: result.projectedWins,
+        expected_wins: result.expectedWins,
         record: result.currentRecord,
         model_used: result.modelUsed,
       },
@@ -55,5 +63,15 @@ router.post("/generate", async (req, res) => {
   }
 });
 
-module.exports = router;
 
+router.get("/history", async (req, res) => {
+  try {
+    const rows = await Prediction.getAll();
+    res.json({ history: rows });
+  } catch (err) {
+    console.error("History fetch error:", err);
+    res.status(500).json({ error: "Failed to load history" });
+  }
+});
+
+module.exports = router;
