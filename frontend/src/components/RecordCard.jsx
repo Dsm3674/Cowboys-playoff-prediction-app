@@ -11,7 +11,7 @@ function RecordCard({ year }) {
     setLoading(true);
     setError(null);
 
-    window
+  window.api
       .getCowboysRecord(year)
       .then((data) => setRecord(data))
       .catch((err) => setError(err.message))
