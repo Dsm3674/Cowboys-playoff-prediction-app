@@ -10,9 +10,15 @@ function HistoryPage() {
     window.api
       .getPredictionHistory()
       .then((data) => {
-        setRows(data.history || []);
+        // FIX: always normalize to array
+        setRows(Array.isArray(data.history) ? data.history : []);
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => {
+        // FIX: only show error if fetch truly failed
+        console.error("History fetch failed:", err);
+        setError("Failed to load prediction history.");
+        setRows([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -26,15 +32,21 @@ function HistoryPage() {
         </p>
 
         {loading && <p>Loading history…</p>}
-        {error && <p style={{ color: "red" }}>Error: {error}</p>}
 
+        {/* FIX: error only shows if fetch failed */}
+        {!loading && error && (
+          <p style={{ color: "red" }}>{error}</p>
+        )}
+
+        {/* FIX: clean empty-state */}
         {!loading && !error && rows.length === 0 && (
           <p style={{ fontStyle: "italic", color: "#666" }}>
-            No historical predictions found yet. Run some simulations from the
-            dashboard to start building a history.
+            No historical predictions yet. Run a simulation to start building
+            the story.
           </p>
         )}
 
+        {/* FIX: defensive rendering */}
         {!loading && !error && rows.length > 0 && (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -57,37 +69,46 @@ function HistoryPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r, idx) => (
-                <tr key={idx}>
-                  <td
-                    style={{
-                      borderBottom: "1px solid #eee",
-                      padding: "8px",
-                      fontSize: "0.85rem",
-                    }}
-                  >
-                    {new Date(r.prediction_date).toLocaleString(undefined, {
+              {rows.map((r, idx) => {
+                const pct = (v) =>
+                  typeof v === "number" ? (v * 100).toFixed(1) + "%" : "—";
+
+                const dateStr = r.prediction_date
+                  ? new Date(r.prediction_date).toLocaleString(undefined, {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
                       hour: "2-digit",
                       minute: "2-digit",
-                    })}
-                  </td>
-                  <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
-                    {(r.playoff_probability * 100).toFixed(1)}%
-                  </td>
-                  <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
-                    {(r.division_probability * 100).toFixed(1)}%
-                  </td>
-                  <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
-                    {(r.conference_probability * 100).toFixed(1)}%
-                  </td>
-                  <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
-                    {(r.superbowl_probability * 100).toFixed(1)}%
-                  </td>
-                </tr>
-              ))}
+                    })
+                  : "—";
+
+                return (
+                  <tr key={idx}>
+                    <td
+                      style={{
+                        borderBottom: "1px solid #eee",
+                        padding: "8px",
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      {dateStr}
+                    </td>
+                    <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
+                      {pct(r.playoff_probability)}
+                    </td>
+                    <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
+                      {pct(r.division_probability)}
+                    </td>
+                    <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
+                      {pct(r.conference_probability)}
+                    </td>
+                    <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
+                      {pct(r.superbowl_probability)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
