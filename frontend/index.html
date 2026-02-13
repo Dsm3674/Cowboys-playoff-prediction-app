@@ -9,7 +9,6 @@
 <meta name="theme-color" content="#041e42" />
 
 <link rel="icon" href="https://static.www.nfl.com/league/api/clubs/logos/DAL" />
-
 <link rel="stylesheet" href="./style.css" />
 
 <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
@@ -53,7 +52,7 @@
   background:#0f172a;
   color:#94a3b8;
   font-size:12px;
-  padding:6px 10px;
+  padding:6px 12px;
   display:flex;
   justify-content:space-between;
   z-index:9998;
@@ -81,13 +80,13 @@
 </div>
 
 <nav class="nav-bar">
-  <div class="nav-link" onclick="window.setPage('dashboard')">Dashboard</div>
-  <div class="nav-link" onclick="window.setPage('simulator')">AI Simulator</div>
-  <div class="nav-link" onclick="window.setPage('radar')">Player Radar</div>
-  <div class="nav-link" onclick="window.setPage('paths')">Season Paths</div>
-  <div class="nav-link" onclick="window.setPage('liveprob')">Live Win Probability</div>
-  <div class="nav-link" onclick="window.setPage('profile')">Profile</div>
-  <div class="nav-link" onclick="window.setPage('history')">Our Story</div>
+  <div class="nav-link" data-page="dashboard" onclick="window.setPage('dashboard')">Dashboard</div>
+  <div class="nav-link" data-page="simulator" onclick="window.setPage('simulator')">AI Simulator</div>
+  <div class="nav-link" data-page="radar" onclick="window.setPage('radar')">Player Radar</div>
+  <div class="nav-link" data-page="paths" onclick="window.setPage('paths')">Season Paths</div>
+  <div class="nav-link" data-page="liveprob" onclick="window.setPage('liveprob')">Live Win Probability</div>
+  <div class="nav-link" data-page="profile" onclick="window.setPage('profile')">Profile</div>
+  <div class="nav-link" data-page="history" onclick="window.setPage('history')">Our Story</div>
 </nav>
 
 <main id="app-shell">
@@ -118,15 +117,40 @@
 <script>
 (function(){
 
-const loader=document.getElementById("global-loader");
-window.addEventListener("load",function(){
+function hideLoader(){
+  const loader=document.getElementById("global-loader");
+  if(!loader) return;
+  loader.style.opacity="0";
   setTimeout(function(){
-    loader.style.opacity="0";
-    setTimeout(function(){
-      loader.style.display="none";
-    },400);
-  },300);
+    loader.style.display="none";
+  },400);
+}
+
+window.addEventListener("load",function(){
+  setTimeout(hideLoader,300);
 });
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(function(){
+    const root=document.getElementById("root");
+    if(root && root.children.length>0){
+      hideLoader();
+    }
+  },600);
+});
+
+function enhanceRouter(){
+  const original=window.setPage;
+  if(!original) return;
+
+  window.setPage=function(page){
+    const routeEl=document.getElementById("route-indicator");
+    if(routeEl) routeEl.textContent="Route: "+page;
+    original(page);
+  };
+}
+
+setTimeout(enhanceRouter,100);
 
 let last=performance.now();
 let frames=0;
@@ -135,7 +159,8 @@ function fps(){
   const now=performance.now();
   frames++;
   if(now>last+1000){
-    document.getElementById("fps-indicator").textContent="FPS: "+frames;
+    const el=document.getElementById("fps-indicator");
+    if(el) el.textContent="FPS: "+frames;
     frames=0;
     last=now;
   }
@@ -144,26 +169,25 @@ function fps(){
 requestAnimationFrame(fps);
 
 window.addEventListener("scroll",function(){
-  const percent=(window.scrollY/(document.body.scrollHeight-window.innerHeight))*100;
-  document.getElementById("scroll-progress").style.width=percent+"%";
+  const docHeight=document.body.scrollHeight-window.innerHeight;
+  const percent=docHeight>0?(window.scrollY/docHeight)*100:0;
+  const bar=document.getElementById("scroll-progress");
+  if(bar) bar.style.width=percent+"%";
 });
 
 window.addEventListener("online",function(){
-  document.getElementById("network-status").textContent="Network: online";
-});
-window.addEventListener("offline",function(){
-  document.getElementById("network-status").textContent="Network: offline";
+  const el=document.getElementById("network-status");
+  if(el) el.textContent="Network: online";
 });
 
-window.setPage=(function(original){
-  return function(page){
-    document.getElementById("route-indicator").textContent="Route: "+page;
-    if(original) original(page);
-  };
-})(window.setPage);
+window.addEventListener("offline",function(){
+  const el=document.getElementById("network-status");
+  if(el) el.textContent="Network: offline";
+});
 
 })();
 </script>
 
 </body>
 </html>
+
