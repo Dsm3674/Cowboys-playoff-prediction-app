@@ -21,6 +21,10 @@ app.use("/api/prediction", predictionRoutes);
 const simulationRoutes = require("./routes/simulation");
 app.use("/api/simulation", simulationRoutes);
 
+const analyticsRoutes = require("./routes/analytics");
+app.use("/api/analytics", analyticsRoutes);
+
+
 
 const playersRoutes = require("./routes/players");
 app.use("/api/players", playersRoutes);
