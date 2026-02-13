@@ -61,4 +61,18 @@ class Prediction {
   }
 }
 
+function applyChaos(p, chaos = 0) {
+  const c = Math.max(0, Math.min(1, Number(chaos) || 0));
+
+  // pull toward 0.5 as chaos increases
+  let mixed = (1 - c) * p + c * 0.5;
+
+ 
+  const jitter = (Math.random() - 0.5) * 0.22 * c; // up to ±11% at full chaos
+  mixed = mixed + jitter;
+
+  return clamp(mixed, 0.05, 0.95);
+}
+
+
 module.exports = Prediction;
