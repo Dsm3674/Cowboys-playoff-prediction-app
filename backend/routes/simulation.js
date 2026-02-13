@@ -4,31 +4,28 @@ const router = express.Router();
 const { generateEspnPrediction } = require("../prediction");
 const { getNFLSeasonYear } = require("../services/espn");
 
-
-
 router.post("/run", async (req, res) => {
   try {
     const {
       modelType = "RandomForest",
       scenario = null,
       iterations = 1000,
-    } = req.body;
+      chaos = 0,
+    } = req.body || {};
 
-    // ---------------- scenario modifier ----------------
     let scenarioModifier = 0;
     if (scenario === "injury_qb") scenarioModifier = -0.18;
     if (scenario === "easy_schedule") scenarioModifier = 0.12;
     if (scenario === "weather_snow") scenarioModifier = -0.07;
 
-    // ---------------- run simulation ----------------
     const base = await generateEspnPrediction({
       year: getNFLSeasonYear(),
       modelType,
       iterations,
       scenarioModifier,
+      chaos: Number(chaos) || 0,
     });
 
-    // ---------------- FIX: DO NOT ROUND ----------------
     const projectedWins = Number(base.expectedWins.toFixed(1));
     const projectedLosses = Number((17 - base.expectedWins).toFixed(1));
 
@@ -54,6 +51,7 @@ router.post("/run", async (req, res) => {
         gamesRemaining: base.gamesRemaining,
         modelVersion: base.modelUsed,
         generatedAt: base.generatedAt,
+        chaos: Number(chaos) || 0,
       },
     });
   } catch (err) {
@@ -65,17 +63,7 @@ router.post("/run", async (req, res) => {
   }
 });
 
-const { modelType="RandomForest", scenario=null, iterations=1000, chaos=0 } = req.body;
-
-const base = await generateEspnPrediction({
-  year: getNFLSeasonYear(),
-  modelType,
-  iterations,
-  scenarioModifier,
-  chaos: Number(chaos) || 0,
-});
-
-
 module.exports = router;
+
 
 
