@@ -37,9 +37,6 @@ async function migratePlayerEvents() {
         season INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_player_name (player_name),
-        INDEX idx_event_date (event_date),
-        INDEX idx_season (season),
         CONSTRAINT unique_event UNIQUE (player_name, event_date, event_type)
       );
     `);
