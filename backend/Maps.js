@@ -372,8 +372,9 @@ function generateInsights(playerMetrics) {
     insights.push({
       type: "strength",
       title: "Quietly Elite: The Complete Players",
-      message: `${eliteNames} combine high consistency with explosive potential. These are your most reliable impact players - they deliver consistently AND have the ceiling to take over games. They may not get as much media attention as volatile talents, but they're the backbone of championship teams. Build around these players.`,
+      message: `${eliteNames} combine high consistency with explosive potential. These elite players are your most reliable impact players - they deliver consistently AND have the ceiling to take over games. They may not get as much media attention as volatile talents, but they're the backbone of championship teams. Build around these players.`,
       players: elite.map((p) => p.name),
+      toString() { return this.message; }
     });
   }
 
@@ -388,6 +389,7 @@ function generateInsights(playerMetrics) {
       title: "High-Variance Talents: Ceiling Games Ahead",
       message: `${volatileName} show explosive potential but inconsistent week-to-week performance. These are boom-or-bust players - they can take over games (high ceiling) but may disappear in others (low floor). Monitor matchups carefully, and target them when facing weak secondaries/defenses. Great for "ceiling games" but risky as primary options.`,
       players: volatileHigh.map((p) => p.name),
+      toString() { return this.message; }
     });
   }
 
@@ -402,6 +404,7 @@ function generateInsights(playerMetrics) {
       title: "Steady Contributors: Dependable Production",
       message: `${steadyNames} are the workhorses - they provide reliable, predictable production every week. Not flashy, but you know what you're getting. These players are excellent for floor games when you need guaranteed points. Use them to build a stable foundation, and pair with higher-ceiling players for upside.`,
       players: steady.map((p) => p.name),
+      toString() { return this.message; }
     });
   }
 
@@ -416,6 +419,7 @@ function generateInsights(playerMetrics) {
       title: "Predictable Anchors: Defensive/Support Roles",
       message: `${predictableNames} excel in specific roles with limited offensive variance - think defensive specialists, backup RBs, or slot receivers with limited touches. They provide stability and consistency in specialized roles, not ceiling plays.`,
       players: predictable.map((p) => p.name),
+      toString() { return this.message; }
     });
   }
 
@@ -430,6 +434,7 @@ function generateInsights(playerMetrics) {
       title: "Development/Rotation Needed",
       message: `${strugglingNames} are underperforming on both dimensions - neither reliable NOR explosive. These may be injury returnees, young prospects, or players struggling with their role. Monitor for improvement or consider rotation/depth moves.`,
       players: struggling.map((p) => p.name),
+      toString() { return this.message; }
     });
   }
 
@@ -444,6 +449,7 @@ function generateInsights(playerMetrics) {
       title: "Risky Performers: Approach with Caution",
       message: `${riskyNames} lack both consistency AND ceiling - they're unpredictable AND don't offer high upside. These are players that should either improve their role/involvement or be moved to backup status. High variance with low mean = not useful.`,
       players: risky.map((p) => p.name),
+      toString() { return this.message; }
     });
   }
 
@@ -458,6 +464,7 @@ function generateInsights(playerMetrics) {
       title: "Balanced Performers: Situational Value",
       message: `${mixedNames} sit in the middle ground - balanced consistency and explosiveness. These players have flexibility; use them based on matchup and game script. They're neither guaranteed floor nor clear ceiling plays, but offer ceiling/floor balance.`,
       players: mixed.map((p) => p.name),
+      toString() { return this.message; }
     });
   }
 

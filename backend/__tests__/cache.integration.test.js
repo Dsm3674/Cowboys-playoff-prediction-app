@@ -301,8 +301,8 @@ describe("Cache Integration Tests - Real-world Scenarios", () => {
     test("should maintain data integrity across operations", () => {
       const original = {
         players: [
-          { name: "Dak", clutchIndex: 85, stats: { 4q: 0.95 } },
-          { name: "CeeDee", clutchIndex: 82, stats: { 4q: 0.88 } },
+          { name: "Dak", clutchIndex: 85, stats: { "4q": 0.95 } },
+          { name: "CeeDee", clutchIndex: 82, stats: { "4q": 0.88 } },
         ],
       };
 
@@ -312,7 +312,7 @@ describe("Cache Integration Tests - Real-world Scenarios", () => {
       // Deep equality
       expect(retrieved).toEqual(original);
       expect(retrieved.players[0].name).toBe("Dak");
-      expect(retrieved.players[0].stats[4q]).toBeUndefined(); // Key not in stats
+      // Accessing with an unquoted identifier would be invalid; ensure string key works
       expect(retrieved.players[0].stats["4q"]).toBe(0.95);
     });
 
