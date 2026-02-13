@@ -1,3 +1,37 @@
+// 1. Define Helper Components (Skeleton, Confidence) first
+function SkeletonCard({ title }) {
+  return (
+    <div style={{ background: "#f3f4f6", padding: "1rem", borderRadius: "8px" }}>
+      <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>{title}</div>
+      <div style={{ height: "22px", width: "55%", background: "#e5e7eb", borderRadius: "6px", marginTop: "10px" }} />
+      <div style={{ height: "8px", width: "90%", background: "#e5e7eb", borderRadius: "6px", marginTop: "12px" }} />
+      <div style={{ height: "8px", width: "80%", background: "#e5e7eb", borderRadius: "6px", marginTop: "8px" }} />
+    </div>
+  );
+}
+
+function ConfidenceMeter({ value }) {
+  const pct = Math.max(0, Math.min(100, value * 100));
+  return (
+    <div style={{ marginTop: "0.6rem" }}>
+      <div style={{ height: "10px", background: "#e5e7eb", borderRadius: "999px", overflow: "hidden" }}>
+        <div
+          style={{
+            width: pct + "%",
+            height: "100%",
+            background: "#003594",
+            transition: "width 400ms ease",
+          }}
+        />
+      </div>
+      <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+        Confidence meter: {pct.toFixed(0)}%
+      </div>
+    </div>
+  );
+}
+
+// 2. The Main PredictionPanel Component (From your original file)
 function PredictionPanel() {
   const [pred, setPred] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
@@ -66,11 +100,6 @@ function PredictionPanel() {
     loadHistory();
   }, []);
 
-  React.useEffect(() => {
-    // If user changes username elsewhere, re-load history & prefs on next mount
-    // (we keep it simple: on page refresh)
-  }, []);
-
   const saveToHistory = (prediction) => {
     try {
       const key = getHistoryKey();
@@ -111,10 +140,8 @@ function PredictionPanel() {
       .finally(() => setLoading(false));
   };
 
-  // NEW: auto-run toggle (per-username)
   React.useEffect(() => {
     if (prefs.autorun && !pred && !loading) {
-      // only autorun once per mount
       fetchPrediction();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -220,7 +247,7 @@ function PredictionPanel() {
         </div>
 
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-          {/* NEW: autorun toggle */}
+          {/* autorun toggle */}
           <label style={{ fontSize: "0.8rem", color: "#374151", display: "flex", gap: "0.4rem" }}>
             <input
               type="checkbox"
@@ -299,7 +326,6 @@ function PredictionPanel() {
                 {(pred.playoff_probability * 100).toFixed(1)}%
               </div>
 
-              {/* NEW: confidence meter */}
               <ConfidenceMeter value={pred.playoff_probability} />
               <div style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: "0.35rem" }}>
                 {confidenceLabel(pred.playoff_probability)}
@@ -312,14 +338,13 @@ function PredictionPanel() {
                 {(pred.superbowl_probability * 100).toFixed(1)}%
               </div>
 
-              {/* NEW: quick context */}
               <div style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: "0.6rem" }}>
                 Championship odds are always smaller — that’s normal.
               </div>
             </div>
           </div>
 
-          {/* NEW: trend row */}
+          {/* trend row */}
           {(trendPlayoffs !== null || trendSB !== null) && (
             <div style={{ marginTop: "0.9rem", fontSize: "0.85rem", color: "#374151" }}>
               <strong>Trend vs last run:</strong>{" "}
@@ -344,7 +369,7 @@ function PredictionPanel() {
             </div>
           )}
 
-          {/* NEW: action buttons */}
+          {/* action buttons */}
           <div style={{ marginTop: "0.9rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             <button
               onClick={copyShare}
@@ -430,39 +455,152 @@ function PredictionPanel() {
   );
 }
 
-/* ---------- NEW HELPERS (adds real lines + real UX) ---------- */
+// -------------------------------------------------------------
+// 3. MAIN APP ROUTING & MOUNTING LOGIC
+// -------------------------------------------------------------
 
-function SkeletonCard({ title }) {
+// Safety check for components loaded via other script tags in index.html
+// If they are missing or failed to load, we use a simple placeholder so the app doesn't crash.
+const SafeComponent = (name, Component) => {
+  if (Component) return Component;
+  return () => (
+    <div className="card">
+      <h3>{name} Unavailable</h3>
+      <p>Component script not found or failed to load.</p>
+    </div>
+  );
+};
+
+// --- Dashboard View ---
+function Dashboard() {
+  const year = new Date().getFullYear();
+  
+  // Use window.Component or fallback
+  const TSICardSafe = SafeComponent('TSI Card', window.TSICard);
+  const MustWinSafe = SafeComponent('Must Win Card', window.MustWinCard);
+  const LiveProbSafe = SafeComponent('Live Prob Tool', window.LiveWinProbTool);
+
   return (
-    <div style={{ background: "#f3f4f6", padding: "1rem", borderRadius: "8px" }}>
-      <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>{title}</div>
-      <div style={{ height: "22px", width: "55%", background: "#e5e7eb", borderRadius: "6px", marginTop: "10px" }} />
-      <div style={{ height: "8px", width: "90%", background: "#e5e7eb", borderRadius: "6px", marginTop: "12px" }} />
-      <div style={{ height: "8px", width: "80%", background: "#e5e7eb", borderRadius: "6px", marginTop: "8px" }} />
+    <div>
+      <h1 className="hero-title">
+        LoneStar <span>Analytics</span>
+      </h1>
+      <div className="hero-kicker">Dallas Cowboys Advanced Data Hub</div>
+      
+      <div className="grid-layout">
+        <div>
+           {/* Profile & Record */}
+           <UserProfileCard />
+           <RecordCard year={year} />
+           
+           {/* Advanced Stats Column */}
+           <TSICardSafe year={year} />
+           <MustWinSafe year={year} />
+        </div>
+        
+        <div>
+           {/* Main Monte Carlo Engine */}
+           <PredictionPanel />
+           
+           {/* Live Tools */}
+           <div style={{marginTop: '2rem'}}>
+             <LiveProbSafe />
+           </div>
+           
+           {/* Schedule */}
+           <div style={{marginTop: '2rem'}}>
+             <GameTable year={year} />
+           </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function ConfidenceMeter({ value }) {
-  const pct = Math.max(0, Math.min(100, value * 100));
+// --- Main App Component ---
+function App() {
+  // Simple state-based router
+  const [currentPage, setCurrentPage] = React.useState('dashboard');
+
+  // Listen for navigation events
+  React.useEffect(() => {
+    // Expose setPage globally so index.html onclicks work
+    window.setPage = (page) => {
+      setCurrentPage(page);
+      
+      // Update browser URL hash (optional, just for feel)
+      window.location.hash = page;
+
+      // Update active state in Navbar (vanilla JS for performance)
+      document.querySelectorAll('.nav-link').forEach(el => {
+        el.classList.remove('active');
+        if(el.dataset.page === page) el.classList.add('active');
+      });
+
+      // Update Debug Bar
+      const debugEl = document.getElementById("route-indicator");
+      if(debugEl) debugEl.textContent = `Route: ${page}`;
+    };
+
+    // Check initial hash
+    const initialHash = window.location.hash.replace('#', '');
+    if(initialHash) window.setPage(initialHash);
+    else window.setPage('dashboard');
+
+  }, []);
+
+  // Safe References for pages
+  const SeasonPathSafe = SafeComponent('Season Paths', window.SeasonPathExplorer);
+  const LiveProbSafe = SafeComponent('Live Prob Tool', window.LiveWinProbTool);
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'dashboard': return <Dashboard />;
+      case 'simulator': return <AIStorySimulator />;
+      case 'radar':     return <PlayerRadar />;
+      case 'paths':     return <SeasonPathSafe />;
+      case 'liveprob':  return <LiveProbSafe />;
+      case 'profile':   return <UserProfileCard />;
+      case 'history':   return <HistoryPage />;
+      default:          return <Dashboard />;
+    }
+  };
+
   return (
-    <div style={{ marginTop: "0.6rem" }}>
-      <div style={{ height: "10px", background: "#e5e7eb", borderRadius: "999px", overflow: "hidden" }}>
-        <div
-          style={{
-            width: pct + "%",
-            height: "100%",
-            background: "#003594",
-            transition: "width 400ms ease",
-          }}
-        />
-      </div>
-      <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
-        Confidence meter: {pct.toFixed(0)}%
-      </div>
+    <div className="content-area fade-in">
+      {renderPage()}
+      
+      {/* Global Footer */}
+      <footer className="site-footer">
+        <div className="site-footer__inner">
+          <div className="site-footer__col">
+             <h4>LoneStar Analytics</h4>
+             <p>Built for the dedicated fan. We use probability, not punditry.</p>
+          </div>
+          <div className="site-footer__col">
+            <h5>Data Sources</h5>
+            <ul>
+              <li>ESPN API</li>
+              <li>Pro-Football-Ref</li>
+            </ul>
+          </div>
+          <div className="site-footer__col">
+            <h5>Version</h5>
+            <p className="site-footer__tiny">v2.0.4 (Beta)</p>
+          </div>
+        </div>
+        <div className="site-footer__bottom">
+          <span>&copy; {new Date().getFullYear()} LoneStar Analytics</span>
+        </div>
+      </footer>
     </div>
   );
 }
 
+// --- MOUNT THE APP ---
+const rootElement = document.getElementById('root');
+if(rootElement) {
+  ReactDOM.render(<App />, rootElement);
+}
 
 
