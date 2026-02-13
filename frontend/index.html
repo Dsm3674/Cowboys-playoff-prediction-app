@@ -6,54 +6,81 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="description" content="Advanced NFL analytics dashboard featuring Monte Carlo playoff modeling, Team Strength Index, win probability engines, and season path exploration." />
-<meta name="keywords" content="Dallas Cowboys, NFL analytics, Monte Carlo simulation, win probability, team strength index, season modeling" />
-<meta name="author" content="LoneStar Analytics" />
-<meta name="robots" content="index,follow" />
 <meta name="theme-color" content="#041e42" />
 
-<link rel="preconnect" href="https://cdn.jsdelivr.net" />
-<link rel="preconnect" href="https://unpkg.com" />
-<link rel="dns-prefetch" href="//cdn.jsdelivr.net" />
-<link rel="dns-prefetch" href="//unpkg.com" />
+<link rel="icon" href="https://static.www.nfl.com/league/api/clubs/logos/DAL" />
 
-<link rel="manifest" href="/manifest.json" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="mobile-web-app-capable" content="yes" />
-
-<link rel="icon" href="https://static.www.nfl.com/league/api/clubs/logos/DAL" type="image/png" />
 <link rel="stylesheet" href="./style.css" />
-
-<script>
-window.__APP_ENV__ = {
-  version: "1.0.0",
-  build: "enterprise",
-  debug: false
-};
-</script>
 
 <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<style>
+#global-loader{
+  position:fixed;
+  inset:0;
+  background:linear-gradient(135deg,#041e42,#0a3d7a);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  color:white;
+  z-index:9999;
+  transition:opacity .4s ease;
+}
+
+.loader-ring{
+  width:60px;
+  height:60px;
+  border:4px solid rgba(255,255,255,.2);
+  border-top:4px solid #fff;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin-top:1rem;
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg)}
+}
+
+#debug-panel{
+  position:fixed;
+  bottom:0;
+  left:0;
+  width:100%;
+  background:#0f172a;
+  color:#94a3b8;
+  font-size:12px;
+  padding:6px 10px;
+  display:flex;
+  justify-content:space-between;
+  z-index:9998;
+}
+
+#scroll-progress{
+  position:fixed;
+  top:0;
+  left:0;
+  height:3px;
+  background:#3b82f6;
+  width:0%;
+  z-index:10000;
+}
+</style>
+
 </head>
 <body>
 
 <a href="#root" class="skip-link">Skip to main content</a>
 
-<div id="global-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#041e42;color:white;z-index:9999;">
-  <div style="text-align:center;">
-    <h2>LoneStar Analytics</h2>
-    <div class="loading"></div>
-  </div>
+<div id="global-loader">
+  <h2 style="margin:0;font-weight:700;">LoneStar Analytics</h2>
+  <div class="loader-ring"></div>
 </div>
 
-<div class="notice-banner">
-  <span class="notice-badge">Fan Project</span>
-  <span>Advanced probabilistic modeling platform for Dallas Cowboys analytics.</span>
-</div>
-
-<nav class="nav-bar" aria-label="Primary Navigation">
+<nav class="nav-bar">
   <div class="nav-link" onclick="window.setPage('dashboard')">Dashboard</div>
   <div class="nav-link" onclick="window.setPage('simulator')">AI Simulator</div>
   <div class="nav-link" onclick="window.setPage('radar')">Player Radar</div>
@@ -63,57 +90,17 @@ window.__APP_ENV__ = {
   <div class="nav-link" onclick="window.setPage('history')">Our Story</div>
 </nav>
 
-<div class="app-container">
+<main id="app-shell">
+  <div id="root"></div>
+</main>
 
-  <div id="toast-root"></div>
-  <div id="modal-root"></div>
+<div id="scroll-progress"></div>
 
-  <div id="transition-wrapper">
-    <main id="app-shell" role="main">
-      <div id="root"></div>
-    </main>
-  </div>
-
+<div id="debug-panel">
+  <div id="route-indicator">Route: dashboard</div>
+  <div id="network-status">Network: online</div>
+  <div id="fps-indicator">FPS: --</div>
 </div>
-
-<footer class="site-footer">
-  <div class="site-footer__inner">
-    <div class="site-footer__col">
-      <h4>LoneStar Analytics</h4>
-      <p>
-        Monte Carlo playoff modeling. Logistic regression win engine.
-        Beam search season projections. Chaos variance modeling.
-      </p>
-    </div>
-
-    <div class="site-footer__col">
-      <h5>Core Systems</h5>
-      <ul>
-        <li>Team Strength Index</li>
-        <li>Probabilistic Playoff Engine</li>
-        <li>Live Win Probability</li>
-        <li>Must-Win Detection</li>
-        <li>Season Path Explorer</li>
-      </ul>
-    </div>
-
-    <div class="site-footer__col">
-      <h5>Disclaimer</h5>
-      <p>Educational analytics system. Not affiliated with the NFL.</p>
-    </div>
-  </div>
-
-  <div class="site-footer__bottom">
-    <span>&copy; <span id="year-span"></span> LoneStar Analytics</span>
-  </div>
-</footer>
-
-<noscript>
-  <div class="noscript-message">
-    <h2>JavaScript Required</h2>
-    <p>This analytics dashboard requires JavaScript to execute modeling engines.</p>
-  </div>
-</noscript>
 
 <script type="text/babel" src="./src/api.js"></script>
 <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
@@ -130,130 +117,53 @@ window.__APP_ENV__ = {
 
 <script>
 (function(){
-  var span=document.getElementById("year-span");
-  if(span) span.textContent=new Date().getFullYear();
-})();
 
+const loader=document.getElementById("global-loader");
 window.addEventListener("load",function(){
-  var loader=document.getElementById("global-loader");
-  if(loader){
+  setTimeout(function(){
     loader.style.opacity="0";
-    setTimeout(function(){ loader.remove(); },500);
-  }
+    setTimeout(function(){
+      loader.style.display="none";
+    },400);
+  },300);
 });
-<div id="debug-panel" style="position:fixed;bottom:0;left:0;width:100%;background:#0f172a;color:#94a3b8;font-size:12px;padding:8px;display:flex;justify-content:space-between;z-index:9998;">
-  <div id="app-version">Version: 1.0.0</div>
-  <div id="route-indicator">Route: dashboard</div>
-  <div id="network-status">Network: online</div>
-  <div id="memory-usage">Memory: --</div>
-  <div id="fps-indicator">FPS: --</div>
-</div>
 
-<div id="scroll-progress" style="position:fixed;top:0;left:0;height:3px;background:#3b82f6;width:0%;z-index:9999;"></div>
+let last=performance.now();
+let frames=0;
 
-<div id="aria-live-region" aria-live="polite" style="position:absolute;left:-9999px;"></div>
-
-<script>
-(function(){
-
-let lastFrame = performance.now();
-let frames = 0;
-
-function updateFPS(){
-  const now = performance.now();
+function fps(){
+  const now=performance.now();
   frames++;
-  if(now > lastFrame + 1000){
-    const fps = Math.round((frames*1000)/(now-lastFrame));
-    const el = document.getElementById("fps-indicator");
-    if(el) el.textContent = "FPS: " + fps;
-    frames = 0;
-    lastFrame = now;
+  if(now>last+1000){
+    document.getElementById("fps-indicator").textContent="FPS: "+frames;
+    frames=0;
+    last=now;
   }
-  requestAnimationFrame(updateFPS);
+  requestAnimationFrame(fps);
 }
-requestAnimationFrame(updateFPS);
-
-function updateMemory(){
-  if(performance.memory){
-    const mem = Math.round(performance.memory.usedJSHeapSize/1048576);
-    const el = document.getElementById("memory-usage");
-    if(el) el.textContent = "Memory: " + mem + "MB";
-  }
-}
-setInterval(updateMemory,2000);
+requestAnimationFrame(fps);
 
 window.addEventListener("scroll",function(){
-  const scrollTop = window.scrollY;
-  const docHeight = document.body.scrollHeight - window.innerHeight;
-  const percent = (scrollTop/docHeight)*100;
-  const bar = document.getElementById("scroll-progress");
-  if(bar) bar.style.width = percent + "%";
+  const percent=(window.scrollY/(document.body.scrollHeight-window.innerHeight))*100;
+  document.getElementById("scroll-progress").style.width=percent+"%";
 });
 
 window.addEventListener("online",function(){
-  const el = document.getElementById("network-status");
-  if(el) el.textContent = "Network: online";
+  document.getElementById("network-status").textContent="Network: online";
 });
-
 window.addEventListener("offline",function(){
-  const el = document.getElementById("network-status");
-  if(el) el.textContent = "Network: offline";
+  document.getElementById("network-status").textContent="Network: offline";
 });
 
-window.setPage = (function(original){
+window.setPage=(function(original){
   return function(page){
-    const el = document.getElementById("route-indicator");
-    if(el) el.textContent = "Route: " + page;
-    const live = document.getElementById("aria-live-region");
-    if(live) live.textContent = "Navigated to " + page;
+    document.getElementById("route-indicator").textContent="Route: "+page;
     if(original) original(page);
   };
 })(window.setPage);
 
-window.addEventListener("keydown",function(e){
-  if(e.key==="d"){
-    document.body.classList.toggle("dark");
-  }
-  if(e.key==="r"){
-    document.body.classList.toggle("retro");
-  }
-});
-
-document.addEventListener("visibilitychange",function(){
-  const live = document.getElementById("aria-live-region");
-  if(document.hidden){
-    if(live) live.textContent = "Tab hidden";
-  }else{
-    if(live) live.textContent = "Tab active";
-  }
-});
-
-window.addEventListener("error",function(e){
-  const live = document.getElementById("aria-live-region");
-  if(live) live.textContent = "Error detected";
-});
-
-if('requestIdleCallback' in window){
-  requestIdleCallback(function(){
-    console.log("Idle callback executed");
-  });
-}
-
-new ResizeObserver(function(entries){
-  entries.forEach(function(entry){
-    const live = document.getElementById("aria-live-region");
-    if(live) live.textContent = "Viewport resized";
-  });
-}).observe(document.body);
-
-document.addEventListener("focusin",function(){
-  const live = document.getElementById("aria-live-region");
-  if(live) live.textContent = "Focus changed";
-});
-
 })();
 </script>
-
 
 </body>
 </html>
