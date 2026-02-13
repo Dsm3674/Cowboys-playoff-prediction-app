@@ -1,165 +1,259 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>LoneStar Analytics – Dallas Cowboys Playoff Predictor</title>
+<head>
+<meta charset="UTF-8" />
+<title>LoneStar Analytics – Advanced Cowboys Analytics Platform</title>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Advanced NFL analytics dashboard featuring Monte Carlo playoff modeling, Team Strength Index, win probability engines, and season path exploration." />
+<meta name="keywords" content="Dallas Cowboys, NFL analytics, Monte Carlo simulation, win probability, team strength index, season modeling" />
+<meta name="author" content="LoneStar Analytics" />
+<meta name="robots" content="index,follow" />
+<meta name="theme-color" content="#041e42" />
 
-    <meta
-      name="description"
-      content="LoneStar Analytics is a fan-made Dallas Cowboys dashboard that blends data, Monte Carlo simulations, advanced analytics, season path modeling, win probability engines, and interactive charts to explore playoff odds, schedule, and player impact."
-    />
-    <meta
-      name="keywords"
-      content="Dallas Cowboys, NFL, playoff odds, simulations, statistics, dashboard, data visualization, Monte Carlo, win probability, season path, team strength index"
-    />
-    <meta name="author" content="LoneStar Analytics" />
-    <meta name="robots" content="index,follow" />
-    <meta name="theme-color" content="#003594" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="preconnect" href="https://unpkg.com" />
+<link rel="dns-prefetch" href="//cdn.jsdelivr.net" />
+<link rel="dns-prefetch" href="//unpkg.com" />
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="LoneStar Analytics – Advanced Cowboys Analytics Dashboard" />
-    <meta
-      property="og:description"
-      content="Playoff simulations, Team Strength Index, win probability engine, season path visualizer, and player analytics."
-    />
-    <meta property="og:type" content="website" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
 
-    <link
-      rel="icon"
-      href="https://static.www.nfl.com/league/api/clubs/logos/DAL"
-      type="image/png"
-    />
+<link rel="icon" href="https://static.www.nfl.com/league/api/clubs/logos/DAL" type="image/png" />
+<link rel="stylesheet" href="./style.css" />
 
-    <link rel="stylesheet" href="./style.css" />
+<script>
+window.__APP_ENV__ = {
+  version: "1.0.0",
+  build: "enterprise",
+  debug: false
+};
+</script>
 
-    <!-- React + Babel + Chart.js -->
-    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  </head>
+<script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <body>
-    <a href="#root" class="skip-link">Skip to main content</a>
+</head>
+<body>
 
-    <div class="notice-banner">
-      <span class="notice-badge">Fan Project</span>
-      <span>
-        LoneStar Analytics is an independent, fan-made analytics platform.
-        Now featuring advanced modeling: Team Strength Index, Win Probability,
-        Chaos Modeling, and Season Path projections.
-      </span>
-    </div>
+<a href="#root" class="skip-link">Skip to main content</a>
 
-    <!-- NAVIGATION (EXTENDED) -->
-    <nav class="nav-bar" aria-label="Primary Navigation">
-      <div class="nav-link" data-page="dashboard" onclick="window.setPage('dashboard')">
-        Dashboard
-      </div>
+<div id="global-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#041e42;color:white;z-index:9999;">
+  <div style="text-align:center;">
+    <h2>LoneStar Analytics</h2>
+    <div class="loading"></div>
+  </div>
+</div>
 
-      <div class="nav-link" data-page="simulator" onclick="window.setPage('simulator')">
-        AI Simulator
-      </div>
+<div class="notice-banner">
+  <span class="notice-badge">Fan Project</span>
+  <span>Advanced probabilistic modeling platform for Dallas Cowboys analytics.</span>
+</div>
 
-      <div class="nav-link" data-page="radar" onclick="window.setPage('radar')">
-        Player Radar
-      </div>
+<nav class="nav-bar" aria-label="Primary Navigation">
+  <div class="nav-link" onclick="window.setPage('dashboard')">Dashboard</div>
+  <div class="nav-link" onclick="window.setPage('simulator')">AI Simulator</div>
+  <div class="nav-link" onclick="window.setPage('radar')">Player Radar</div>
+  <div class="nav-link" onclick="window.setPage('paths')">Season Paths</div>
+  <div class="nav-link" onclick="window.setPage('liveprob')">Live Win Probability</div>
+  <div class="nav-link" onclick="window.setPage('profile')">Profile</div>
+  <div class="nav-link" onclick="window.setPage('history')">Our Story</div>
+</nav>
 
-      <div class="nav-link" data-page="paths" onclick="window.setPage('paths')">
-        Season Paths
-      </div>
+<div class="app-container">
 
-      <div class="nav-link" data-page="liveprob" onclick="window.setPage('liveprob')">
-        Live Win Probability
-      </div>
+  <div id="toast-root"></div>
+  <div id="modal-root"></div>
 
-      <div class="nav-link" data-page="profile" onclick="window.setPage('profile')">
-        Profile
-      </div>
-
-      <div class="nav-link" data-page="history" onclick="window.setPage('history')">
-        Our Story
-      </div>
-    </nav>
-
-    <main id="app-shell">
+  <div id="transition-wrapper">
+    <main id="app-shell" role="main">
       <div id="root"></div>
     </main>
+  </div>
 
-    <footer class="site-footer">
-      <div class="site-footer__inner">
-        <div class="site-footer__col">
-          <h4>LoneStar Analytics</h4>
-          <p>
-            A modern full-stack NFL analytics playground.
-            Built with Node, Monte Carlo simulation, logistic win models,
-            beam search season paths, and probabilistic chaos modeling.
-          </p>
-        </div>
+</div>
 
-        <div class="site-footer__col">
-          <h5>New Features</h5>
-          <ul>
-            <li>Team Strength Index (TSI)</li>
-            <li>Season Path Explorer</li>
-            <li>Must-Win Game Detection</li>
-            <li>Live In-Game Win Probability</li>
-            <li>Chaos Variance Slider</li>
-          </ul>
-        </div>
+<footer class="site-footer">
+  <div class="site-footer__inner">
+    <div class="site-footer__col">
+      <h4>LoneStar Analytics</h4>
+      <p>
+        Monte Carlo playoff modeling. Logistic regression win engine.
+        Beam search season projections. Chaos variance modeling.
+      </p>
+    </div>
 
-        <div class="site-footer__col">
-          <h5>Disclaimers</h5>
-          <p>
-            This project is for educational & entertainment use only.
-            Projections are probabilistic, not deterministic.
-          </p>
-        </div>
-      </div>
+    <div class="site-footer__col">
+      <h5>Core Systems</h5>
+      <ul>
+        <li>Team Strength Index</li>
+        <li>Probabilistic Playoff Engine</li>
+        <li>Live Win Probability</li>
+        <li>Must-Win Detection</li>
+        <li>Season Path Explorer</li>
+      </ul>
+    </div>
 
-      <div class="site-footer__bottom">
-        <span>&copy; <span id="year-span"></span> LoneStar Analytics</span>
-        <span class="site-footer__tiny">
-          Not affiliated with the NFL or Dallas Cowboys.
-        </span>
-      </div>
-    </footer>
+    <div class="site-footer__col">
+      <h5>Disclaimer</h5>
+      <p>Educational analytics system. Not affiliated with the NFL.</p>
+    </div>
+  </div>
 
-    <noscript>
-      <div class="noscript-message">
-        <h2>JavaScript Required</h2>
-        <p>
-          This dashboard requires JavaScript to run Monte Carlo simulations,
-          win probability engines, and dynamic analytics tools.
-        </p>
-      </div>
-    </noscript>
+  <div class="site-footer__bottom">
+    <span>&copy; <span id="year-span"></span> LoneStar Analytics</span>
+  </div>
+</footer>
 
-    <!-- ORIGINAL COMPONENTS -->
-    <script type="text/babel" src="./src/api.js"></script>
-    <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
-    <script type="text/babel" src="./src/components/GameTable.jsx"></script>
-    <script type="text/babel" src="./src/components/PlayerRadar.jsx"></script>
-    <script type="text/babel" src="./src/components/UserProfileCard.jsx"></script>
-    <script type="text/babel" src="./src/components/AIStorySimulator.jsx"></script>
-    <script type="text/babel" src="./src/components/HistoryPage.jsx"></script>
+<noscript>
+  <div class="noscript-message">
+    <h2>JavaScript Required</h2>
+    <p>This analytics dashboard requires JavaScript to execute modeling engines.</p>
+  </div>
+</noscript>
 
-    <!-- NEW COMPONENTS (ADDED — NOTHING REMOVED) -->
-    <script type="text/babel" src="./src/components/TSICard.jsx"></script>
-    <script type="text/babel" src="./src/components/MustWinCard.jsx"></script>
-    <script type="text/babel" src="./src/components/SeasonPathExplorer.jsx"></script>
-    <script type="text/babel" src="./src/components/LiveWinProbTool.jsx"></script>
+<script type="text/babel" src="./src/api.js"></script>
+<script type="text/babel" src="./src/components/RecordCard.jsx"></script>
+<script type="text/babel" src="./src/components/GameTable.jsx"></script>
+<script type="text/babel" src="./src/components/PlayerRadar.jsx"></script>
+<script type="text/babel" src="./src/components/UserProfileCard.jsx"></script>
+<script type="text/babel" src="./src/components/AIStorySimulator.jsx"></script>
+<script type="text/babel" src="./src/components/HistoryPage.jsx"></script>
+<script type="text/babel" src="./src/components/TSICard.jsx"></script>
+<script type="text/babel" src="./src/components/MustWinCard.jsx"></script>
+<script type="text/babel" src="./src/components/SeasonPathExplorer.jsx"></script>
+<script type="text/babel" src="./src/components/LiveWinProbTool.jsx"></script>
+<script type="text/babel" src="./src/main.jsx"></script>
 
-    <!-- MAIN APP -->
-    <script type="text/babel" src="./src/main.jsx"></script>
+<script>
+(function(){
+  var span=document.getElementById("year-span");
+  if(span) span.textContent=new Date().getFullYear();
+})();
 
-    <script>
-      (function () {
-        var span = document.getElementById("year-span");
-        if (span) span.textContent = new Date().getFullYear();
-      })();
-    </script>
-  </body>
+window.addEventListener("load",function(){
+  var loader=document.getElementById("global-loader");
+  if(loader){
+    loader.style.opacity="0";
+    setTimeout(function(){ loader.remove(); },500);
+  }
+});
+<div id="debug-panel" style="position:fixed;bottom:0;left:0;width:100%;background:#0f172a;color:#94a3b8;font-size:12px;padding:8px;display:flex;justify-content:space-between;z-index:9998;">
+  <div id="app-version">Version: 1.0.0</div>
+  <div id="route-indicator">Route: dashboard</div>
+  <div id="network-status">Network: online</div>
+  <div id="memory-usage">Memory: --</div>
+  <div id="fps-indicator">FPS: --</div>
+</div>
+
+<div id="scroll-progress" style="position:fixed;top:0;left:0;height:3px;background:#3b82f6;width:0%;z-index:9999;"></div>
+
+<div id="aria-live-region" aria-live="polite" style="position:absolute;left:-9999px;"></div>
+
+<script>
+(function(){
+
+let lastFrame = performance.now();
+let frames = 0;
+
+function updateFPS(){
+  const now = performance.now();
+  frames++;
+  if(now > lastFrame + 1000){
+    const fps = Math.round((frames*1000)/(now-lastFrame));
+    const el = document.getElementById("fps-indicator");
+    if(el) el.textContent = "FPS: " + fps;
+    frames = 0;
+    lastFrame = now;
+  }
+  requestAnimationFrame(updateFPS);
+}
+requestAnimationFrame(updateFPS);
+
+function updateMemory(){
+  if(performance.memory){
+    const mem = Math.round(performance.memory.usedJSHeapSize/1048576);
+    const el = document.getElementById("memory-usage");
+    if(el) el.textContent = "Memory: " + mem + "MB";
+  }
+}
+setInterval(updateMemory,2000);
+
+window.addEventListener("scroll",function(){
+  const scrollTop = window.scrollY;
+  const docHeight = document.body.scrollHeight - window.innerHeight;
+  const percent = (scrollTop/docHeight)*100;
+  const bar = document.getElementById("scroll-progress");
+  if(bar) bar.style.width = percent + "%";
+});
+
+window.addEventListener("online",function(){
+  const el = document.getElementById("network-status");
+  if(el) el.textContent = "Network: online";
+});
+
+window.addEventListener("offline",function(){
+  const el = document.getElementById("network-status");
+  if(el) el.textContent = "Network: offline";
+});
+
+window.setPage = (function(original){
+  return function(page){
+    const el = document.getElementById("route-indicator");
+    if(el) el.textContent = "Route: " + page;
+    const live = document.getElementById("aria-live-region");
+    if(live) live.textContent = "Navigated to " + page;
+    if(original) original(page);
+  };
+})(window.setPage);
+
+window.addEventListener("keydown",function(e){
+  if(e.key==="d"){
+    document.body.classList.toggle("dark");
+  }
+  if(e.key==="r"){
+    document.body.classList.toggle("retro");
+  }
+});
+
+document.addEventListener("visibilitychange",function(){
+  const live = document.getElementById("aria-live-region");
+  if(document.hidden){
+    if(live) live.textContent = "Tab hidden";
+  }else{
+    if(live) live.textContent = "Tab active";
+  }
+});
+
+window.addEventListener("error",function(e){
+  const live = document.getElementById("aria-live-region");
+  if(live) live.textContent = "Error detected";
+});
+
+if('requestIdleCallback' in window){
+  requestIdleCallback(function(){
+    console.log("Idle callback executed");
+  });
+}
+
+new ResizeObserver(function(entries){
+  entries.forEach(function(entry){
+    const live = document.getElementById("aria-live-region");
+    if(live) live.textContent = "Viewport resized";
+  });
+}).observe(document.body);
+
+document.addEventListener("focusin",function(){
+  const live = document.getElementById("aria-live-region");
+  if(live) live.textContent = "Focus changed";
+});
+
+})();
+</script>
+
+
+</body>
 </html>
