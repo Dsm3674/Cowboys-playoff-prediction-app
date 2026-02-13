@@ -11,43 +11,31 @@ function RecordCard({ year }) {
     setLoading(true);
     setError(null);
 
-  window.api
+    window.api
       .getCowboysRecord(year)
       .then((data) => setRecord(data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [year]);
 
-  if (loading) return <div>Loading record...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return <div className="card"><p className="text-muted">Loading record...</p></div>;
+  if (error) return <div className="card"><p style={{ color: "var(--error)" }}>Error: {error}</p></div>;
 
   return (
-    <div
-      style={{
-        background: "white",
-        padding: "1.5rem",
-        borderRadius: "10px",
-        marginTop: "1rem",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-      }}
-    >
-      <h2>Dallas Cowboys Record {year}</h2>
+    <div className="card">
+      <h3>Dallas Cowboys Record {year}</h3>
 
-      <p
-        style={{
-          fontSize: "2rem",
-          fontWeight: "bold",
-          color: "#003594",
-        }}
-      >
-        {record.wins}-{record.losses}-{record.ties}
-      </p>
-
-      {"winPct" in record && (
-        <p style={{ color: "#666" }}>
-          Win Percentage: {(record.winPct * 100).toFixed(1)}%
+      <div className="stat-box primary">
+        <p className="stat-value" style={{ margin: "1rem 0" }}>
+          {record.wins}-{record.losses}-{record.ties}
         </p>
-      )}
+
+        {("winPct" in record) && (
+          <p className="text-small text-muted">
+            Win Percentage: <strong>{(record.winPct * 100).toFixed(1)}%</strong>
+          </p>
+        )}
+      </div>
     </div>
   );
 }
