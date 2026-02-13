@@ -18,13 +18,13 @@ function GameTable({ year }) {
       .finally(() => setLoading(false));
   }, [year]);
 
-  if (loading) return <div>Loading schedule...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!games.length) return <div>No games found for {year}</div>;
+  if (loading) return <div className="card"><p className="text-muted">Loading schedule...</p></div>;
+  if (error) return <div className="card"><p style={{ color: "var(--error)" }}>Error: {error}</p></div>;
+  if (!games.length) return <div className="card"><p className="text-muted">No games found for {year}</p></div>;
 
   return (
     <div className="card">
-      <h2 style={{ marginTop: 0 }}>Schedule</h2>
+      <h3>Schedule</h3>
 
       <table>
         <thead>
