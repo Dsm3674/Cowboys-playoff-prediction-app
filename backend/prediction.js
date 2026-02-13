@@ -5,8 +5,6 @@ const {
   computeTeamAveragesFromGames,
 } = require("./services/espn");
 
-/* ---------------- UTIL (ORIGINAL) ---------------- */
-
 function clamp(x, lo, hi) {
   return Math.max(lo, Math.min(hi, x));
 }
@@ -15,7 +13,13 @@ function logistic(z) {
   return 1 / (1 + Math.exp(-z));
 }
 
-/* ---------------- ORIGINAL MODEL ENGINE (EXTENDED) ---------------- */
+function applyChaos(p, chaos = 0) {
+  const c = clamp(Number(chaos) || 0, 0, 1);
+  let mixed = (1 - c) * p + c * 0.5;
+  const jitter = (Math.random() - 0.5) * 0.22 * c;
+  mixed += jitter;
+  return clamp(mixed, 0.05, 0.95);
+}
 
 function modelWinProb(modelType, features) {
   const {
@@ -24,132 +28,102 @@ function modelWinProb(modelType, features) {
     teamPointDiff,
     oppPointDiff,
     isHome,
-    scenarioModifier = 0, // NEW (optional)
+    scenarioModifier,
   } = features;
 
   let z = 0;
 
-  // ORIGINAL engines (unchanged)
-  if (modelType === "Elo") {
-    z =
-      1.6 * (teamWinPct - oppWinPct) +
-      0.09 * (teamPointDiff - oppPointDiff) +
-      (isHome ? 0.18 : -0.05);
-  }
-
   if (modelType === "RandomForest") {
     z =
-      1.9 * (teamWinPct - oppWinPct) +
-      0.07 * (teamPointDiff - oppPointDiff) +
-      (isHome ? 0.15 : -0.04);
-  }
-
-  if (modelType === "LSTM") {
+      1.8 * (teamWinPct - oppWinPct) +
+      0.08 * (teamPointDiff - oppPointDiff) +
+      (isHome ? 0.25 : -0.05);
+  } else if (modelType === "LogisticRegression") {
     z =
-      1.3 * (teamWinPct - oppWinPct) +
-      0.14 * (teamPointDiff - oppPointDiff) +
-      (isHome ? 0.22 : -0.06);
+      2.2 * (teamWinPct - oppWinPct) +
+      0.06 * (teamPointDiff - oppPointDiff) +
+      (isHome ? 0.2 : 0);
+  } else {
+    z =
+      1.6 * (teamWinPct - oppWinPct) +
+      0.05 * (teamPointDiff - oppPointDiff);
   }
 
-  // NEW: scenario modifier applied INSIDE probability
-  const p = logistic(z) + scenarioModifier;
-  return clamp(p, 0.05, 0.95);
+  z += scenarioModifier || 0;
+
+  return clamp(logistic(z), 0.05, 0.95);
 }
 
-/* ---------------- ORIGINAL MONTE CARLO (EXTENDED) ---------------- */
-
-function monteCarloSeason({
-  wins,
-  gamesRemainingProbs,
-  iterations = 20000,
-}) {
-  let playoffHits = 0;
+function monteCarloSeason(currentWins, remainingProbs, iterations) {
+  let playoffCount = 0;
   let totalWins = 0;
 
   for (let i = 0; i < iterations; i++) {
-    let w = wins;
+    let wins = currentWins;
 
-    for (let g = 0; g < gamesRemainingProbs.length; g++) {
-      if (Math.random() < gamesRemainingProbs[g]) w++;
+    for (const p of remainingProbs) {
+      if (Math.random() < p) wins++;
     }
 
-    totalWins += w;
-
-    if (w >= 9) playoffHits++;
+    totalWins += wins;
+    if (wins >= 10) playoffCount++;
   }
 
   return {
-    playoffProbability: playoffHits / iterations,
+    playoffProbability: playoffCount / iterations,
     expectedWins: totalWins / iterations,
   };
 }
 
-/* ---------------- MAIN ENTRY (EXTENDED) ---------------- */
-
 async function generateEspnPrediction({
   year,
   modelType = "RandomForest",
-  iterations = 20000,     // NEW default
-  scenarioModifier = 0,   // NEW
+  iterations = 20000,
+  scenarioModifier = 0,
+  chaos = 0,
 }) {
-  const games = await fetchCowboysGamesSeasonToDate(year);
-  const record = computeRecordFromGames(games);
+  const cowboysGames = await fetchCowboysGamesSeasonToDate(year);
+  const record = computeRecordFromGames(cowboysGames);
+  const cowAvg = computeTeamAveragesFromGames("DAL", cowboysGames);
 
-  const completed = games.filter((g) => g.completed);
-  const remainingGames = games.filter((g) => !g.completed);
-
-  const cowAvg = computeTeamAveragesFromGames("DAL", games);
+  const remaining = cowboysGames.filter((g) => !g.completed);
 
   const probs = [];
 
-  for (const g of remainingGames) {
+  for (const g of remaining) {
     const oppAbbr =
       g.homeTeamAbbr === "DAL" ? g.awayTeamAbbr : g.homeTeamAbbr;
 
     const oppGames = await fetchTeamGamesSeasonToDate(oppAbbr, year);
+    const oppRecord = computeRecordFromGames(oppGames);
     const oppAvg = computeTeamAveragesFromGames(oppAbbr, oppGames);
 
-    const oppCompleted = oppGames.filter((x) => x.completed).length || 1;
-    const oppWins = oppGames.filter((x) => {
-      if (!x.completed) return false;
-      const isHome = x.homeTeamAbbr === oppAbbr;
-      return isHome
-        ? x.homeScore > x.awayScore
-        : x.awayScore > x.homeScore;
-    }).length;
-
-    const p = modelWinProb(modelType, {
+    const pBase = modelWinProb(modelType, {
       teamWinPct: record.winPct || 0.5,
-      oppWinPct: oppWins / oppCompleted,
-      teamPointDiff: cowAvg.pointDiffPerGame,
-      oppPointDiff: oppAvg.pointDiffPerGame,
+      oppWinPct: oppRecord.winPct || 0.5,
+      teamPointDiff: cowAvg.pointDiffPerGame || 0,
+      oppPointDiff: oppAvg.pointDiffPerGame || 0,
       isHome: g.homeTeamAbbr === "DAL",
-      scenarioModifier, // NEW
+      scenarioModifier,
     });
 
+    const p = applyChaos(pBase, chaos);
     probs.push(p);
   }
 
-  const sim = monteCarloSeason({
-    wins: record.wins,
-    gamesRemainingProbs: probs,
-    iterations,
-  });
+  const sim = monteCarloSeason(record.wins, probs, iterations);
 
   return {
+    playoffProbability: sim.playoffProbability,
+    expectedWins: sim.expectedWins,
+    gamesRemaining: remaining.length,
     modelUsed: modelType,
-    currentRecord: record,
-    gamesRemaining: remainingGames.length,
-    perGameWinProbabilities: probs.map((p) => Number(p.toFixed(3))),
-    expectedWins: Number(sim.expectedWins.toFixed(1)),        // NEW exposed
-    playoffProbability: Number(sim.playoffProbability.toFixed(3)),
     generatedAt: new Date().toISOString(),
+    perGameWinProbabilities: probs,
   };
 }
 
-module.exports = {
-  generateEspnPrediction,
-};
+module.exports = { generateEspnPrediction };
 
 
 
