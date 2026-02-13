@@ -1,11 +1,12 @@
-// 1. Define Helper Components (Skeleton, Confidence) first
+
+
 function SkeletonCard({ title }) {
   return (
-    <div style={{ background: "#f3f4f6", padding: "1rem", borderRadius: "8px" }}>
-      <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>{title}</div>
-      <div style={{ height: "22px", width: "55%", background: "#e5e7eb", borderRadius: "6px", marginTop: "10px" }} />
-      <div style={{ height: "8px", width: "90%", background: "#e5e7eb", borderRadius: "6px", marginTop: "12px" }} />
-      <div style={{ height: "8px", width: "80%", background: "#e5e7eb", borderRadius: "6px", marginTop: "8px" }} />
+    <div className="card card-dense">
+      <div className="text-small text-muted">{title}</div>
+      <div style={{ height: "22px", background: "#e5e7eb", borderRadius: "6px", marginTop: "10px" }} />
+      <div style={{ height: "8px", background: "#e5e7eb", borderRadius: "6px", marginTop: "12px" }} />
+      <div style={{ height: "8px", background: "#e5e7eb", borderRadius: "6px", marginTop: "8px" }} />
     </div>
   );
 }
@@ -14,24 +15,22 @@ function ConfidenceMeter({ value }) {
   const pct = Math.max(0, Math.min(100, value * 100));
   return (
     <div style={{ marginTop: "0.6rem" }}>
-      <div style={{ height: "10px", background: "#e5e7eb", borderRadius: "999px", overflow: "hidden" }}>
+      <div className="progress-bar">
         <div
-          style={{
-            width: pct + "%",
-            height: "100%",
-            background: "#003594",
-            transition: "width 400ms ease",
-          }}
+          className="progress-fill"
+          style={{ width: pct + "%" }}
         />
       </div>
-      <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+      <div className="progress-label">
         Confidence meter: {pct.toFixed(0)}%
       </div>
     </div>
   );
 }
 
-// 2. The Main PredictionPanel Component (From your original file)
+// 2. PREDICTION PANEL
+// ================================================================
+
 function PredictionPanel() {
   const [pred, setPred] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
@@ -100,55 +99,54 @@ function PredictionPanel() {
     loadHistory();
   }, []);
 
-  const saveToHistory = (prediction) => {
-    try {
-      const key = getHistoryKey();
-      if (!key) return;
-
-      const existing = JSON.parse(localStorage.getItem(key) || "[]");
-      const safeExisting = Array.isArray(existing) ? existing : [];
-
-      const entry = {
-        ts: new Date().toISOString(),
-        playoffs: prediction.playoff_probability,
-        superBowl: prediction.superbowl_probability,
-      };
-
-      const updated = [entry, ...safeExisting].slice(0, 10);
-      localStorage.setItem(key, JSON.stringify(updated));
-      setHistory(updated);
-    } catch (e) {
-      console.warn("PredictionPanel: failed to save history", e);
-    }
-  };
-
-  const fetchPrediction = () => {
-    setLoading(true);
-    setError(null);
-
-    window.api
-      .generatePrediction()
-      .then((data) => {
-        if (data && data.success && data.prediction) {
-          setPred(data.prediction);
-          saveToHistory(data.prediction);
-        } else {
-          setError("Prediction service returned no result");
-        }
-      })
-      .catch((err) => setError(err?.message || "Request failed"))
-      .finally(() => setLoading(false));
-  };
-
   React.useEffect(() => {
-    if (prefs.autorun && !pred && !loading) {
+    if (prefs.autorun) {
       fetchPrediction();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefs.autorun]);
 
+  const fetchPrediction = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await window.api.getPrediction();
+      if (result && typeof result === "object") {
+        setPred(result);
+        const historyEntry = {
+          ts: new Date().toISOString(),
+          playoffs: result.playoff_probability || 0,
+          superBowl: result.superbowl_probability || 0,
+        };
+        const key = getHistoryKey();
+        if (key) {
+          const old = JSON.parse(localStorage.getItem(key) || "[]");
+          const updated = [historyEntry, ...(Array.isArray(old) ? old : [])].slice(0, 50);
+          localStorage.setItem(key, JSON.stringify(updated));
+          setHistory(updated);
+        }
+      }
+    } catch (e) {
+      setError(`Error: ${e.message || "Unknown error"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyShare = () => {
+    if (!pred) return;
+    const text = `LoneStar Analytics: Cowboys playoff odds ${(
+      pred.playoff_probability * 100
+    ).toFixed(1)}%, Super Bowl ${(pred.superbowl_probability * 100).toFixed(1)}%`;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   const clearHistory = () => {
-    const ok = window.confirm("Clear your saved prediction history for this username?");
+    const ok = window.confirm(
+      "Clear your saved prediction history for this username?"
+    );
     if (!ok) return;
 
     try {
@@ -198,157 +196,81 @@ function PredictionPanel() {
     if (p >= 0.55) return "Solid";
     if (p >= 0.40) return "Coin flip zone";
     if (p >= 0.25) return "Long shot";
-    return "Prayer";
-  };
-
-  const shareText = pred
-    ? `LoneStar Analytics — Cowboys odds: Playoffs ${(pred.playoff_probability * 100).toFixed(
-        1
-      )}%, Super Bowl ${(pred.superbowl_probability * 100).toFixed(1)}%`
-    : "";
-
-  const copyShare = async () => {
-    if (!shareText) return;
-    try {
-      await navigator.clipboard.writeText(shareText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      // fallback
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = shareText;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        ta.remove();
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
-      } catch {}
-    }
+    return "Unlikely";
   };
 
   return (
-    <div className="card" style={{ background: "white" }}>
-      {/* Header Row */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "1rem",
-          gap: "1rem",
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <div className="eyebrow">Monte Carlo Engine</div>
-          <h3 style={{ margin: 0 }}>Playoff Odds (AI Model)</h3>
-        </div>
+    <div className="card">
+      <h3>Monte Carlo Playoff Simulator</h3>
 
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-          {/* autorun toggle */}
-          <label style={{ fontSize: "0.8rem", color: "#374151", display: "flex", gap: "0.4rem" }}>
-            <input
-              type="checkbox"
-              checked={!!prefs.autorun}
-              onChange={(e) => savePrefs({ ...prefs, autorun: e.target.checked })}
-            />
-            Auto-run
-          </label>
+      <div style={{ marginBottom: "1rem", fontSize: "0.9rem" }}>
+        <label style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+          <input
+            type="checkbox"
+            checked={!!prefs.autorun}
+            onChange={(e) => savePrefs({ ...prefs, autorun: e.target.checked })}
+          />
+          Auto-run on page load
+        </label>
 
-          <button
-            onClick={fetchPrediction}
-            disabled={loading}
-            style={{
-              background: "#003594",
-              color: "white",
-              border: "none",
-              padding: "8px 16px",
-              borderRadius: "4px",
-              cursor: "pointer",
-              opacity: loading ? 0.6 : 1,
-              fontSize: "0.8rem",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-            }}
-          >
-            {loading ? "Running..." : "Run Simulation"}
-          </button>
-        </div>
+        <button
+          onClick={fetchPrediction}
+          disabled={loading}
+          className={`btn-primary ${loading ? "opacity-50" : ""}`}
+          style={{ marginTop: "1rem", width: "100%" }}
+        >
+          {loading ? "Running..." : "Run Simulation"}
+        </button>
       </div>
 
-      <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 0 }}>
-        Under the hood: we take real scoring data, estimate team strength, and then simulate
-        thousands of seasons to estimate how often a playoff run appears. It’s not a crystal
-        ball, but it’s a fun stress test.
+      <p className="text-small text-muted">
+        We simulate thousands of seasons using real scoring data and team strength estimates to predict playoff odds.
       </p>
 
-      {/* Error */}
-      {error && <p style={{ color: "#d00", marginTop: 0 }}>{error}</p>}
+      {error && <p style={{ color: "var(--error)", marginTop: "1rem" }}>{error}</p>}
 
-      {/* Loading skeleton */}
       {loading && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "0.75rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
           <SkeletonCard title="Make Playoffs" />
           <SkeletonCard title="Super Bowl" />
         </div>
       )}
 
-      {/* No prediction yet */}
-      {!pred && !loading ? (
-        <div style={{ marginTop: "0.75rem" }}>
+      {!pred && !loading && (
+        <div style={{ marginTop: "1rem" }}>
           <p style={{ fontStyle: "italic", color: "#666", marginBottom: "0.25rem" }}>
-            Run the simulation to see current playoff and Super Bowl odds.
-          </p>
-          <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 0 }}>
-            Tip: turn on <strong>Auto-run</strong> if you always want fresh odds when you open the dashboard.
+            Run the simulation to see current playoff odds.
           </p>
         </div>
-      ) : null}
+      )}
 
-      {/* Prediction display */}
       {pred && !loading && (
         <>
-          <div
-            className="pulse-glow"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "1rem",
-              marginTop: "0.75rem",
-            }}
-          >
-            <div style={{ background: "#f0f9ff", padding: "1rem", borderRadius: "8px", textAlign: "center" }}>
-              <div style={{ color: "#555" }}>Make Playoffs</div>
-              <div style={{ fontSize: "1.6rem", color: "#003594", fontWeight: "bold" }}>
-                {(pred.playoff_probability * 100).toFixed(1)}%
-              </div>
-
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
+            <div className="stat-box primary">
+              <div className="stat-label">Make Playoffs</div>
+              <div className="stat-value">{(pred.playoff_probability * 100).toFixed(1)}%</div>
               <ConfidenceMeter value={pred.playoff_probability} />
-              <div style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: "0.35rem" }}>
+              <div className="text-small text-muted" style={{ marginTop: "0.5rem" }}>
                 {confidenceLabel(pred.playoff_probability)}
               </div>
             </div>
 
-            <div style={{ background: "#fff0f0", padding: "1rem", borderRadius: "8px", textAlign: "center" }}>
-              <div style={{ color: "#555" }}>Super Bowl</div>
-              <div style={{ fontSize: "1.6rem", color: "#d20a0a", fontWeight: "bold" }}>
+            <div className="stat-box danger">
+              <div className="stat-label">Super Bowl</div>
+              <div className="stat-value" style={{ color: "var(--accent)" }}>
                 {(pred.superbowl_probability * 100).toFixed(1)}%
               </div>
-
-              <div style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: "0.6rem" }}>
-                Championship odds are always smaller — that’s normal.
+              <div className="text-small text-muted" style={{ marginTop: "0.75rem" }}>
+                Championship odds are always smaller — that's normal.
               </div>
             </div>
           </div>
 
-          {/* trend row */}
           {(trendPlayoffs !== null || trendSB !== null) && (
-            <div style={{ marginTop: "0.9rem", fontSize: "0.85rem", color: "#374151" }}>
+            <div style={{ marginTop: "1rem", fontSize: "0.85rem", color: "var(--slate-700)" }}>
               <strong>Trend vs last run:</strong>{" "}
-              {trendPlayoffs !== null ? (
+              {trendPlayoffs !== null && (
                 <span style={{ marginRight: "0.75rem" }}>
                   Playoffs{" "}
                   <span style={{ fontWeight: 700 }}>
@@ -356,8 +278,8 @@ function PredictionPanel() {
                     {trendPlayoffs.toFixed(1)}%
                   </span>
                 </span>
-              ) : null}
-              {trendSB !== null ? (
+              )}
+              {trendSB !== null && (
                 <span>
                   SB{" "}
                   <span style={{ fontWeight: 700 }}>
@@ -365,23 +287,14 @@ function PredictionPanel() {
                     {trendSB.toFixed(1)}%
                   </span>
                 </span>
-              ) : null}
+              )}
             </div>
           )}
 
-          {/* action buttons */}
-          <div style={{ marginTop: "0.9rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             <button
               onClick={copyShare}
-              style={{
-                border: "1px solid #111827",
-                padding: "8px 12px",
-                borderRadius: "6px",
-                background: "white",
-                cursor: "pointer",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-              }}
+              className="btn-secondary btn-small"
             >
               {copied ? "Copied ✅" : "Copy share text"}
             </button>
@@ -389,16 +302,8 @@ function PredictionPanel() {
             <button
               onClick={downloadCSV}
               disabled={history.length === 0}
-              style={{
-                border: "1px solid #111827",
-                padding: "8px 12px",
-                borderRadius: "6px",
-                background: history.length ? "white" : "#f3f4f6",
-                cursor: history.length ? "pointer" : "not-allowed",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                opacity: history.length ? 1 : 0.6,
-              }}
+              className="btn-secondary btn-small"
+              style={{ opacity: history.length ? 1 : 0.6 }}
             >
               Download CSV
             </button>
@@ -406,17 +311,8 @@ function PredictionPanel() {
             <button
               onClick={clearHistory}
               disabled={history.length === 0}
-              style={{
-                border: "1px solid #dc2626",
-                padding: "8px 12px",
-                borderRadius: "6px",
-                background: "white",
-                color: "#dc2626",
-                cursor: history.length ? "pointer" : "not-allowed",
-                fontSize: "0.85rem",
-                fontWeight: 700,
-                opacity: history.length ? 1 : 0.55,
-              }}
+              className="btn-danger btn-small"
+              style={{ opacity: history.length ? 1 : 0.55 }}
             >
               Clear history
             </button>
@@ -424,18 +320,16 @@ function PredictionPanel() {
         </>
       )}
 
-      {/* History Section */}
       {history.length > 0 && (
-        <div style={{ marginTop: "1.25rem" }}>
-          <h4 style={{ marginBottom: "0.5rem" }}>Your Prediction History</h4>
-          <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 0 }}>
-            Saved locally to your browser and tied to your current username. Change your profile name to track
-            different “what if” universes.
+        <div style={{ marginTop: "2rem" }}>
+          <h4>Your Prediction History</h4>
+          <p className="text-small text-muted">
+            Saved locally to your browser and tied to your current username.
           </p>
 
-          <ul style={{ listStyle: "none", paddingLeft: 0, fontSize: "0.85rem", margin: 0 }}>
+          <ul style={{ listStyle: "none", paddingLeft: 0, fontSize: "0.85rem" }}>
             {history.map((h, idx) => (
-              <li key={idx} style={{ padding: "6px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <li key={idx} style={{ padding: "6px 0", borderBottom: "1px solid var(--slate-200)" }}>
                 <strong>
                   {new Date(h.ts).toLocaleString(undefined, {
                     month: "short",
@@ -455,12 +349,48 @@ function PredictionPanel() {
   );
 }
 
-// -------------------------------------------------------------
-// 3. MAIN APP ROUTING & MOUNTING LOGIC
-// -------------------------------------------------------------
+// 3. DASHBOARD
+// ================================================================
 
-// Safety check for components loaded via other script tags in index.html
-// If they are missing or failed to load, we use a simple placeholder so the app doesn't crash.
+function Dashboard() {
+  const year = new Date().getFullYear();
+
+  const TSICardSafe = SafeComponent("TSI Card", window.TSICard);
+  const MustWinSafe = SafeComponent("Must Win Card", window.MustWinCard);
+  const LiveProbSafe = SafeComponent("Live Prob Tool", window.LiveWinProbTool);
+
+  return (
+    <div>
+      <h1 className="hero-title">
+        LoneStar <span>Analytics</span>
+      </h1>
+      <div className="hero-kicker">Dallas Cowboys Advanced Data Hub</div>
+
+      <div className="grid-layout">
+        <div>
+          <UserProfileCard />
+          <RecordCard year={year} />
+          <TSICardSafe year={year} />
+          <MustWinSafe year={year} />
+        </div>
+
+        <div>
+          <PredictionPanel />
+          <div style={{ marginTop: "2rem" }}>
+            <LiveProbSafe />
+          </div>
+          <div style={{ marginTop: "2rem" }}>
+            <GameTable year={year} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 4. SAFE COMPONENT WRAPPER
+// ================================================================
+
 const SafeComponent = (name, Component) => {
   if (Component) return Component;
   return () => (
@@ -471,118 +401,86 @@ const SafeComponent = (name, Component) => {
   );
 };
 
-// --- Dashboard View ---
-function Dashboard() {
-  const year = new Date().getFullYear();
-  
-  // Use window.Component or fallback
-  const TSICardSafe = SafeComponent('TSI Card', window.TSICard);
-  const MustWinSafe = SafeComponent('Must Win Card', window.MustWinCard);
-  const LiveProbSafe = SafeComponent('Live Prob Tool', window.LiveWinProbTool);
+// 5. MAIN APP WITH CONSOLIDATED NAVIGATION
+// ================================================================
 
-  return (
-    <div>
-      <h1 className="hero-title">
-        LoneStar <span>Analytics</span>
-      </h1>
-      <div className="hero-kicker">Dallas Cowboys Advanced Data Hub</div>
-      
-      <div className="grid-layout">
-        <div>
-           {/* Profile & Record */}
-           <UserProfileCard />
-           <RecordCard year={year} />
-           
-           {/* Advanced Stats Column */}
-           <TSICardSafe year={year} />
-           <MustWinSafe year={year} />
-        </div>
-        
-        <div>
-           {/* Main Monte Carlo Engine */}
-           <PredictionPanel />
-           
-           {/* Live Tools */}
-           <div style={{marginTop: '2rem'}}>
-             <LiveProbSafe />
-           </div>
-           
-           {/* Schedule */}
-           <div style={{marginTop: '2rem'}}>
-             <GameTable year={year} />
-           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- Main App Component ---
 function App() {
-  // Simple state-based router
-  const [currentPage, setCurrentPage] = React.useState('dashboard');
+  const [currentPage, setCurrentPage] = React.useState("dashboard");
 
-  // Listen for navigation events
   React.useEffect(() => {
-    // Expose setPage globally so index.html onclicks work
     window.setPage = (page) => {
       setCurrentPage(page);
-      
-      // Update browser URL hash (optional, just for feel)
       window.location.hash = page;
 
-      // Update active state in Navbar (vanilla JS for performance)
-      document.querySelectorAll('.nav-link').forEach(el => {
-        el.classList.remove('active');
-        if(el.dataset.page === page) el.classList.add('active');
+      document.querySelectorAll(".nav-link").forEach((el) => {
+        el.classList.remove("active");
+        if (el.dataset.page === page) el.classList.add("active");
       });
 
-      // Update Debug Bar
       const debugEl = document.getElementById("route-indicator");
-      if(debugEl) debugEl.textContent = `Route: ${page}`;
+      if (debugEl) debugEl.textContent = `Route: ${page}`;
     };
 
-    // Check initial hash
-    const initialHash = window.location.hash.replace('#', '');
-    if(initialHash) window.setPage(initialHash);
-    else window.setPage('dashboard');
-
+    const initialHash = window.location.hash.replace("#", "");
+    if (initialHash) window.setPage(initialHash);
+    else window.setPage("dashboard");
   }, []);
 
-  // Safe References for pages
-  const SeasonPathSafe = SafeComponent('Season Paths', window.SeasonPathExplorer);
-  const LiveProbSafe = SafeComponent('Live Prob Tool', window.LiveWinProbTool);
-  const TimelineSafe = SafeComponent('Timeline', window.Timeline);
-  const EventsAdminSafe = SafeComponent('Events Admin', window.EventsAdmin);
+  const SeasonPathSafe = SafeComponent("Season Paths", window.SeasonPathExplorer);
+  const LiveProbSafe = SafeComponent("Live Prob Tool", window.LiveWinProbTool);
+  const TimelineSafe = SafeComponent("Timeline", window.Timeline);
+  const EventsAdminSafe = SafeComponent("Events Admin", window.EventsAdmin);
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard': return <Dashboard />;
-      case 'simulator': return <AIStorySimulator />;
-      case 'radar':     return <PlayerRadar />;
-      case 'rival':     return <RivalTeamImpactPage />;
-      case 'maps':      return <Maps />;
-      case 'clutch':    return <ClutchIndex />;
-      case 'timeline':  return <TimelineSafe />;
-      case 'events':    return <EventsAdminSafe />;
-      case 'paths':     return <SeasonPathSafe />;
-      case 'liveprob':  return <LiveProbSafe />;
-      case 'profile':   return <UserProfileCard />;
-      case 'history':   return <HistoryPage />;
-      default:          return <Dashboard />;
+      case "dashboard":
+        return <Dashboard />;
+      case "simulator":
+        return <AIStorySimulator />;
+      case "analytics":
+        return (
+          <div>
+            <h1 className="hero-title">Advanced Analytics</h1>
+            <div className="grid-layout">
+              <div>
+                <PlayerRadar />
+              </div>
+              <div>
+                <Maps />
+              </div>
+            </div>
+          </div>
+        );
+      case "rival":
+        return <RivalTeamImpactPage />;
+      case "clutch":
+        return <ClutchIndex />;
+      case "timeline":
+        return <TimelineSafe />;
+      case "paths":
+        return <SeasonPathSafe />;
+      case "liveprob":
+        return <LiveProbSafe />;
+      case "events":
+        return <EventsAdminSafe />;
+      case "profile":
+        return <UserProfileCard />;
+      case "history":
+        return <HistoryPage />;
+      default:
+        return <Dashboard />;
     }
   };
 
   return (
     <div className="content-area fade-in">
       {renderPage()}
-      
-      {/* Global Footer */}
+
       <footer className="site-footer">
         <div className="site-footer__inner">
           <div className="site-footer__col">
-             <h4>LoneStar Analytics</h4>
-             <p>Built for the dedicated fan. We use probability, not punditry.</p>
+            <h4>LoneStar Analytics</h4>
+            <p>Built for the dedicated fan. We use probability, not punditry.</p>
           </div>
           <div className="site-footer__col">
             <h5>Data Sources</h5>
@@ -593,7 +491,7 @@ function App() {
           </div>
           <div className="site-footer__col">
             <h5>Version</h5>
-            <p className="site-footer__tiny">v2.0.4 (Beta)</p>
+            <p className="site-footer__tiny">v2.1.0 (Refactored)</p>
           </div>
         </div>
         <div className="site-footer__bottom">
@@ -604,9 +502,10 @@ function App() {
   );
 }
 
-// --- MOUNT THE APP ---
-const rootElement = document.getElementById('root');
-if(rootElement) {
+
+
+const rootElement = document.getElementById("root");
+if (rootElement) {
   ReactDOM.render(<App />, rootElement);
 }
 
