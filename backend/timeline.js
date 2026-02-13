@@ -3,7 +3,7 @@
  * Detects local peaks and valleys in performance metrics
  */
 
-const db = require("../databases");
+const db = require("./databases");
 
 /**
  * Detect inflection points (peaks and valleys) in timeline data
