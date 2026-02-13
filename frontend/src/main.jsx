@@ -3,40 +3,89 @@ function PredictionPanel() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
   const [history, setHistory] = React.useState([]);
+  const [copied, setCopied] = React.useState(false);
+
+  const getProfile = () => {
+    try {
+      return JSON.parse(localStorage.getItem("ls_profile") || "null");
+    } catch {
+      return null;
+    }
+  };
+
+  const getHistoryKey = () => {
+    const profile = getProfile();
+    if (!profile || !profile.username) return null;
+    return `ls_predictions_${profile.username}`;
+  };
+
+  const getPrefsKey = () => {
+    const profile = getProfile();
+    if (!profile || !profile.username) return null;
+    return `ls_predictionprefs_${profile.username}`;
+  };
 
   const loadHistory = () => {
     try {
-      const profile = JSON.parse(localStorage.getItem("ls_profile") || "null");
-      if (!profile || !profile.username) {
+      const key = getHistoryKey();
+      if (!key) {
         setHistory([]);
         return;
       }
-      const key = `ls_predictions_${profile.username}`;
       const saved = JSON.parse(localStorage.getItem(key) || "[]");
-      setHistory(saved);
+      setHistory(Array.isArray(saved) ? saved : []);
     } catch (e) {
       console.warn("PredictionPanel: failed to load history", e);
       setHistory([]);
     }
   };
 
+  const loadPrefs = () => {
+    try {
+      const key = getPrefsKey();
+      if (!key) return { autorun: false };
+      const prefs = JSON.parse(localStorage.getItem(key) || "null");
+      return prefs && typeof prefs === "object" ? prefs : { autorun: false };
+    } catch {
+      return { autorun: false };
+    }
+  };
+
+  const [prefs, setPrefs] = React.useState(() => loadPrefs());
+
+  const savePrefs = (nextPrefs) => {
+    setPrefs(nextPrefs);
+    try {
+      const key = getPrefsKey();
+      if (!key) return;
+      localStorage.setItem(key, JSON.stringify(nextPrefs));
+    } catch {}
+  };
+
   React.useEffect(() => {
     loadHistory();
   }, []);
 
+  React.useEffect(() => {
+    // If user changes username elsewhere, re-load history & prefs on next mount
+    // (we keep it simple: on page refresh)
+  }, []);
+
   const saveToHistory = (prediction) => {
     try {
-      const profile = JSON.parse(localStorage.getItem("ls_profile") || "null");
-      if (!profile || !profile.username) return;
+      const key = getHistoryKey();
+      if (!key) return;
 
-      const key = `ls_predictions_${profile.username}`;
       const existing = JSON.parse(localStorage.getItem(key) || "[]");
+      const safeExisting = Array.isArray(existing) ? existing : [];
+
       const entry = {
         ts: new Date().toISOString(),
         playoffs: prediction.playoff_probability,
         superBowl: prediction.superbowl_probability,
       };
-      const updated = [entry, ...existing].slice(0, 10);
+
+      const updated = [entry, ...safeExisting].slice(0, 10);
       localStorage.setItem(key, JSON.stringify(updated));
       setHistory(updated);
     } catch (e) {
@@ -51,30 +100,118 @@ function PredictionPanel() {
     window.api
       .generatePrediction()
       .then((data) => {
-        if (data.success) {
+        if (data && data.success && data.prediction) {
           setPred(data.prediction);
           saveToHistory(data.prediction);
         } else {
           setError("Prediction service returned no result");
         }
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err?.message || "Request failed"))
       .finally(() => setLoading(false));
   };
 
+  // NEW: auto-run toggle (per-username)
+  React.useEffect(() => {
+    if (prefs.autorun && !pred && !loading) {
+      // only autorun once per mount
+      fetchPrediction();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefs.autorun]);
+
+  const clearHistory = () => {
+    const ok = window.confirm("Clear your saved prediction history for this username?");
+    if (!ok) return;
+
+    try {
+      const key = getHistoryKey();
+      if (!key) return;
+      localStorage.removeItem(key);
+      setHistory([]);
+    } catch {}
+  };
+
+  const downloadCSV = () => {
+    if (!history.length) return;
+
+    const rows = [
+      ["timestamp_iso", "playoff_probability", "superbowl_probability"],
+      ...history.map((h) => [h.ts, h.playoffs, h.superBowl]),
+    ];
+
+    const csv = rows
+      .map((r) => r.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "lonestar_prediction_history.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  };
+
+  const lastEntry = history.length > 0 ? history[0] : null;
+  const prevEntry = history.length > 1 ? history[1] : null;
+
+  const trendPlayoffs =
+    prevEntry && lastEntry ? (lastEntry.playoffs - prevEntry.playoffs) * 100 : null;
+
+  const trendSB =
+    prevEntry && lastEntry ? (lastEntry.superBowl - prevEntry.superBowl) * 100 : null;
+
+  const confidenceLabel = (p) => {
+    if (p >= 0.75) return "High confidence";
+    if (p >= 0.55) return "Solid";
+    if (p >= 0.40) return "Coin flip zone";
+    if (p >= 0.25) return "Long shot";
+    return "Prayer";
+  };
+
+  const shareText = pred
+    ? `LoneStar Analytics — Cowboys odds: Playoffs ${(pred.playoff_probability * 100).toFixed(
+        1
+      )}%, Super Bowl ${(pred.superbowl_probability * 100).toFixed(1)}%`
+    : "";
+
+  const copyShare = async () => {
+    if (!shareText) return;
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      // fallback
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = shareText;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      } catch {}
+    }
+  };
+
   return (
-    <div
-      className="card"
-      style={{
-        background: "white",
-      }}
-    >
+    <div className="card" style={{ background: "white" }}>
+      {/* Header Row */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: "1rem",
+          gap: "1rem",
+          flexWrap: "wrap",
         }}
       >
         <div>
@@ -82,103 +219,198 @@ function PredictionPanel() {
           <h3 style={{ margin: 0 }}>Playoff Odds (AI Model)</h3>
         </div>
 
-        <button
-          onClick={fetchPrediction}
-          disabled={loading}
-          style={{
-            background: "#003594",
-            color: "white",
-            border: "none",
-            padding: "8px 16px",
-            borderRadius: "4px",
-            cursor: "pointer",
-            opacity: loading ? 0.6 : 1,
-            fontSize: "0.8rem",
-            fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-          }}
-        >
-          {loading ? "Running..." : "Run Simulation"}
-        </button>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+          {/* NEW: autorun toggle */}
+          <label style={{ fontSize: "0.8rem", color: "#374151", display: "flex", gap: "0.4rem" }}>
+            <input
+              type="checkbox"
+              checked={!!prefs.autorun}
+              onChange={(e) => savePrefs({ ...prefs, autorun: e.target.checked })}
+            />
+            Auto-run
+          </label>
+
+          <button
+            onClick={fetchPrediction}
+            disabled={loading}
+            style={{
+              background: "#003594",
+              color: "white",
+              border: "none",
+              padding: "8px 16px",
+              borderRadius: "4px",
+              cursor: "pointer",
+              opacity: loading ? 0.6 : 1,
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+            }}
+          >
+            {loading ? "Running..." : "Run Simulation"}
+          </button>
+        </div>
       </div>
 
       <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 0 }}>
-        Under the hood: we take real scoring data, estimate team strength, and
-        then simulate thousands of seasons to estimate how often a playoff run
-        appears. It’s not a crystal ball, but it’s a fun stress test.
+        Under the hood: we take real scoring data, estimate team strength, and then simulate
+        thousands of seasons to estimate how often a playoff run appears. It’s not a crystal
+        ball, but it’s a fun stress test.
       </p>
 
+      {/* Error */}
       {error && <p style={{ color: "#d00", marginTop: 0 }}>{error}</p>}
 
-      {!pred ? (
-        <p style={{ fontStyle: "italic", color: "#666" }}>
-          Run the simulation to see current playoff and Super Bowl odds.
-        </p>
-      ) : (
-        <div
-          className="pulse-glow"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "1rem",
-            marginTop: "0.5rem",
-          }}
-        >
-          <div
-            style={{
-              background: "#f0f9ff",
-              padding: "1rem",
-              borderRadius: "8px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ color: "#555" }}>Make Playoffs</div>
-            <div
-              style={{
-                fontSize: "1.6rem",
-                color: "#003594",
-                fontWeight: "bold",
-              }}
-            >
-              {(pred.playoff_probability * 100).toFixed(1)}%
-            </div>
-          </div>
-
-          <div
-            style={{
-              background: "#fff0f0",
-              padding: "1rem",
-              borderRadius: "8px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ color: "#555" }}>Super Bowl</div>
-            <div
-              style={{
-                fontSize: "1.6rem",
-                color: "#d20a0a",
-                fontWeight: "bold",
-              }}
-            >
-              {(pred.superbowl_probability * 100).toFixed(1)}%
-            </div>
-          </div>
+      {/* Loading skeleton */}
+      {loading && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "0.75rem" }}>
+          <SkeletonCard title="Make Playoffs" />
+          <SkeletonCard title="Super Bowl" />
         </div>
       )}
 
+      {/* No prediction yet */}
+      {!pred && !loading ? (
+        <div style={{ marginTop: "0.75rem" }}>
+          <p style={{ fontStyle: "italic", color: "#666", marginBottom: "0.25rem" }}>
+            Run the simulation to see current playoff and Super Bowl odds.
+          </p>
+          <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 0 }}>
+            Tip: turn on <strong>Auto-run</strong> if you always want fresh odds when you open the dashboard.
+          </p>
+        </div>
+      ) : null}
+
+      {/* Prediction display */}
+      {pred && !loading && (
+        <>
+          <div
+            className="pulse-glow"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "1rem",
+              marginTop: "0.75rem",
+            }}
+          >
+            <div style={{ background: "#f0f9ff", padding: "1rem", borderRadius: "8px", textAlign: "center" }}>
+              <div style={{ color: "#555" }}>Make Playoffs</div>
+              <div style={{ fontSize: "1.6rem", color: "#003594", fontWeight: "bold" }}>
+                {(pred.playoff_probability * 100).toFixed(1)}%
+              </div>
+
+              {/* NEW: confidence meter */}
+              <ConfidenceMeter value={pred.playoff_probability} />
+              <div style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: "0.35rem" }}>
+                {confidenceLabel(pred.playoff_probability)}
+              </div>
+            </div>
+
+            <div style={{ background: "#fff0f0", padding: "1rem", borderRadius: "8px", textAlign: "center" }}>
+              <div style={{ color: "#555" }}>Super Bowl</div>
+              <div style={{ fontSize: "1.6rem", color: "#d20a0a", fontWeight: "bold" }}>
+                {(pred.superbowl_probability * 100).toFixed(1)}%
+              </div>
+
+              {/* NEW: quick context */}
+              <div style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: "0.6rem" }}>
+                Championship odds are always smaller — that’s normal.
+              </div>
+            </div>
+          </div>
+
+          {/* NEW: trend row */}
+          {(trendPlayoffs !== null || trendSB !== null) && (
+            <div style={{ marginTop: "0.9rem", fontSize: "0.85rem", color: "#374151" }}>
+              <strong>Trend vs last run:</strong>{" "}
+              {trendPlayoffs !== null ? (
+                <span style={{ marginRight: "0.75rem" }}>
+                  Playoffs{" "}
+                  <span style={{ fontWeight: 700 }}>
+                    {trendPlayoffs >= 0 ? "+" : ""}
+                    {trendPlayoffs.toFixed(1)}%
+                  </span>
+                </span>
+              ) : null}
+              {trendSB !== null ? (
+                <span>
+                  SB{" "}
+                  <span style={{ fontWeight: 700 }}>
+                    {trendSB >= 0 ? "+" : ""}
+                    {trendSB.toFixed(1)}%
+                  </span>
+                </span>
+              ) : null}
+            </div>
+          )}
+
+          {/* NEW: action buttons */}
+          <div style={{ marginTop: "0.9rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <button
+              onClick={copyShare}
+              style={{
+                border: "1px solid #111827",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                background: "white",
+                cursor: "pointer",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+              }}
+            >
+              {copied ? "Copied ✅" : "Copy share text"}
+            </button>
+
+            <button
+              onClick={downloadCSV}
+              disabled={history.length === 0}
+              style={{
+                border: "1px solid #111827",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                background: history.length ? "white" : "#f3f4f6",
+                cursor: history.length ? "pointer" : "not-allowed",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                opacity: history.length ? 1 : 0.6,
+              }}
+            >
+              Download CSV
+            </button>
+
+            <button
+              onClick={clearHistory}
+              disabled={history.length === 0}
+              style={{
+                border: "1px solid #dc2626",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                background: "white",
+                color: "#dc2626",
+                cursor: history.length ? "pointer" : "not-allowed",
+                fontSize: "0.85rem",
+                fontWeight: 700,
+                opacity: history.length ? 1 : 0.55,
+              }}
+            >
+              Clear history
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* History Section */}
       {history.length > 0 && (
         <div style={{ marginTop: "1.25rem" }}>
           <h4 style={{ marginBottom: "0.5rem" }}>Your Prediction History</h4>
           <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 0 }}>
-            Saved locally to your browser and tied to your current username.
-            Change your profile name to track different “what if” universes.
+            Saved locally to your browser and tied to your current username. Change your profile name to track
+            different “what if” universes.
           </p>
-          <ul
-            style={{ listStyle: "none", paddingLeft: 0, fontSize: "0.85rem" }}
-          >
+
+          <ul style={{ listStyle: "none", paddingLeft: 0, fontSize: "0.85rem", margin: 0 }}>
             {history.map((h, idx) => (
-              <li key={idx}>
+              <li key={idx} style={{ padding: "6px 0", borderBottom: "1px solid #f3f4f6" }}>
                 <strong>
                   {new Date(h.ts).toLocaleString(undefined, {
                     month: "short",
@@ -188,8 +420,7 @@ function PredictionPanel() {
                   })}
                 </strong>
                 {": "}
-                Playoffs {(h.playoffs * 100).toFixed(1)}%, SB{" "}
-                {(h.superBowl * 100).toFixed(1)}%
+                Playoffs {(h.playoffs * 100).toFixed(1)}%, SB {(h.superBowl * 100).toFixed(1)}%
               </li>
             ))}
           </ul>
@@ -199,266 +430,39 @@ function PredictionPanel() {
   );
 }
 
-/* --- NEW: tiny components to expand app experience --- */
+/* ---------- NEW HELPERS (adds real lines + real UX) ---------- */
 
-function NoticeCard() {
+function SkeletonCard({ title }) {
   return (
-    <div className="card card--accent">
-      <div className="eyebrow">How to use this dashboard</div>
-      <h3 style={{ marginTop: 0 }}>Game plan for data nerds & fans</h3>
-      <ul
-        style={{
-          margin: 0,
-          paddingLeft: "1.25rem",
-          fontSize: "0.9rem",
-          lineHeight: 1.6,
-        }}
-      >
-        <li>
-          <strong>Dashboard:</strong> current record, schedule, star player radar,
-          and quick playoff odds.
-        </li>
-        <li>
-          <strong>AI Simulator:</strong> flip wild switches like QB injuries or easy
-          schedules and see how the model reacts.
-        </li>
-        <li>
-          <strong>Player Radar:</strong> visualize how Dak, CeeDee, and Bland shape
-          the team across consistency, explosiveness, and more.
-        </li>
-        <li>
-          <strong>Profile:</strong> save a username, theme, and your own prediction
-          history in local storage.
-        </li>
-        <li>
-          <strong>Our Story:</strong> browse a database-backed history of prediction
-          snapshots over time.
-        </li>
-      </ul>
+    <div style={{ background: "#f3f4f6", padding: "1rem", borderRadius: "8px" }}>
+      <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>{title}</div>
+      <div style={{ height: "22px", width: "55%", background: "#e5e7eb", borderRadius: "6px", marginTop: "10px" }} />
+      <div style={{ height: "8px", width: "90%", background: "#e5e7eb", borderRadius: "6px", marginTop: "12px" }} />
+      <div style={{ height: "8px", width: "80%", background: "#e5e7eb", borderRadius: "6px", marginTop: "8px" }} />
     </div>
   );
 }
 
-function AboutProjectCard() {
+function ConfidenceMeter({ value }) {
+  const pct = Math.max(0, Math.min(100, value * 100));
   return (
-    <div className="card">
-      <div className="eyebrow">About the project</div>
-      <h3 style={{ marginTop: 0 }}>Why LoneStar Analytics exists</h3>
-      <p style={{ fontSize: "0.9rem", color: "#4b5563" }}>
-        This app started as a “can we quantify the feeling of watching the Cowboys
-        blow a 4th quarter lead?” experiment. It grew into a full-stack project
-        mixing real data, simulation, and a little bit of storytelling.
-      </p>
-      <p style={{ fontSize: "0.9rem", color: "#4b5563" }}>
-        On the backend we pull schedule and stats from public ESPN endpoints,
-        store predictions in a database, and expose everything through a small
-        Node/Express API. On the frontend we stitch it together using React,
-        Chart.js, and some old-school browser-based JSX.
-      </p>
-      <p style={{ fontSize: "0.9rem", color: "#4b5563" }}>
-        It&apos;s designed to be{' '}
-        <strong>readable, hackable, and extendable</strong> so you can plug in new
-        models, add teams, or re-skin it for other sports.
-      </p>
-    </div>
-  );
-}
-
-function App() {
-  const currentYear = new Date().getFullYear();
-  const page = window.currentPage || "dashboard";
-
-  const renderPage = () => {
-    if (page === "dashboard") {
-      return (
-        <div className="content-area">
-          <header
-            style={{
-              marginBottom: "2rem",
-              borderBottom: "3px solid #111827",
-              paddingBottom: "1.3rem",
-            }}
-          >
-            <div className="hero-kicker">Dallas · Data · Drama</div>
-            <h1 className="hero-title">
-              LoneStar <span>Analytics</span>
-            </h1>
-            <p style={{ color: "#4b5563", maxWidth: "620px", fontSize: "0.95rem" }}>
-              A live, fan-made dashboard that blends NFL data, Monte Carlo simulations,
-              and visuals to explore how often the Dallas Cowboys punch their ticket to
-              January football.
-            </p>
-          </header>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1.4fr)",
-              gap: "2rem",
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-              <UserProfileCard />
-              <RecordCard year={currentYear} />
-              <PredictionPanel />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-              <GameTable year={currentYear} />
-              <PlayerRadar />
-              <NoticeCard />
-            </div>
-          </div>
-
-          <AboutProjectCard />
-        </div>
-      );
-    }
-
-    if (page === "simulator") {
-      return (
-        <div className="content-area">
-          <header
-            style={{
-              marginBottom: "1.5rem",
-              borderBottom: "2px solid #111827",
-              paddingBottom: "0.8rem",
-            }}
-          >
-            <div className="eyebrow">What-if Engine</div>
-            <h2 style={{ margin: 0 }}>AI Story Simulator</h2>
-            <p style={{ color: "#4b5563", maxWidth: "560px", fontSize: "0.9rem" }}>
-              Switch between model types, dial in scenarios, and generate a narrative
-              about how the Cowboys season might twist based on injuries, schedule
-              quirks, and weather chaos.
-            </p>
-          </header>
-          <AIStorySimulator />
-        </div>
-      );
-    }
-
-    if (page === "radar") {
-      return (
-        <div className="content-area">
-          <header
-            style={{
-              marginBottom: "1.5rem",
-              borderBottom: "2px solid #111827",
-              paddingBottom: "0.8rem",
-            }}
-          >
-            <div className="eyebrow">Star Impact Map</div>
-            <h2 style={{ margin: 0 }}>Player Impact Radar</h2>
-            <p style={{ color: "#4b5563", maxWidth: "560px", fontSize: "0.9rem" }}>
-              Compare Dak Prescott, CeeDee Lamb, and Daron Bland across offense,
-              explosiveness, consistency, clutch, and durability. Toggle each star to see
-              how the shape of the team changes.
-            </p>
-          </header>
-          <div className="card">
-            <PlayerRadar />
-          </div>
-        </div>
-      );
-    }
-
-    if (page === "profile") {
-      return (
-        <div className="content-area">
-          <header
-            style={{
-              marginBottom: "1.5rem",
-              borderBottom: "2px solid #111827",
-              paddingBottom: "0.8rem",
-            }}
-          >
-            <div className="eyebrow">Customization</div>
-            <h2 style={{ margin: 0 }}>Your Fan Profile</h2>
-            <p style={{ color: "#4b5563", maxWidth: "560px", fontSize: "0.9rem" }}>
-              Pick a username, lock in a theme, and let the app remember your prediction
-              history. Everything is stored locally on your device—no accounts, no
-              tracking.
-            </p>
-          </header>
-          <UserProfileCard />
-        </div>
-      );
-    }
-
-    if (page === "history") {
-      return (
-        <div className="content-area">
-          <header
-            style={{
-              marginBottom: "1.5rem",
-              borderBottom: "2px solid #111827",
-              paddingBottom: "0.8rem",
-            }}
-          >
-            <div className="eyebrow">Time Machine</div>
-            <h2 style={{ margin: 0 }}>Prediction History</h2>
-            <p style={{ color: "#4b5563", maxWidth: "560px", fontSize: "0.9rem" }}>
-              Every time your backend generates a new prediction, it can be persisted to
-              the database. This table lets you scroll back through those snapshots and
-              see how optimism (or pain) evolved week by week.
-            </p>
-          </header>
-            <HistoryPage />
-        </div>
-      );
-    }
-
-    return (
-      <div className="content-area">
-        <div className="card">
-          <h2>Unknown page.</h2>
-          <p>
-            The page you requested doesn&apos;t exist in this build. Try the
-            <strong> Dashboard</strong> tab instead.
-          </p>
-        </div>
+    <div style={{ marginTop: "0.6rem" }}>
+      <div style={{ height: "10px", background: "#e5e7eb", borderRadius: "999px", overflow: "hidden" }}>
+        <div
+          style={{
+            width: pct + "%",
+            height: "100%",
+            background: "#003594",
+            transition: "width 400ms ease",
+          }}
+        />
       </div>
-    );
-  };
-
-  // outer container (App root)
-  return (
-    <div
-      style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        padding: "2rem 1.25rem 3rem",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      {renderPage()}
+      <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+        Confidence meter: {pct.toFixed(0)}%
+      </div>
     </div>
   );
 }
 
-// ---- Simple global router for nav bar ----
-window.currentPage = window.currentPage || "dashboard";
-
-function renderApp() {
-  ReactDOM.render(<App />, document.getElementById("root"));
-}
-
-window.setPage = function (page) {
-  window.currentPage = page;
-
-  // update active nav link
-  const links = document.querySelectorAll(".nav-link");
-  links.forEach((el) => {
-    const p = el.getAttribute("data-page");
-    if (p === page) el.classList.add("active");
-    else el.classList.remove("active");
-  });
-
-  renderApp();
-};
-
-// initial render with correct active tab
-window.setPage(window.currentPage);
 
 
