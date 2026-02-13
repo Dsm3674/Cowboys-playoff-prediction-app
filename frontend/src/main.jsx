@@ -552,12 +552,19 @@ function App() {
   // Safe References for pages
   const SeasonPathSafe = SafeComponent('Season Paths', window.SeasonPathExplorer);
   const LiveProbSafe = SafeComponent('Live Prob Tool', window.LiveWinProbTool);
+  const TimelineSafe = SafeComponent('Timeline', window.Timeline);
+  const EventsAdminSafe = SafeComponent('Events Admin', window.EventsAdmin);
 
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard': return <Dashboard />;
       case 'simulator': return <AIStorySimulator />;
       case 'radar':     return <PlayerRadar />;
+      case 'rival':     return <RivalTeamImpactPage />;
+      case 'maps':      return <Maps />;
+      case 'clutch':    return <ClutchIndex />;
+      case 'timeline':  return <TimelineSafe />;
+      case 'events':    return <EventsAdminSafe />;
       case 'paths':     return <SeasonPathSafe />;
       case 'liveprob':  return <LiveProbSafe />;
       case 'profile':   return <UserProfileCard />;

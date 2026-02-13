@@ -3,6 +3,9 @@ const BASE =
     ? "http://localhost:3001"
     : window.location.origin;
 
+// Expose BASE_URL globally for components
+window.BASE_URL = BASE;
+
 window.api = {
   getCowboysRecord: async (year) => {
     const res = await fetch(`${BASE}/api/cowboys/record?year=${year}`);
@@ -70,6 +73,26 @@ window.api = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error("simulation failed");
+    return res.json();
+  },
+
+  getRivalImpact: async (year, chaos = 0, iterations = 1000) => {
+    const res = await fetch(
+      `${BASE}/api/analytics/rivalimpact?year=${year}&chaos=${chaos}&iterations=${iterations}`
+    );
+    if (!res.ok) throw new Error("rival impact fetch failed");
+    return res.json();
+  },
+
+  getPlayerMaps: async () => {
+    const res = await fetch(`${BASE}/api/players/maps`);
+    if (!res.ok) throw new Error("player maps fetch failed");
+    return res.json();
+  },
+
+  getClutchIndex: async () => {
+    const res = await fetch(`${BASE}/api/players/clutch`);
+    if (!res.ok) throw new Error("clutch index fetch failed");
     return res.json();
   }
 };
