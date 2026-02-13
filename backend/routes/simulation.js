@@ -4,13 +4,7 @@ const router = express.Router();
 const { generateEspnPrediction } = require("../prediction");
 const { getNFLSeasonYear } = require("../services/espn");
 
-/**
- * NOTE:
- * This route passes scenario + iterations THROUGH
- * to the prediction engine.
- * Only change here: projected record now preserves decimals
- * so Monte Carlo results are not collapsed to 8–9.
- */
+
 
 router.post("/run", async (req, res) => {
   try {
@@ -70,6 +64,17 @@ router.post("/run", async (req, res) => {
     });
   }
 });
+
+const { modelType="RandomForest", scenario=null, iterations=1000, chaos=0 } = req.body;
+
+const base = await generateEspnPrediction({
+  year: getNFLSeasonYear(),
+  modelType,
+  iterations,
+  scenarioModifier,
+  chaos: Number(chaos) || 0,
+});
+
 
 module.exports = router;
 
