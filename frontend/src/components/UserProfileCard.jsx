@@ -91,7 +91,7 @@ function UserProfileCard() {
       <h3>User Profile</h3>
       {!hasProfile ? (
         <>
-          <p style={{ color: "#555", fontSize: "0.9rem" }}>
+          <p className="text-muted">
             Create a simple profile to save your theme and prediction history.
           </p>
           <form onSubmit={saveProfile}>
@@ -114,7 +114,7 @@ function UserProfileCard() {
               </select>
             </div>
 
-            <button className="btn-primary" type="submit">
+            <button className="btn-primary" type="submit" style={{ width: "100%" }}>
               Create Profile
             </button>
           </form>
@@ -134,34 +134,34 @@ function UserProfileCard() {
             </select>
           </div>
 
-          <small style={{ color: "#777" }}>
+          <small className="text-muted">
             Theme + profile are stored locally in your browser.
           </small>
 
           <button
             type="button"
-            className="btn-primary"
+            className="btn-secondary"
             style={{
               marginTop: "0.75rem",
-              background: "#6b7280",
+              width: "100%",
             }}
             onClick={logout}
           >
             Log out
           </button>
 
-          <hr style={{ margin: "1.5rem 0" }} />
+          <hr style={{ margin: "1.5rem 0", borderColor: "var(--slate-300)" }} />
 
           <h4 style={{ marginTop: 0 }}>Community Poll</h4>
-          <p style={{ fontSize: "0.9rem", color: "#555" }}>
+          <p className="text-muted">
             Will the Cowboys make the NFC Championship this season?
           </p>
 
           <div
             style={{
               display: "flex",
-              gap: "0.5rem",
-              marginBottom: "0.5rem",
+              gap: "0.75rem",
+              marginBottom: "1rem",
             }}
           >
             <button
@@ -169,7 +169,7 @@ function UserProfileCard() {
               className="btn-primary"
               style={{
                 flex: 1,
-                opacity: pollChoice === "yes" ? 1 : 0.85,
+                opacity: pollChoice === "yes" ? 1 : 0.7,
               }}
               onClick={() => vote("yes")}
             >
@@ -177,11 +177,10 @@ function UserProfileCard() {
             </button>
             <button
               type="button"
-              className="btn-primary"
+              className="btn-danger"
               style={{
                 flex: 1,
-                background: "#d20a0a",
-                opacity: pollChoice === "no" ? 1 : 0.85,
+                opacity: pollChoice === "no" ? 1 : 0.7,
               }}
               onClick={() => vote("no")}
             >
@@ -189,13 +188,13 @@ function UserProfileCard() {
             </button>
           </div>
 
-          <p style={{ fontSize: "0.85rem", color: "#444" }}>
+          <p className="text-small">
             Votes – Yes: <strong>{pollResults.yes}</strong>, No:{" "}
             <strong>{pollResults.no}</strong>
           </p>
 
           {pollChoice && (
-            <p style={{ fontSize: "0.8rem", color: "#666" }}>
+            <p className="text-small text-muted">
               You voted: <strong>{pollChoice.toUpperCase()}</strong>
             </p>
           )}
