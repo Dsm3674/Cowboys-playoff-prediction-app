@@ -1,3 +1,7 @@
+/**
+ * Maps.js - Consistency vs Explosiveness Analysis
+ */
+
 function computeConsistencyExplosiveness(players = []) {
   if (!players || players.length === 0) {
     return {
