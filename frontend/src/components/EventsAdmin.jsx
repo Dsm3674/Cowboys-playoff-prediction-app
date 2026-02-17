@@ -1,21 +1,20 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import "../styles/EventsAdmin.css";
+// frontend/src/components/EventsAdmin.jsx
 
 function EventsAdmin() {
-  const [playerQuery, setPlayerQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [eventType, setEventType] = useState("injury");
-  const [eventDate, setEventDate] = useState(new Date().toISOString().split("T")[0]);
-  const [description, setDescription] = useState("");
-  const [impactScore, setImpactScore] = useState(5);
-  const [season, setSeason] = useState(new Date().getFullYear());
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const suggestionsRef = useRef(null);
-  const debounceTimer = useRef(null);
+  const [playerQuery, setPlayerQuery] = React.useState("");
+  const [suggestions, setSuggestions] = React.useState([]);
+  const [selectedPlayer, setSelectedPlayer] = React.useState(null);
+  const [eventType, setEventType] = React.useState("injury");
+  const [eventDate, setEventDate] = React.useState(new Date().toISOString().split("T")[0]);
+  const [description, setDescription] = React.useState("");
+  const [impactScore, setImpactScore] = React.useState(5);
+  const [season, setSeason] = React.useState(new Date().getFullYear());
+  const [events, setEvents] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [success, setSuccess] = React.useState("");
+  const suggestionsRef = React.useRef(null);
+  const debounceTimer = React.useRef(null);
 
   const eventTypeOptions = [
     "injury",
@@ -29,7 +28,7 @@ function EventsAdmin() {
   ];
 
   // Fetch player suggestions with debounce
-  const fetchSuggestions = useCallback(async (query) => {
+  const fetchSuggestions = React.useCallback(async (query) => {
     if (query.length < 2) {
       setSuggestions([]);
       return;
@@ -65,7 +64,7 @@ function EventsAdmin() {
   };
 
   // Fetch recent events
-  const fetchRecentEvents = useCallback(async () => {
+  const fetchRecentEvents = React.useCallback(async () => {
     try {
       const response = await fetch(
         `${window.BASE_URL}/api/players/events?season=${season}&limit=10`
@@ -80,7 +79,7 @@ function EventsAdmin() {
   }, [season]);
 
   // Load events on mount and when season changes
-  useEffect(() => {
+  React.useEffect(() => {
     fetchRecentEvents();
   }, [fetchRecentEvents]);
 
@@ -318,7 +317,4 @@ function EventsAdmin() {
   );
 }
 
-// Make component accessible globally
-if (typeof window !== "undefined") {
-  window.EventsAdmin = EventsAdmin;
-}
+window.EventsAdmin = EventsAdmin;
