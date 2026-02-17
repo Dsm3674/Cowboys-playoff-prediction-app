@@ -1,143 +1,198 @@
-/**
- * timeline.js - Timeline analytics with inflection point detection
- * Detects local peaks and valleys in performance metrics
- */
+// frontend/src/components/Timeline.jsx
 
-const db = require("./databases");
+const { useState, useEffect, useRef } = React;
 
-/**
- * Detect inflection points (peaks and valleys) in timeline data
- * using local maxima/minima detection
- */
-function detectInflectionPoints(points) {
-  if (points.length < 3) return [];
+function Timeline() {
+  const canvasRef = useRef(null);
+  const [events, setEvents] = useState([]);
+  const [season, setSeason] = useState(new Date().getFullYear());
+  const [timelineData, setTimelineData] = useState([]);
+  const [inflectionPoints, setInflectionPoints] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const canvasWidth = 1000;
+  const canvasHeight = 400;
 
-  const inflections = [];
-
-  for (let i = 1; i < points.length - 1; i++) {
-    const prev = points[i - 1].value;
-    const curr = points[i].value;
-    const next = points[i + 1].value;
-
-    // Peak: local maximum
-    if (curr > prev && curr > next) {
-      inflections.push({
-        date: points[i].date,
-        type: "peak",
-        value: curr,
-        description: `Performance peak on ${new Date(points[i].date).toLocaleDateString()}`,
-      });
+  // Fetch player events
+  const fetchEvents = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${window.BASE_URL}/api/players/events?season=${season}&limit=100`
+      );
+      if (!response.ok) throw new Error("Failed to fetch events");
+      const data = await response.json();
+      setEvents(data.events || []);
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      setEvents([]);
+    } finally {
+      setLoading(false);
     }
-    // Valley: local minimum
-    else if (curr < prev && curr < next) {
-      inflections.push({
-        date: points[i].date,
-        type: "valley",
-        value: curr,
-        description: `Performance valley on ${new Date(points[i].date).toLocaleDateString()}`,
-      });
-    }
-  }
-
-  return inflections;
-}
-
-/**
- * Generate timeline data from player events and predictions
- * @param {number} season - NFL season
- * @returns {Promise<Object>} Timeline data with points and inflections
- */
-async function getTimelineData(season) {
-  try {
-    // Fetch player events for the season
-    const eventsResult = await db.query(
-      `SELECT event_date, impact_score, event_type
-       FROM player_events
-       WHERE season = $1
-       ORDER BY event_date ASC`,
-      [season]
-    );
-
-    const events = eventsResult.rows;
-
-    // Generate timeline points: aggregate impact scores by date
-    const pointsMap = new Map();
-
-    events.forEach((event) => {
-      const dateStr = event.event_date.split("T")[0]; // YYYY-MM-DD
-
-      if (!pointsMap.has(dateStr)) {
-        pointsMap.set(dateStr, {
-          date: event.event_date,
-          value: 0,
-          count: 0,
-        });
-      }
-
-      const point = pointsMap.get(dateStr);
-      point.value += event.impact_score;
-      point.count += 1;
-    });
-
-    // Convert to array and calculate average impact per day
-    let timelinePoints = Array.from(pointsMap.values()).map((p) => ({
-      date: p.date,
-      value: p.value / p.count, // Average impact score per day
-    }));
-
-    // If no events, generate synthetic timeline
-    if (timelinePoints.length === 0) {
-      const startDate = new Date(season, 0, 1);
-      const endDate = new Date(season, 11, 31);
-      timelinePoints = [];
-
-      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 7)) {
-        timelinePoints.push({
-          date: d.toISOString(),
-          value: 5 + Math.sin((d - startDate) / (endDate - startDate) * Math.PI * 2) * 2 + Math.random() - 0.5,
-        });
-      }
-    }
-
-    // Sort by date
-    timelinePoints.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    // Detect inflection points
-    const inflectionPoints = detectInflectionPoints(timelinePoints);
-
-    return {
-      season,
-      points: timelinePoints,
-      inflectionPoints,
-      eventCount: events.length,
-    };
-  } catch (err) {
-    console.error("Error generating timeline data:", err);
-    return {
-      season,
-      points: [],
-      inflectionPoints: [],
-      eventCount: 0,
-      error: err.message,
-    };
-  }
-}
-
-/**
- * Get timeline inflection points for season
- * @param {number} season - NFL season
- * @returns {Promise<Object>} Inflection points data
- */
-async function getInflectionPoints(season) {
-  const timelineData = await getTimelineData(season);
-  return {
-    season: timelineData.season,
-    inflectionPoints: timelineData.inflectionPoints,
   };
+
+  // Fetch timeline data with inflection points
+  const fetchTimeline = async () => {
+    try {
+      const response = await fetch(
+        `${window.BASE_URL}/api/timeline/points?season=${season}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch timeline");
+      const data = await response.json();
+      setTimelineData(data.points || []);
+      setInflectionPoints(data.inflectionPoints || []);
+    } catch (err) {
+      console.error("Error fetching timeline:", err);
+      setTimelineData([]);
+      setInflectionPoints([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+    fetchTimeline();
+  }, [season]);
+
+  useEffect(() => {
+    if (canvasRef.current && timelineData.length > 0) {
+      drawTimeline();
+    }
+  }, [timelineData, inflectionPoints, events]);
+
+  const drawTimeline = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const padding = 50;
+    
+    // Clear canvas
+    ctx.fillStyle = "rgba(20, 20, 40, 0.8)";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Draw border
+    ctx.strokeStyle = "rgba(0, 212, 255, 0.3)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(20, 20, canvasWidth - 40, canvasHeight - 40);
+
+    if (timelineData.length === 0) {
+      ctx.fillStyle = "#909090";
+      ctx.font = "16px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("No timeline data available", canvasWidth / 2, canvasHeight / 2);
+      return;
+    }
+
+    // Graph calculations
+    const graphWidth = canvasWidth - 2 * padding;
+    const graphHeight = canvasHeight - 2 * padding;
+    const values = timelineData.map((p) => p.value);
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const valueRange = maxValue - minValue || 1;
+
+    // Draw grid lines
+    ctx.strokeStyle = "rgba(0, 212, 255, 0.1)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = padding + (graphHeight / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(padding, y);
+      ctx.lineTo(canvasWidth - padding, y);
+      ctx.stroke();
+      
+      const value = maxValue - (valueRange / 4) * i;
+      ctx.fillStyle = "#909090";
+      ctx.font = "12px Arial";
+      ctx.textAlign = "right";
+      ctx.fillText(value.toFixed(1), padding - 10, y + 4);
+    }
+
+    // Draw X-axis
+    ctx.fillStyle = "#909090";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "center";
+    for (let i = 0; i < timelineData.length; i += Math.max(1, Math.floor(timelineData.length / 5))) {
+      const x = padding + (graphWidth / (timelineData.length - 1)) * i;
+      const date = new Date(timelineData[i].date);
+      ctx.fillText(date.toLocaleDateString(), x, canvasHeight - 15);
+    }
+
+    // Draw line
+    ctx.strokeStyle = "#00d4ff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < timelineData.length; i++) {
+      const x = padding + (graphWidth / (timelineData.length - 1)) * i;
+      const y = canvasHeight - padding - ((timelineData[i].value - minValue) / valueRange) * graphHeight;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Draw points
+    ctx.fillStyle = "#00d4ff";
+    for (let i = 0; i < timelineData.length; i++) {
+      const x = padding + (graphWidth / (timelineData.length - 1)) * i;
+      const y = canvasHeight - padding - ((timelineData[i].value - minValue) / valueRange) * graphHeight;
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+  };
+
+  return (
+    <div className="timeline-page">
+      <div className="timeline-container">
+        <h1>Cowboys Timeline Analytics</h1>
+        <p className="subtitle">Season performance with inflection points and events</p>
+        
+        <div className="timeline-controls">
+          <div className="control-group">
+            <label htmlFor="season">Season:</label>
+            <select
+              id="season"
+              value={season}
+              onChange={(e) => setSeason(Number(e.target.value))}
+              className="season-select"
+            >
+              {[2020, 2021, 2022, 2023, 2024, 2025].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+          {loading && <div className="loading">Loading...</div>}
+        </div>
+
+        <div className="timeline-content">
+          <div className="canvas-wrapper">
+            <canvas ref={canvasRef} width={canvasWidth} height={canvasHeight} className="timeline-canvas" />
+          </div>
+          
+          <div className="legend">
+             <h3>Legend</h3>
+             <div className="legend-item"><div className="legend-color cyan"></div><span>Timeline</span></div>
+             <div className="legend-item"><div className="legend-color gold"></div><span>Player Events</span></div>
+          </div>
+        </div>
+        
+        <div className="events-timeline">
+           <h2>Events ({events.length})</h2>
+           <div className="events-list">
+             {events.map((event, idx) => (
+               <div key={idx} className="event-card" onClick={() => setSelectedEvent(idx)}>
+                 <div className="event-card-header">
+                   <span className="event-card-player">{event.player_name}</span>
+                   <span className="event-card-type">{event.event_type}</span>
+                 </div>
+                 <div className="event-card-date">{new Date(event.event_date).toLocaleDateString()}</div>
+               </div>
+             ))}
+           </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-module.exports = {
-  getTimelineData,
-  getInflectionPoints,
-  detectInflectionPoints,
-};
+window.Timeline = Timeline;
