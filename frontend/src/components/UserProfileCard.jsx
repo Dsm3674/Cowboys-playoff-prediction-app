@@ -203,3 +203,5 @@ function UserProfileCard() {
     </div>
   );
 }
+
+window.UserProfileCard = UserProfileCard;
