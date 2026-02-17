@@ -1,3 +1,5 @@
+// frontend/src/components/SeasonPathExplorer.jsx
+
 function SeasonPathExplorer() {
   const [year] = React.useState(new Date().getFullYear());
   const [data, setData] = React.useState(null);
@@ -14,11 +16,15 @@ function SeasonPathExplorer() {
   if (loading) return <div className="card">Calculating Monte Carlo Paths...</div>;
   if (!data) return <div className="card">No path data available.</div>;
 
+  // SAFETY CHECK: Ensure arrays exist before mapping
+  const remainingGames = data.remainingGames || [];
+  const paths = data.paths || [];
+
   return (
     <div className="content-area">
       <div className="card">
         <h2 style={{marginTop:0}}>Season Path Explorer</h2>
-        <p>Visualizing the {data.paths.length} most likely remaining season outcomes based on current win probabilities.</p>
+        <p>Visualizing the {paths.length} most likely remaining season outcomes based on current win probabilities.</p>
 
         <div style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
           <table style={{ minWidth: '600px', fontSize: '0.85rem' }}>
@@ -26,26 +32,24 @@ function SeasonPathExplorer() {
               <tr>
                 <th>Probability</th>
                 <th>Final Wins</th>
-                {data.remainingGames.map(g => (
+                {remainingGames.map(g => (
                   <th key={g.idx} style={{ textAlign: 'center' }}>
-                    <div style={{fontSize:'0.7rem', color:'#aaa'}}>{g.date.slice(5,10)}</div>
+                    <div style={{fontSize:'0.7rem', color:'#aaa'}}>{g.date ? g.date.slice(5,10) : ''}</div>
                     vs {g.opp}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {data.paths.map((path, i) => (
+              {paths.map((path, i) => (
                 <tr key={i}>
                   <td style={{ fontWeight: 'bold', color: '#003594' }}>
                     {(path.probability * 100).toFixed(1)}%
                   </td>
                   <td style={{ fontWeight: 'bold' }}>
-                    {/* Assuming current wins is not passed, we add winsAdded to base. 
-                        For demo, just showing wins added relative to today */}
                     +{path.winsAdded}
                   </td>
-                  {path.outcomes.map((o, idx) => (
+                  {(path.outcomes || []).map((o, idx) => (
                     <td key={idx} style={{ textAlign: 'center' }}>
                       <span style={{
                         padding: '4px 8px',
