@@ -834,3 +834,5 @@ function getVolatilityColor(volatility) {
       return "#6b7280";
   }
 }
+
+window.Maps = Maps;
