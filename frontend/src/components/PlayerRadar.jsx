@@ -343,4 +343,6 @@ function PlayerRadar() {
   );
 }
 
+window.PlayerRadar = PlayerRadar;
+
 
