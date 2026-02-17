@@ -600,3 +600,5 @@ function ClutchIndex() {
     </div>
   );
 }
+
+window.ClutchIndex = ClutchIndex;
