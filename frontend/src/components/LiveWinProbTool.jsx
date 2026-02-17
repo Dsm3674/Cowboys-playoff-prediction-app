@@ -3,7 +3,7 @@
 function LiveWinProbTool() {
   const [inputs, setInputs] = React.useState({
     scoreDiff: 0,
-    secondsRemaining: 900, // 15 mins (start of 4th)
+    secondsRemaining: 900, 
     yardLine: 50,
     offenseTimeouts: 3,
     defenseTimeouts: 3,
@@ -32,24 +32,20 @@ function LiveWinProbTool() {
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
-        
         <div className="form-group">
-          <label>Score Diff (Positive = Winning)</label>
+          <label>Score Diff</label>
           <input type="number" value={inputs.scoreDiff} onChange={e => handleChange('scoreDiff', e.target.value)} />
         </div>
-
         <div className="form-group">
           <label>Seconds Left</label>
           <input type="number" value={inputs.secondsRemaining} onChange={e => handleChange('secondsRemaining', e.target.value)} />
         </div>
-
         <div className="form-group">
           <label>Ball On (0-100)</label>
           <input type="number" value={inputs.yardLine} onChange={e => handleChange('yardLine', e.target.value)} />
         </div>
-
         <div className="form-group">
-          <label>Down (1-4)</label>
+          <label>Down</label>
           <select value={inputs.down} onChange={e => handleChange('down', Number(e.target.value))}>
             <option value="1">1st</option>
             <option value="2">2nd</option>
@@ -64,14 +60,8 @@ function LiveWinProbTool() {
       </button>
 
       {prob !== null && (
-        <div style={{ 
-          marginTop: '1.5rem', 
-          padding: '1.5rem', 
-          background: '#f0f9ff', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
-        }}>
-          <div style={{ fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#003594' }}>Win Probability</div>
+        <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: '#f0f9ff', borderRadius: '8px', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: '#003594' }}>Win Probability</div>
           <div style={{ fontSize: '3rem', fontWeight: '900', color: '#003594' }}>
             {(prob * 100).toFixed(1)}%
           </div>
