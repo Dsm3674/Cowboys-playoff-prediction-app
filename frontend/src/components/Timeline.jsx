@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
-import "../styles/Timeline.css";
+// frontend/src/components/Timeline.jsx
 
 function Timeline() {
-  const canvasRef = useRef(null);
-  const [events, setEvents] = useState([]);
-  const [season, setSeason] = useState(new Date().getFullYear());
-  const [timelineData, setTimelineData] = useState([]);
-  const [inflectionPoints, setInflectionPoints] = useState([]);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const canvasRef = React.useRef(null);
+  const [events, setEvents] = React.useState([]);
+  const [season, setSeason] = React.useState(new Date().getFullYear());
+  const [timelineData, setTimelineData] = React.useState([]);
+  const [inflectionPoints, setInflectionPoints] = React.useState([]);
+  const [selectedEvent, setSelectedEvent] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
   const canvasWidth = 1000;
   const canvasHeight = 400;
 
@@ -47,12 +46,12 @@ function Timeline() {
     }
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchEvents();
     fetchTimeline();
   }, [season]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (canvasRef.current && timelineData.length > 0) {
       drawTimeline();
     }
@@ -64,9 +63,7 @@ function Timeline() {
 
     const ctx = canvas.getContext("2d");
     const padding = 50;
-    const graphWidth = canvasWidth - 2 * padding;
-    const graphHeight = canvasHeight - 2 * padding;
-
+    
     // Clear canvas
     ctx.fillStyle = "rgba(20, 20, 40, 0.8)";
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -93,6 +90,8 @@ function Timeline() {
     // Draw grid lines
     ctx.strokeStyle = "rgba(0, 212, 255, 0.1)";
     ctx.lineWidth = 1;
+    const graphHeight = canvasHeight - 2 * padding;
+    
     for (let i = 0; i <= 4; i++) {
       const y = padding + (graphHeight / 4) * i;
       ctx.beginPath();
@@ -107,6 +106,8 @@ function Timeline() {
       ctx.textAlign = "right";
       ctx.fillText(value.toFixed(1), padding - 10, y + 4);
     }
+
+    const graphWidth = canvasWidth - 2 * padding;
 
     // Draw X-axis labels (dates)
     ctx.fillStyle = "#909090";
@@ -124,8 +125,7 @@ function Timeline() {
     ctx.beginPath();
     for (let i = 0; i < timelineData.length; i++) {
       const x = padding + (graphWidth / (timelineData.length - 1)) * i;
-      const y =
-        canvasHeight - padding - ((timelineData[i].value - minValue) / valueRange) * graphHeight;
+      const y = canvasHeight - padding - ((timelineData[i].value - minValue) / valueRange) * graphHeight;
 
       if (i === 0) {
         ctx.moveTo(x, y);
@@ -139,8 +139,7 @@ function Timeline() {
     ctx.fillStyle = "#00d4ff";
     for (let i = 0; i < timelineData.length; i++) {
       const x = padding + (graphWidth / (timelineData.length - 1)) * i;
-      const y =
-        canvasHeight - padding - ((timelineData[i].value - minValue) / valueRange) * graphHeight;
+      const y = canvasHeight - padding - ((timelineData[i].value - minValue) / valueRange) * graphHeight;
 
       ctx.beginPath();
       ctx.arc(x, y, 4, 0, 2 * Math.PI);
@@ -152,8 +151,7 @@ function Timeline() {
       const idx = timelineData.findIndex((p) => p.date === point.date);
       if (idx !== -1) {
         const x = padding + (graphWidth / (timelineData.length - 1)) * idx;
-        const y =
-          canvasHeight - padding - ((timelineData[idx].value - minValue) / valueRange) * graphHeight;
+        const y = canvasHeight - padding - ((timelineData[idx].value - minValue) / valueRange) * graphHeight;
 
         // Draw inflection indicator
         ctx.strokeStyle = point.type === "peak" ? "#ff4444" : "#44ff44";
@@ -178,8 +176,7 @@ function Timeline() {
       );
       if (eventIdx !== -1) {
         const x = padding + (graphWidth / (timelineData.length - 1)) * eventIdx;
-        const y =
-          canvasHeight - padding - ((timelineData[eventIdx].value - minValue) / valueRange) * graphHeight;
+        const y = canvasHeight - padding - ((timelineData[eventIdx].value - minValue) / valueRange) * graphHeight;
 
         // Draw event marker (diamond)
         const size = 8;
@@ -306,7 +303,4 @@ function Timeline() {
   );
 }
 
-// Make component accessible globally
-if (typeof window !== "undefined") {
-  window.Timeline = Timeline;
-}
+window.Timeline = Timeline;
