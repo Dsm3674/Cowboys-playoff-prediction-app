@@ -1,3 +1,5 @@
+// frontend/src/components/LiveWinProbTool.jsx
+
 function LiveWinProbTool() {
   const [inputs, setInputs] = React.useState({
     scoreDiff: 0,
