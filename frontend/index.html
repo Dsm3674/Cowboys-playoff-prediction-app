@@ -6,12 +6,24 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="description" content="Advanced NFL analytics dashboard featuring Monte Carlo playoff modeling, Team Strength Index, win probability engines, and season path exploration." />
-<meta name="theme-color" content="#041e42" />
+<meta name="theme-color" content="#003594" />
 
 <link rel="icon" href="https://static.www.nfl.com/league/api/clubs/logos/DAL" />
-<link rel="stylesheet" href="./styles.css" />
+
+<!-- Base styles (was incorrectly "styles.css" — fixed to "style.css") -->
+<link rel="stylesheet" href="./style.css" />
+
+<!-- Cowboys theme layer — loads AFTER base to override/extend -->
+<link rel="stylesheet" href="./cowboys-theme.css" />
+
+<!-- Component-specific styles -->
 <link rel="stylesheet" href="./src/styles/EventsAdmin.css" />
 <link rel="stylesheet" href="./src/styles/Timeline.css" />
+
+<!-- Google Fonts (Oswald + Roboto Condensed, referenced in cowboys-theme.css) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Roboto+Condensed:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
 <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
@@ -19,92 +31,147 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-#global-loader{
-  position:fixed;
-  inset:0;
-  background:linear-gradient(135deg,#041e42,#0a3d7a);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-direction:column;
-  color:white;
-  z-index:9999;
-  transition:opacity .4s ease;
+
+#global-loader {
+  position: fixed;
+  inset: 0;
+  /* Cowboys navy gradient — matches cowboys-theme.css */
+  background: linear-gradient(135deg, #001E62 0%, #003594 60%, #004ab8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: white;
+  z-index: 9999;
+  transition: opacity .4s ease;
+  font-family: 'Oswald', 'Impact', sans-serif;
+  letter-spacing: 0.08em;
 }
 
-.loader-ring{
-  width:60px;
-  height:60px;
-  border:4px solid rgba(255,255,255,.2);
-  border-top:4px solid #fff;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-  margin-top:1rem;
+/* Pulsing star above the loader ring */
+#global-loader::before {
+  content: "★";
+  font-size: 3rem;
+  color: rgba(192, 198, 203, 0.6);
+  margin-bottom: 0.5rem;
+  animation: starPulse 2s ease-in-out infinite;
 }
 
-@keyframes spin{
-  to{transform:rotate(360deg)}
+#global-loader h2 {
+  margin: 0 0 0.25rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #fff;
 }
 
-#debug-panel{
-  position:fixed;
-  bottom:0;
-  left:0;
-  width:100%;
-  background:#0f172a;
-  color:#94a3b8;
-  font-size:12px;
-  padding:6px 12px;
-  display:flex;
-  justify-content:space-between;
-  z-index:9998;
+#global-loader .loader-tagline {
+  font-size: 0.7rem;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: rgba(192, 198, 203, 0.65);
+  margin-bottom: 1.5rem;
 }
 
-#scroll-progress{
-  position:fixed;
-  top:0;
-  left:0;
-  height:3px;
-  background:#3b82f6;
-  width:0%;
-  z-index:10000;
+/* Spinner ring — silver/navy colors */
+.loader-ring {
+  width: 56px;
+  height: 56px;
+  border: 4px solid rgba(134, 147, 151, 0.25);
+  border-top: 4px solid #C0C6CB;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes starPulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.15); }
+}
+
+/* Debug panel */
+#debug-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(0, 14, 48, 0.94);
+  color: rgba(134, 147, 151, 0.8);
+  font-size: 11px;
+  padding: 5px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 9998;
+  border-top: 1px solid rgba(134, 147, 151, 0.18);
+  font-family: 'Oswald', monospace;
+  letter-spacing: 0.06em;
+  gap: 1rem;
+}
+
+#debug-panel span {
+  opacity: 0.6;
+}
+
+/* Scroll progress bar — Cowboys gradient */
+#scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #003594, #C0C6CB);
+  width: 0%;
+  z-index: 10000;
+  transition: width 50ms linear;
 }
 </style>
 
 </head>
 <body>
 
+<!-- Accessibility skip link -->
 <a href="#root" class="skip-link">Skip to main content</a>
 
+<!-- Global page loader -->
 <div id="global-loader">
-  <h2 style="margin:0;font-weight:700;">LoneStar Analytics</h2>
+  <h2>LoneStar Analytics</h2>
+  <div class="loader-tagline">Dallas Cowboys · Advanced Data Hub</div>
   <div class="loader-ring"></div>
 </div>
 
-<nav class="nav-bar">
-  <div class="nav-link" data-page="dashboard" onclick="window.setPage('dashboard')">Dashboard</div>
-  <div class="nav-link" data-page="simulator" onclick="window.setPage('simulator')">AI Simulator</div>
-  <div class="nav-link" data-page="analytics" onclick="window.setPage('analytics')">Analytics</div>
-  <div class="nav-link" data-page="rival" onclick="window.setPage('rival')">Rival Impact</div>
-  <div class="nav-link" data-page="clutch" onclick="window.setPage('clutch')">Clutch Index</div>
-  <div class="nav-link" data-page="timeline" onclick="window.setPage('timeline')">Timeline</div>
-  <div class="nav-link" data-page="paths" onclick="window.setPage('paths')">Season Paths</div>
-  <div class="nav-link" data-page="liveprob" onclick="window.setPage('liveprob')">Live Win Prob</div>
-  <div class="nav-link" data-page="events" onclick="window.setPage('events')">Events Admin</div>
+<!-- Primary navigation -->
+<nav class="nav-bar" role="navigation" aria-label="Main navigation">
+  <div class="nav-link" data-page="dashboard"  onclick="window.setPage('dashboard')" >Dashboard</div>
+  <div class="nav-link" data-page="simulator"  onclick="window.setPage('simulator')" >AI Simulator</div>
+  <div class="nav-link" data-page="analytics"  onclick="window.setPage('analytics')" >Analytics</div>
+  <div class="nav-link" data-page="rival"      onclick="window.setPage('rival')"     >Rival Impact</div>
+  <div class="nav-link" data-page="clutch"     onclick="window.setPage('clutch')"    >Clutch Index</div>
+  <div class="nav-link" data-page="timeline"   onclick="window.setPage('timeline')"  >Timeline</div>
+  <div class="nav-link" data-page="paths"      onclick="window.setPage('paths')"     >Season Paths</div>
+  <div class="nav-link" data-page="liveprob"   onclick="window.setPage('liveprob')"  >Live Win Prob</div>
+  <div class="nav-link" data-page="events"     onclick="window.setPage('events')"    >Events Admin</div>
 </nav>
 
-<main id="app-shell">
+<!-- React root -->
+<main id="app-shell" role="main">
   <div id="root"></div>
 </main>
 
-<div id="scroll-progress"></div>
+<!-- Scroll progress indicator -->
+<div id="scroll-progress" role="progressbar" aria-hidden="true"></div>
 
-<div id="debug-panel">
+<!-- Dev debug panel -->
+<div id="debug-panel" aria-hidden="true">
   <div id="route-indicator">Route: dashboard</div>
   <div id="network-status">Network: online</div>
   <div id="fps-indicator">FPS: --</div>
 </div>
 
+<!-- React component scripts (Babel-compiled in-browser) -->
 <script type="text/babel" src="./src/api.js"></script>
 <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
 <script type="text/babel" src="./src/components/GameTable.jsx"></script>
@@ -125,80 +192,112 @@
 <script type="text/babel" src="./src/main.jsx"></script>
 
 <script>
-(function(){
+(function () {
+  "use strict";
 
-function hideLoader(){
-  const loader=document.getElementById("global-loader");
-  if(!loader) return;
-  loader.style.opacity="0";
-  setTimeout(function(){
-    loader.style.display="none";
-  },400);
-}
 
-window.addEventListener("load",function(){
-  setTimeout(hideLoader,300);
-});
-
-document.addEventListener("DOMContentLoaded",function(){
-  setTimeout(function(){
-    const root=document.getElementById("root");
-    if(root && root.children.length>0){
-      hideLoader();
-    }
-  },600);
-});
-
-function enhanceRouter(){
-  const original=window.setPage;
-  if(!original) return;
-
-  window.setPage=function(page){
-    const routeEl=document.getElementById("route-indicator");
-    if(routeEl) routeEl.textContent="Route: "+page;
-    original(page);
-  };
-}
-
-setTimeout(enhanceRouter,100);
-
-let last=performance.now();
-let frames=0;
-
-function fps(){
-  const now=performance.now();
-  frames++;
-  if(now>last+1000){
-    const el=document.getElementById("fps-indicator");
-    if(el) el.textContent="FPS: "+frames;
-    frames=0;
-    last=now;
+  function hideLoader() {
+    var loader = document.getElementById("global-loader");
+    if (!loader) return;
+    loader.style.opacity = "0";
+    loader.style.pointerEvents = "none";
+    setTimeout(function () {
+      loader.style.display = "none";
+    }, 420);
   }
-  requestAnimationFrame(fps);
-}
-requestAnimationFrame(fps);
 
-window.addEventListener("scroll",function(){
-  const docHeight=document.body.scrollHeight-window.innerHeight;
-  const percent=docHeight>0?(window.scrollY/docHeight)*100:0;
-  const bar=document.getElementById("scroll-progress");
-  if(bar) bar.style.width=percent+"%";
-});
+  // Fallback: always hide after 1.2s even if React fails
+  setTimeout(hideLoader, 1200);
 
-window.addEventListener("online",function(){
-  const el=document.getElementById("network-status");
-  if(el) el.textContent="Network: online";
-});
+  window.addEventListener("load", function () {
+    setTimeout(hideLoader, 300);
+  });
 
-window.addEventListener("offline",function(){
-  const el=document.getElementById("network-status");
-  if(el) el.textContent="Network: offline";
-});
+  // Check if React root has rendered
+  document.addEventListener("DOMContentLoaded", function () {
+    var poll = setInterval(function () {
+      var root = document.getElementById("root");
+      if (root && root.children.length > 0) {
+        clearInterval(poll);
+        hideLoader();
+      }
+    }, 100);
+    // Stop polling after 2s regardless
+    setTimeout(function () { clearInterval(poll); }, 2000);
+  });
+
+
+  function enhanceRouter() {
+    var original = window.setPage;
+    if (!original) return;
+
+    window.setPage = function (page) {
+      // Update debug route indicator
+      var routeEl = document.getElementById("route-indicator");
+      if (routeEl) routeEl.textContent = "Route: " + page;
+
+      // Sync nav-link active states
+      document.querySelectorAll(".nav-link").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.page === page);
+      });
+
+      original(page);
+    };
+  }
+
+  // Retry until main.jsx exposes window.setPage
+  var routerPoll = setInterval(function () {
+    if (typeof window.setPage === "function") {
+      clearInterval(routerPoll);
+      enhanceRouter();
+
+      // Apply initial hash route
+      var hash = window.location.hash.replace("#", "");
+      if (hash) window.setPage(hash);
+    }
+  }, 50);
+
+  setTimeout(function () { clearInterval(routerPoll); }, 3000);
+
+
+  var lastTime = performance.now();
+  var frameCount = 0;
+
+  function countFPS() {
+    var now = performance.now();
+    frameCount++;
+    if (now > lastTime + 1000) {
+      var el = document.getElementById("fps-indicator");
+      if (el) el.textContent = "FPS: " + frameCount;
+      frameCount = 0;
+      lastTime = now;
+    }
+    requestAnimationFrame(countFPS);
+  }
+  requestAnimationFrame(countFPS);
+
+
+  window.addEventListener("scroll", function () {
+    var docH = document.body.scrollHeight - window.innerHeight;
+    var pct = docH > 0 ? (window.scrollY / docH) * 100 : 0;
+    var bar = document.getElementById("scroll-progress");
+    if (bar) bar.style.width = pct + "%";
+  }, { passive: true });
+
+ 
+  function setNetworkStatus(online) {
+    var el = document.getElementById("network-status");
+    if (!el) return;
+    el.textContent = "Network: " + (online ? "online" : "offline");
+    el.style.color = online ? "" : "#ff6b6b";
+  }
+
+  window.addEventListener("online",  function () { setNetworkStatus(true);  });
+  window.addEventListener("offline", function () { setNetworkStatus(false); });
 
 })();
 </script>
 
 </body>
 </html>
-
 
