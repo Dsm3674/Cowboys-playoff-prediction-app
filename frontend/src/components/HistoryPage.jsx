@@ -116,3 +116,5 @@ function HistoryPage() {
     </div>
   );
 }
+
+window.HistoryPage = HistoryPage;
