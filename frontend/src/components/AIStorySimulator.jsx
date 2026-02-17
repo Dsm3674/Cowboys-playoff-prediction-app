@@ -133,3 +133,4 @@ function AIStorySimulator() {
     </div>
   );
 }
+window.AIStorySimulator = AIStorySimulator;
