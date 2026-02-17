@@ -39,4 +39,4 @@ function RecordCard({ year }) {
     </div>
   );
 }
-
+window.RecordCard = RecordCard;
