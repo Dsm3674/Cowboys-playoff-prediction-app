@@ -1,35 +1,65 @@
+import React from "react";
+import ReactDOM from "react-dom/client";
 
+import AIStorySimulator from "./components/AIStorySimulator";
+import ClutchIndex from "./components/ClutchIndex";
+import EventsAdmin from "./components/EventsAdmin";
+import LiveWinProbTool from "./components/LiveWinProbTool";
+import Maps from "./components/Maps";
+import RivalTeamImpactPage from "./components/RivalTeamImpactPage";
+import SeasonPathExplorer from "./components/SeasonPathExplorer";
+import Timeline from "./components/Timeline";
+import HistoryPage from "./components/HistoryPage";
+import PlayerRadar from "./components/PlayerRadar";
+import UserProfileCard from "./components/UserProfileCard";
+import RecordCard from "./components/RecordCard";
+import TSICard from "./components/TSICard";
+import MustWinCard from "./components/MustWinCard";
+import GameTable from "./components/GameTable";
 
 function SkeletonCard({ title }) {
   return (
     <div className="card card-dense">
       <div className="text-small text-muted">{title}</div>
-      <div style={{ height: "22px", background: "#e5e7eb", borderRadius: "6px", marginTop: "10px" }} />
-      <div style={{ height: "8px", background: "#e5e7eb", borderRadius: "6px", marginTop: "12px" }} />
-      <div style={{ height: "8px", background: "#e5e7eb", borderRadius: "6px", marginTop: "8px" }} />
+      <div
+        style={{
+          height: "22px",
+          background: "#e5e7eb",
+          borderRadius: "6px",
+          marginTop: "10px",
+        }}
+      />
+      <div
+        style={{
+          height: "8px",
+          background: "#e5e7eb",
+          borderRadius: "6px",
+          marginTop: "12px",
+        }}
+      />
+      <div
+        style={{
+          height: "8px",
+          background: "#e5e7eb",
+          borderRadius: "6px",
+          marginTop: "8px",
+        }}
+      />
     </div>
   );
 }
 
 function ConfidenceMeter({ value }) {
-  const pct = Math.max(0, Math.min(100, value * 100));
+  const pct = Math.max(0, Math.min(100, (Number(value) || 0) * 100));
   return (
     <div style={{ marginTop: "0.6rem" }}>
       <div className="progress-bar">
-        <div
-          className="progress-fill"
-          style={{ width: pct + "%" }}
-        />
+        <div className="progress-fill" style={{ width: pct + "%" }} />
       </div>
-      <div className="progress-label">
-        Confidence meter: {pct.toFixed(0)}%
-      </div>
+      <div className="progress-label">Confidence meter: {pct.toFixed(0)}%</div>
     </div>
   );
 }
-
-// 2. PREDICTION PANEL
-// ================================================================
 
 function PredictionPanel() {
   const [pred, setPred] = React.useState(null);
@@ -38,27 +68,27 @@ function PredictionPanel() {
   const [history, setHistory] = React.useState([]);
   const [copied, setCopied] = React.useState(false);
 
-  const getProfile = () => {
+  const getProfile = React.useCallback(() => {
     try {
       return JSON.parse(localStorage.getItem("ls_profile") || "null");
     } catch {
       return null;
     }
-  };
+  }, []);
 
-  const getHistoryKey = () => {
+  const getHistoryKey = React.useCallback(() => {
     const profile = getProfile();
     if (!profile || !profile.username) return null;
     return `ls_predictions_${profile.username}`;
-  };
+  }, [getProfile]);
 
-  const getPrefsKey = () => {
+  const getPrefsKey = React.useCallback(() => {
     const profile = getProfile();
     if (!profile || !profile.username) return null;
     return `ls_predictionprefs_${profile.username}`;
-  };
+  }, [getProfile]);
 
-  const loadHistory = () => {
+  const loadHistory = React.useCallback(() => {
     try {
       const key = getHistoryKey();
       if (!key) {
@@ -71,9 +101,9 @@ function PredictionPanel() {
       console.warn("PredictionPanel: failed to load history", e);
       setHistory([]);
     }
-  };
+  }, [getHistoryKey]);
 
-  const loadPrefs = () => {
+  const loadPrefs = React.useCallback(() => {
     try {
       const key = getPrefsKey();
       if (!key) return { autorun: false };
@@ -82,71 +112,101 @@ function PredictionPanel() {
     } catch {
       return { autorun: false };
     }
-  };
+  }, [getPrefsKey]);
 
   const [prefs, setPrefs] = React.useState(() => loadPrefs());
 
-  const savePrefs = (nextPrefs) => {
-    setPrefs(nextPrefs);
-    try {
-      const key = getPrefsKey();
-      if (!key) return;
-      localStorage.setItem(key, JSON.stringify(nextPrefs));
-    } catch {}
-  };
+  const savePrefs = React.useCallback(
+    (nextPrefs) => {
+      setPrefs(nextPrefs);
+      try {
+        const key = getPrefsKey();
+        if (!key) return;
+        localStorage.setItem(key, JSON.stringify(nextPrefs));
+      } catch {}
+    },
+    [getPrefsKey]
+  );
 
   React.useEffect(() => {
     loadHistory();
-  }, []);
+  }, [loadHistory]);
 
-  React.useEffect(() => {
-    if (prefs.autorun) {
-      fetchPrediction();
-    }
-  }, [prefs.autorun]);
-
-  const fetchPrediction = async () => {
+  const fetchPrediction = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await window.api.getPrediction();
+      const api = window.api;
+      if (!api || typeof api.getPrediction !== "function") {
+        throw new Error("API not available: window.api.getPrediction missing");
+      }
+
+      const result = await api.getPrediction();
       if (result && typeof result === "object") {
         setPred(result);
+
         const historyEntry = {
           ts: new Date().toISOString(),
-          playoffs: result.playoff_probability || 0,
-          superBowl: result.superbowl_probability || 0,
+          playoffs: Number(result.playoff_probability) || 0,
+          superBowl: Number(result.superbowl_probability) || 0,
         };
+
         const key = getHistoryKey();
         if (key) {
           const old = JSON.parse(localStorage.getItem(key) || "[]");
-          const updated = [historyEntry, ...(Array.isArray(old) ? old : [])].slice(0, 50);
+          const updated = [historyEntry, ...(Array.isArray(old) ? old : [])].slice(
+            0,
+            50
+          );
           localStorage.setItem(key, JSON.stringify(updated));
           setHistory(updated);
         }
+      } else {
+        throw new Error("Invalid API response");
       }
     } catch (e) {
-      setError(`Error: ${e.message || "Unknown error"}`);
+      setError(`Error: ${e?.message || "Unknown error"}`);
     } finally {
       setLoading(false);
     }
-  };
+  }, [getHistoryKey]);
+
+  React.useEffect(() => {
+    if (prefs.autorun) fetchPrediction();
+  }, [prefs.autorun, fetchPrediction]);
 
   const copyShare = () => {
     if (!pred) return;
     const text = `LoneStar Analytics: Cowboys playoff odds ${(
-      pred.playoff_probability * 100
-    ).toFixed(1)}%, Super Bowl ${(pred.superbowl_probability * 100).toFixed(1)}%`;
-    navigator.clipboard.writeText(text).then(() => {
+      (Number(pred.playoff_probability) || 0) * 100
+    ).toFixed(1)}%, Super Bowl ${(
+      (Number(pred.superbowl_probability) || 0) * 100
+    ).toFixed(1)}%`;
+
+    const doCopied = () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    };
+
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(doCopied).catch(() => {});
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        doCopied();
+      } catch {}
+      ta.remove();
+    }
   };
 
   const clearHistory = () => {
-    const ok = window.confirm(
-      "Clear your saved prediction history for this username?"
-    );
+    const ok = window.confirm("Clear your saved prediction history for this username?");
     if (!ok) return;
 
     try {
@@ -192,10 +252,11 @@ function PredictionPanel() {
     prevEntry && lastEntry ? (lastEntry.superBowl - prevEntry.superBowl) * 100 : null;
 
   const confidenceLabel = (p) => {
-    if (p >= 0.75) return "High confidence";
-    if (p >= 0.55) return "Solid";
-    if (p >= 0.40) return "Coin flip zone";
-    if (p >= 0.25) return "Long shot";
+    const v = Number(p) || 0;
+    if (v >= 0.75) return "High confidence";
+    if (v >= 0.55) return "Solid";
+    if (v >= 0.4) return "Coin flip zone";
+    if (v >= 0.25) return "Long shot";
     return "Unlikely";
   };
 
@@ -224,13 +285,21 @@ function PredictionPanel() {
       </div>
 
       <p className="text-small text-muted">
-        We simulate thousands of seasons using real scoring data and team strength estimates to predict playoff odds.
+        We simulate thousands of seasons using real scoring data and team strength estimates to
+        predict playoff odds.
       </p>
 
       {error && <p style={{ color: "var(--error)", marginTop: "1rem" }}>{error}</p>}
 
       {loading && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "1rem",
+            marginTop: "1rem",
+          }}
+        >
           <SkeletonCard title="Make Playoffs" />
           <SkeletonCard title="Super Bowl" />
         </div>
@@ -246,20 +315,29 @@ function PredictionPanel() {
 
       {pred && !loading && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "1rem",
+              marginTop: "1rem",
+            }}
+          >
             <div className="stat-box primary">
               <div className="stat-label">Make Playoffs</div>
-              <div className="stat-value">{(pred.playoff_probability * 100).toFixed(1)}%</div>
-              <ConfidenceMeter value={pred.playoff_probability} />
+              <div className="stat-value">
+                {(((Number(pred.playoff_probability) || 0) * 100) || 0).toFixed(1)}%
+              </div>
+              <ConfidenceMeter value={Number(pred.playoff_probability) || 0} />
               <div className="text-small text-muted" style={{ marginTop: "0.5rem" }}>
-                {confidenceLabel(pred.playoff_probability)}
+                {confidenceLabel(Number(pred.playoff_probability) || 0)}
               </div>
             </div>
 
             <div className="stat-box danger">
               <div className="stat-label">Super Bowl</div>
               <div className="stat-value" style={{ color: "var(--accent)" }}>
-                {(pred.superbowl_probability * 100).toFixed(1)}%
+                {(((Number(pred.superbowl_probability) || 0) * 100) || 0).toFixed(1)}%
               </div>
               <div className="text-small text-muted" style={{ marginTop: "0.75rem" }}>
                 Championship odds are always smaller — that's normal.
@@ -292,10 +370,7 @@ function PredictionPanel() {
           )}
 
           <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <button
-              onClick={copyShare}
-              className="btn-secondary btn-small"
-            >
+            <button onClick={copyShare} className="btn-secondary btn-small">
               {copied ? "Copied ✅" : "Copy share text"}
             </button>
 
@@ -323,9 +398,7 @@ function PredictionPanel() {
       {history.length > 0 && (
         <div style={{ marginTop: "2rem" }}>
           <h4>Your Prediction History</h4>
-          <p className="text-small text-muted">
-            Saved locally to your browser and tied to your current username.
-          </p>
+          <p className="text-small text-muted">Saved locally to your browser and tied to your current username.</p>
 
           <ul style={{ listStyle: "none", paddingLeft: 0, fontSize: "0.85rem" }}>
             {history.map((h, idx) => (
@@ -339,7 +412,8 @@ function PredictionPanel() {
                   })}
                 </strong>
                 {": "}
-                Playoffs {(h.playoffs * 100).toFixed(1)}%, SB {(h.superBowl * 100).toFixed(1)}%
+                Playoffs {((Number(h.playoffs) || 0) * 100).toFixed(1)}%, SB{" "}
+                {((Number(h.superBowl) || 0) * 100).toFixed(1)}%
               </li>
             ))}
           </ul>
@@ -349,15 +423,8 @@ function PredictionPanel() {
   );
 }
 
-// 3. DASHBOARD
-// ================================================================
-
 function Dashboard() {
   const year = new Date().getFullYear();
-
-  const TSICardSafe = SafeComponent("TSI Card", window.TSICard);
-  const MustWinSafe = SafeComponent("Must Win Card", window.MustWinCard);
-  const LiveProbSafe = SafeComponent("Live Prob Tool", window.LiveWinProbTool);
 
   return (
     <div>
@@ -370,14 +437,14 @@ function Dashboard() {
         <div>
           <UserProfileCard />
           <RecordCard year={year} />
-          <TSICardSafe year={year} />
-          <MustWinSafe year={year} />
+          <TSICard year={year} />
+          <MustWinCard year={year} />
         </div>
 
         <div>
           <PredictionPanel />
           <div style={{ marginTop: "2rem" }}>
-            <LiveProbSafe />
+            <LiveWinProbTool />
           </div>
           <div style={{ marginTop: "2rem" }}>
             <GameTable year={year} />
@@ -387,22 +454,6 @@ function Dashboard() {
     </div>
   );
 }
-
-// 4. SAFE COMPONENT WRAPPER
-// ================================================================
-
-const SafeComponent = (name, Component) => {
-  if (Component) return Component;
-  return () => (
-    <div className="card">
-      <h3>{name} Unavailable</h3>
-      <p>Component script not found or failed to load.</p>
-    </div>
-  );
-};
-
-// 5. MAIN APP WITH CONSOLIDATED NAVIGATION
-// ================================================================
 
 function App() {
   const [currentPage, setCurrentPage] = React.useState("dashboard");
@@ -425,11 +476,6 @@ function App() {
     if (initialHash) window.setPage(initialHash);
     else window.setPage("dashboard");
   }, []);
-
-  const SeasonPathSafe = SafeComponent("Season Paths", window.SeasonPathExplorer);
-  const LiveProbSafe = SafeComponent("Live Prob Tool", window.LiveWinProbTool);
-  const TimelineSafe = SafeComponent("Timeline", window.Timeline);
-  const EventsAdminSafe = SafeComponent("Events Admin", window.EventsAdmin);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -456,13 +502,13 @@ function App() {
       case "clutch":
         return <ClutchIndex />;
       case "timeline":
-        return <TimelineSafe />;
+        return <Timeline />;
       case "paths":
-        return <SeasonPathSafe />;
+        return <SeasonPathExplorer />;
       case "liveprob":
-        return <LiveProbSafe />;
+        return <LiveWinProbTool />;
       case "events":
-        return <EventsAdminSafe />;
+        return <EventsAdmin />;
       case "profile":
         return <UserProfileCard />;
       case "history":
@@ -502,11 +548,9 @@ function App() {
   );
 }
 
-
-
 const rootElement = document.getElementById("root");
 if (rootElement) {
-  ReactDOM.render(<App />, rootElement);
+  ReactDOM.createRoot(rootElement).render(<App />);
 }
 
 
