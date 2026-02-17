@@ -50,3 +50,4 @@ function GameTable({ year }) {
     </div>
   );
 }
+window.GameTable = GameTable;
