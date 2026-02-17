@@ -832,3 +832,6 @@ function getTierColor(tier) {
       return "#0891b2";
   }
 }
+
+
+window.RivalTeamImpactPage = RivalTeamImpactPage;
