@@ -1235,7 +1235,321 @@ body.retro .nav-link.active::after {
   }
 }
 
+/* =========================================================
+   MOBILE FRIENDLY ADD-ON
+   Paste at the very end of style.css
+   ========================================================= */
 
+html, body {
+  overflow-x: hidden;
+}
+
+img,
+canvas,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Better tap targets on mobile */
+button,
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.nav-link {
+  min-height: 44px;
+}
+
+/* Prevent long content from blowing out cards/layout */
+.card,
+.stat-box,
+.kpi,
+.scoreboard-card,
+.rival-card,
+.page-header,
+.site-footer,
+.site-footer__inner,
+.site-footer__bottom {
+  min-width: 0;
+}
+
+.card,
+.stat-box,
+.kpi,
+.rival-card {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Tables should scroll instead of crushing layout */
+table {
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: collapse;
+}
+
+/* Slightly nicer content spacing by default */
+.content-area {
+  width: 100%;
+}
+
+/* Medium screens / tablets */
+@media (max-width: 1024px) {
+  .content-area {
+    padding: 1.5rem 1rem;
+  }
+
+  .nav-bar {
+    padding: 0 0.75rem;
+    gap: 0.15rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    justify-content: flex-start;
+  }
+
+  .nav-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-bar::after {
+    display: none;
+  }
+
+  .nav-link {
+    flex: 0 0 auto;
+    padding: 0 0.85rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+  }
+
+  .grid-layout {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+
+  .site-footer__inner {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem;
+  }
+
+  .site-footer__bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+/* Phones */
+@media (max-width: 768px) {
+  .content-area {
+    padding: 1rem 0.85rem 1.5rem;
+  }
+
+  .hero-title {
+    font-size: clamp(1.5rem, 8vw, 2.3rem);
+    line-height: 1.06;
+    letter-spacing: 0.02em;
+  }
+
+  .hero-kicker {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    margin-bottom: 1.5rem;
+  }
+
+  .page-header,
+  .cowboys-banner,
+  .card,
+  .scoreboard-card {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .card-dense {
+    padding: 0.9rem;
+  }
+
+  .stat-box,
+  .kpi {
+    padding: 1rem;
+  }
+
+  .stat-value,
+  .tsi-value,
+  .prob-display,
+  .scoreboard-card .score-display {
+    font-size: clamp(2rem, 9vw, 2.8rem);
+  }
+
+  .page-header h1 {
+    font-size: 1.45rem;
+  }
+
+  .page-header p,
+  .cowboys-banner p,
+  .site-footer__col p,
+  .site-footer__col ul li {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    width: 100%;
+    justify-content: center;
+    padding: 0.8rem 1rem;
+    font-size: 0.76rem;
+  }
+
+  .btn-small {
+    width: auto;
+    min-height: 38px;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .player-tag {
+    width: 100%;
+    justify-content: space-between;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .progress-label,
+  .stat-label,
+  .prob-label,
+  .card .eyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+  }
+
+  .nav-bar {
+    height: 54px;
+    padding: 0 0.5rem;
+    border-bottom-width: 2px;
+  }
+
+  .nav-bar::before {
+    margin-right: 0.6rem;
+    font-size: 1rem;
+  }
+
+  .nav-link {
+    padding: 0 0.7rem;
+    font-size: 0.68rem;
+  }
+
+  /* Hide noisy desktop debug strip on phones */
+  #debug-panel {
+    display: none !important;
+  }
+
+  /* Reduce oversized decorative elements */
+  .page-header::after,
+  .cowboys-banner::after {
+    font-size: 4.5rem;
+    right: 1rem;
+  }
+
+  .cowboys-banner::before {
+    width: 120px;
+    right: -30px;
+  }
+
+  .site-footer__inner {
+    padding: 1.5rem 1rem;
+  }
+
+  .site-footer__bottom {
+    padding: 1rem;
+    font-size: 0.72rem;
+  }
+
+  .site-footer__bottom::before {
+    content: "★ LSA";
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+  }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+  .content-area {
+    padding: 0.85rem 0.7rem 1.2rem;
+  }
+
+  .hero-title {
+    font-size: clamp(1.3rem, 9vw, 1.9rem);
+  }
+
+  .hero-kicker {
+    font-size: 0.64rem;
+    letter-spacing: 0.12em;
+  }
+
+  .nav-bar {
+    padding: 0 0.35rem;
+  }
+
+  .nav-link {
+    padding: 0 0.55rem;
+    font-size: 0.63rem;
+    letter-spacing: 0.06em;
+  }
+
+  .card,
+  .page-header,
+  .cowboys-banner,
+  .scoreboard-card,
+  .stat-box,
+  .kpi,
+  .rival-card {
+    padding: 0.85rem;
+    border-radius: 10px;
+  }
+
+  .stat-value,
+  .tsi-value,
+  .prob-display,
+  .scoreboard-card .score-display {
+    font-size: clamp(1.7rem, 10vw, 2.2rem);
+  }
+
+  .site-footer__inner,
+  .site-footer__bottom {
+    padding-left: 0.8rem;
+    padding-right: 0.8rem;
+  }
+
+  .must-win-badge,
+  .badge,
+  .chip.win,
+  .path-w,
+  .path-l,
+  .pos-badge {
+    font-size: 0.6rem;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 
 
