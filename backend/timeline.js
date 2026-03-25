@@ -1,198 +1,329 @@
-// frontend/src/components/Timeline.jsx
+// backend/timeline.js
+const db = require("./databases");
 
-const { useState, useEffect, useRef } = React;
+const DEFAULT_BASELINE = 5;
+const DEFAULT_SEASON = new Date().getFullYear();
 
-function Timeline() {
-  const canvasRef = useRef(null);
-  const [events, setEvents] = useState([]);
-  const [season, setSeason] = useState(new Date().getFullYear());
-  const [timelineData, setTimelineData] = useState([]);
-  const [inflectionPoints, setInflectionPoints] = useState([]);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const canvasWidth = 1000;
-  const canvasHeight = 400;
-
-  // Fetch player events
-  const fetchEvents = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${window.BASE_URL}/api/players/events?season=${season}&limit=100`
-      );
-      if (!response.ok) throw new Error("Failed to fetch events");
-      const data = await response.json();
-      setEvents(data.events || []);
-    } catch (err) {
-      console.error("Error fetching events:", err);
-      setEvents([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch timeline data with inflection points
-  const fetchTimeline = async () => {
-    try {
-      const response = await fetch(
-        `${window.BASE_URL}/api/timeline/points?season=${season}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch timeline");
-      const data = await response.json();
-      setTimelineData(data.points || []);
-      setInflectionPoints(data.inflectionPoints || []);
-    } catch (err) {
-      console.error("Error fetching timeline:", err);
-      setTimelineData([]);
-      setInflectionPoints([]);
-    }
-  };
-
-  useEffect(() => {
-    fetchEvents();
-    fetchTimeline();
-  }, [season]);
-
-  useEffect(() => {
-    if (canvasRef.current && timelineData.length > 0) {
-      drawTimeline();
-    }
-  }, [timelineData, inflectionPoints, events]);
-
-  const drawTimeline = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    const padding = 50;
-    
-    // Clear canvas
-    ctx.fillStyle = "rgba(20, 20, 40, 0.8)";
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-    // Draw border
-    ctx.strokeStyle = "rgba(0, 212, 255, 0.3)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(20, 20, canvasWidth - 40, canvasHeight - 40);
-
-    if (timelineData.length === 0) {
-      ctx.fillStyle = "#909090";
-      ctx.font = "16px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("No timeline data available", canvasWidth / 2, canvasHeight / 2);
-      return;
-    }
-
-    // Graph calculations
-    const graphWidth = canvasWidth - 2 * padding;
-    const graphHeight = canvasHeight - 2 * padding;
-    const values = timelineData.map((p) => p.value);
-    const minValue = Math.min(...values);
-    const maxValue = Math.max(...values);
-    const valueRange = maxValue - minValue || 1;
-
-    // Draw grid lines
-    ctx.strokeStyle = "rgba(0, 212, 255, 0.1)";
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = padding + (graphHeight / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(padding, y);
-      ctx.lineTo(canvasWidth - padding, y);
-      ctx.stroke();
-      
-      const value = maxValue - (valueRange / 4) * i;
-      ctx.fillStyle = "#909090";
-      ctx.font = "12px Arial";
-      ctx.textAlign = "right";
-      ctx.fillText(value.toFixed(1), padding - 10, y + 4);
-    }
-
-    // Draw X-axis
-    ctx.fillStyle = "#909090";
-    ctx.font = "12px Arial";
-    ctx.textAlign = "center";
-    for (let i = 0; i < timelineData.length; i += Math.max(1, Math.floor(timelineData.length / 5))) {
-      const x = padding + (graphWidth / (timelineData.length - 1)) * i;
-      const date = new Date(timelineData[i].date);
-      ctx.fillText(date.toLocaleDateString(), x, canvasHeight - 15);
-    }
-
-    // Draw line
-    ctx.strokeStyle = "#00d4ff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < timelineData.length; i++) {
-      const x = padding + (graphWidth / (timelineData.length - 1)) * i;
-      const y = canvasHeight - padding - ((timelineData[i].value - minValue) / valueRange) * graphHeight;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-
-    // Draw points
-    ctx.fillStyle = "#00d4ff";
-    for (let i = 0; i < timelineData.length; i++) {
-      const x = padding + (graphWidth / (timelineData.length - 1)) * i;
-      const y = canvasHeight - padding - ((timelineData[i].value - minValue) / valueRange) * graphHeight;
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, 2 * Math.PI);
-      ctx.fill();
-    }
-  };
-
-  return (
-    <div className="timeline-page">
-      <div className="timeline-container">
-        <h1>Cowboys Timeline Analytics</h1>
-        <p className="subtitle">Season performance with inflection points and events</p>
-        
-        <div className="timeline-controls">
-          <div className="control-group">
-            <label htmlFor="season">Season:</label>
-            <select
-              id="season"
-              value={season}
-              onChange={(e) => setSeason(Number(e.target.value))}
-              className="season-select"
-            >
-              {[2020, 2021, 2022, 2023, 2024, 2025].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-          {loading && <div className="loading">Loading...</div>}
-        </div>
-
-        <div className="timeline-content">
-          <div className="canvas-wrapper">
-            <canvas ref={canvasRef} width={canvasWidth} height={canvasHeight} className="timeline-canvas" />
-          </div>
-          
-          <div className="legend">
-             <h3>Legend</h3>
-             <div className="legend-item"><div className="legend-color cyan"></div><span>Timeline</span></div>
-             <div className="legend-item"><div className="legend-color gold"></div><span>Player Events</span></div>
-          </div>
-        </div>
-        
-        <div className="events-timeline">
-           <h2>Events ({events.length})</h2>
-           <div className="events-list">
-             {events.map((event, idx) => (
-               <div key={idx} className="event-card" onClick={() => setSelectedEvent(idx)}>
-                 <div className="event-card-header">
-                   <span className="event-card-player">{event.player_name}</span>
-                   <span className="event-card-type">{event.event_type}</span>
-                 </div>
-                 <div className="event-card-date">{new Date(event.event_date).toLocaleDateString()}</div>
-               </div>
-             ))}
-           </div>
-        </div>
-      </div>
-    </div>
-  );
+function toNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
 }
 
-window.Timeline = Timeline;
+function toIsoDay(dateInput) {
+  const d = new Date(dateInput);
+  if (Number.isNaN(d.getTime())) return null;
+
+  return new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+  ).toISOString();
+}
+
+function normalizeEventType(eventType = "") {
+  return String(eventType || "").trim().toLowerCase();
+}
+
+function classifyImpact(eventType, impactScore) {
+  const type = normalizeEventType(eventType);
+  const impact = Math.abs(toNumber(impactScore, 0));
+
+  if (
+    type.includes("injury") ||
+    type.includes("suspension") ||
+    type.includes("loss") ||
+    type.includes("absence") ||
+    type.includes("setback")
+  ) {
+    return -impact;
+  }
+
+  if (
+    type.includes("return") ||
+    type.includes("activation") ||
+    type.includes("signing") ||
+    type.includes("win") ||
+    type.includes("boost")
+  ) {
+    return impact;
+  }
+
+  return toNumber(impactScore, 0);
+}
+
+function formatPoint(date, value, extra = {}) {
+  return {
+    date,
+    value: Number(toNumber(value, 0).toFixed(2)),
+    ...extra,
+  };
+}
+
+function buildEmptyResult(season = DEFAULT_SEASON) {
+  return {
+    season,
+    points: [],
+    inflectionPoints: [],
+    eventCount: 0,
+    summary: {
+      totalPositiveImpact: 0,
+      totalNegativeImpact: 0,
+      netImpact: 0,
+      highestPoint: null,
+      lowestPoint: null,
+      pointCount: 0,
+    },
+  };
+}
+
+function buildSyntheticTimeline(season = DEFAULT_SEASON) {
+  const monthLabels = Array.from({ length: 12 }, (_, idx) => idx);
+  const points = monthLabels.map((month) => {
+    const wave = Math.sin(month / 1.7) * 1.45;
+    const slope = month * 0.12;
+    const seasonalBump = month >= 8 && month <= 11 ? 0.65 : 0;
+    const value = DEFAULT_BASELINE + wave + slope + seasonalBump;
+
+    return formatPoint(
+      new Date(Date.UTC(season, month, 1)).toISOString(),
+      value,
+      { source: "synthetic" }
+    );
+  });
+
+  const inflectionPoints = detectInflectionPoints(points);
+  const summary = buildSummary(points);
+
+  return {
+    season,
+    points,
+    inflectionPoints,
+    eventCount: 0,
+    summary,
+    synthetic: true,
+  };
+}
+
+function aggregateRowsByDay(rows = []) {
+  const grouped = new Map();
+
+  for (const row of rows) {
+    const isoDay = toIsoDay(row.event_date);
+    if (!isoDay) continue;
+
+    const signedImpact = classifyImpact(row.event_type, row.impact_score);
+
+    if (!grouped.has(isoDay)) {
+      grouped.set(isoDay, {
+        date: isoDay,
+        value: 0,
+        rawEvents: 0,
+        positiveEvents: 0,
+        negativeEvents: 0,
+        neutralEvents: 0,
+      });
+    }
+
+    const bucket = grouped.get(isoDay);
+    bucket.value += signedImpact;
+    bucket.rawEvents += 1;
+
+    if (signedImpact > 0) {
+      bucket.positiveEvents += 1;
+    } else if (signedImpact < 0) {
+      bucket.negativeEvents += 1;
+    } else {
+      bucket.neutralEvents += 1;
+    }
+  }
+
+  return Array.from(grouped.values())
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .map((point) =>
+      formatPoint(point.date, point.value, {
+        rawEvents: point.rawEvents,
+        positiveEvents: point.positiveEvents,
+        negativeEvents: point.negativeEvents,
+        neutralEvents: point.neutralEvents,
+      })
+    );
+}
+
+function buildSummary(points = []) {
+  if (!Array.isArray(points) || points.length === 0) {
+    return {
+      totalPositiveImpact: 0,
+      totalNegativeImpact: 0,
+      netImpact: 0,
+      highestPoint: null,
+      lowestPoint: null,
+      pointCount: 0,
+    };
+  }
+
+  let totalPositiveImpact = 0;
+  let totalNegativeImpact = 0;
+  let highestPoint = points[0];
+  let lowestPoint = points[0];
+
+  for (const point of points) {
+    const value = toNumber(point.value, 0);
+
+    if (value > 0) totalPositiveImpact += value;
+    if (value < 0) totalNegativeImpact += value;
+
+    if (value > toNumber(highestPoint.value, 0)) {
+      highestPoint = point;
+    }
+
+    if (value < toNumber(lowestPoint.value, 0)) {
+      lowestPoint = point;
+    }
+  }
+
+  return {
+    totalPositiveImpact: Number(totalPositiveImpact.toFixed(2)),
+    totalNegativeImpact: Number(totalNegativeImpact.toFixed(2)),
+    netImpact: Number((totalPositiveImpact + totalNegativeImpact).toFixed(2)),
+    highestPoint,
+    lowestPoint,
+    pointCount: points.length,
+  };
+}
+
+function createInflectionDescription(type, point, prev, next) {
+  const value = toNumber(point.value, 0);
+  const prevValue = toNumber(prev.value, 0);
+  const nextValue = toNumber(next.value, 0);
+
+  if (type === "peak") {
+    return `Performance peak: rose from ${prevValue.toFixed(2)} to ${value.toFixed(
+      2
+    )} before dropping to ${nextValue.toFixed(2)}.`;
+  }
+
+  return `Performance valley: dropped from ${prevValue.toFixed(
+    2
+  )} to ${value.toFixed(2)} before recovering to ${nextValue.toFixed(2)}.`;
+}
+
+function detectInflectionPoints(points = []) {
+  if (!Array.isArray(points) || points.length < 3) return [];
+
+  const inflections = [];
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const next = points[i + 1];
+
+    const prevValue = toNumber(prev.value, 0);
+    const currValue = toNumber(curr.value, 0);
+    const nextValue = toNumber(next.value, 0);
+
+    const isPeak = currValue > prevValue && currValue > nextValue;
+    const isValley = currValue < prevValue && currValue < nextValue;
+
+    if (!isPeak && !isValley) continue;
+
+    const type = isPeak ? "peak" : "valley";
+    inflections.push({
+      date: curr.date,
+      type,
+      value: Number(currValue.toFixed(2)),
+      deltaFromPrevious: Number((currValue - prevValue).toFixed(2)),
+      deltaToNext: Number((nextValue - currValue).toFixed(2)),
+      description: createInflectionDescription(type, curr, prev, next),
+    });
+  }
+
+  return inflections;
+}
+
+function normalizeSeason(seasonInput) {
+  const season = Number(seasonInput);
+  return Number.isInteger(season) && season > 1900 ? season : DEFAULT_SEASON;
+}
+
+async function fetchTimelineRows(season) {
+  const query = `
+    SELECT event_date, impact_score, event_type
+    FROM player_events
+    WHERE EXTRACT(YEAR FROM event_date) = $1
+    ORDER BY event_date ASC
+  `;
+
+  const result = await db.query(query, [season]);
+  return Array.isArray(result.rows) ? result.rows : [];
+}
+
+async function getTimelineData(seasonInput = DEFAULT_SEASON) {
+  const season = normalizeSeason(seasonInput);
+
+  try {
+    const rows = await fetchTimelineRows(season);
+
+    if (rows.length === 0) {
+      return buildSyntheticTimeline(season);
+    }
+
+    const points = aggregateRowsByDay(rows);
+    const inflectionPoints = detectInflectionPoints(points);
+    const summary = buildSummary(points);
+
+    return {
+      season,
+      points,
+      inflectionPoints,
+      eventCount: rows.length,
+      summary,
+      synthetic: false,
+    };
+  } catch (error) {
+    return {
+      ...buildEmptyResult(season),
+      error: error.message,
+    };
+  }
+}
+
+async function getInflectionPoints(seasonInput = DEFAULT_SEASON) {
+  const season = normalizeSeason(seasonInput);
+
+  try {
+    const timelineData = await getTimelineData(season);
+
+    if (timelineData.error) {
+      return {
+        season,
+        inflectionPoints: [],
+        eventCount: 0,
+        summary: buildEmptyResult(season).summary,
+        error: timelineData.error,
+      };
+    }
+
+    return {
+      season,
+      inflectionPoints: timelineData.inflectionPoints || [],
+      eventCount: timelineData.eventCount || 0,
+      summary: timelineData.summary || buildEmptyResult(season).summary,
+      synthetic: Boolean(timelineData.synthetic),
+    };
+  } catch (error) {
+    return {
+      season,
+      inflectionPoints: [],
+      eventCount: 0,
+      summary: buildEmptyResult(season).summary,
+      error: error.message,
+    };
+  }
+}
+
+module.exports = {
+  classifyImpact,
+  aggregateRowsByDay,
+  buildSummary,
+  detectInflectionPoints,
+  getTimelineData,
+  getInflectionPoints,
+};
