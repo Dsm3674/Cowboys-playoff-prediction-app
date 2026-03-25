@@ -416,4 +416,5 @@ const QuantumEngineIntegrated = ({ teamData }) => {
   );
 };
 
+window.QuantumEngineIntegrated = QuantumEngineIntegrated;
 export default QuantumEngineIntegrated;
