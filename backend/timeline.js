@@ -1,317 +1,623 @@
-// backend/timeline.js
+"use strict";
+
 const db = require("./databases");
 
-const DEFAULT_BASELINE = 5;
-const DEFAULT_SEASON = new Date().getFullYear();
+const DEFAULT_SEASON = new Date().getUTCFullYear();
+const MAX_EVENTS = 5000;
+const ALLOWED_EVENT_TYPES = new Set([
+  "injury",
+  "absence",
+  "suspension",
+  "downgrade",
+  "upgrade",
+  "return",
+  "boost",
+  "loss",
+  "win",
+  "missed_game",
+  "availability",
+  "status_change",
+  "performance",
+  "transaction"
+]);
 
-/* =========================
-   UTIL FUNCTIONS
-========================= */
-
-function toNumber(value, fallback = 0) {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : fallback;
+function asNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
 }
 
-function toIsoDay(dateInput) {
-  const d = new Date(dateInput);
-  if (Number.isNaN(d.getTime())) return null;
-
-  return new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
-  ).toISOString();
+function asString(value, fallback = "") {
+  if (value === null || value === undefined) return fallback;
+  return String(value).trim();
 }
 
-function normalizeEventType(eventType = "") {
-  return String(eventType || "").trim().toLowerCase();
+function normalizeSeason(value) {
+  const year = parseInt(value, 10);
+  if (!Number.isInteger(year)) return DEFAULT_SEASON;
+  if (year < 2000) return DEFAULT_SEASON;
+  if (year > DEFAULT_SEASON + 1) return DEFAULT_SEASON;
+  return year;
 }
 
-function classifyImpact(eventType, impactScore) {
+function isValidDate(date) {
+  return date instanceof Date && !Number.isNaN(date.getTime());
+}
+
+function toDate(value) {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  return isValidDate(d) ? d : null;
+}
+
+function toIsoDay(value) {
+  const d = toDate(value);
+  if (!d) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+function toIsoTimestamp(value) {
+  const d = toDate(value);
+  if (!d) return null;
+  return d.toISOString();
+}
+
+function round(value, digits = 2) {
+  const factor = 10 ** digits;
+  return Math.round(asNumber(value, 0) * factor) / factor;
+}
+
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function safeObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function normalizeEventType(value) {
+  const type = asString(value).toLowerCase().replace(/\s+/g, "_");
+  if (!type) return "unknown";
+  return ALLOWED_EVENT_TYPES.has(type) ? type : type;
+}
+
+function inferDirectionFromType(type) {
+  if (["injury", "absence", "suspension", "downgrade", "loss", "missed_game"].includes(type)) {
+    return -1;
+  }
+  if (["upgrade", "return", "boost", "win", "availability", "status_change", "performance", "transaction"].includes(type)) {
+    return 1;
+  }
+  return 0;
+}
+
+function classifySeverity(rawImpact) {
+  const value = Math.abs(asNumber(rawImpact, 0));
+  if (value >= 8) return "critical";
+  if (value >= 5) return "high";
+  if (value >= 2.5) return "medium";
+  if (value > 0) return "low";
+  return "none";
+}
+
+function normalizeImpact(eventType, impactScore) {
+  const raw = asNumber(impactScore, 0);
   const type = normalizeEventType(eventType);
-  const impact = Math.abs(toNumber(impactScore, 0));
-
-  if (
-    type.includes("injury") ||
-    type.includes("suspension") ||
-    type.includes("loss") ||
-    type.includes("absence")
-  ) {
-    return -impact;
-  }
-
-  if (
-    type.includes("return") ||
-    type.includes("activation") ||
-    type.includes("signing") ||
-    type.includes("win")
-  ) {
-    return impact;
-  }
-
-  return toNumber(impactScore, 0);
+  if (raw === 0) return 0;
+  if (raw < 0) return raw;
+  const direction = inferDirectionFromType(type);
+  if (direction === 0) return raw;
+  return round(Math.abs(raw) * direction, 2);
 }
 
-function formatPoint(date, value, extra = {}) {
+function normalizePlayerName(row) {
+  const first = asString(row.first_name);
+  const last = asString(row.last_name);
+  const full = asString(row.player_name);
+  if (full) return full;
+  return [first, last].filter(Boolean).join(" ").trim() || null;
+}
+
+function normalizeRawRow(row) {
+  const raw = safeObject(row);
+  const eventType = normalizeEventType(raw.event_type);
+  const eventDate = toIsoDay(raw.event_date);
+  const impact = normalizeImpact(eventType, raw.impact_score);
+  const title = asString(raw.title) || eventType.replace(/_/g, " ");
+  const detail = asString(raw.detail || raw.description || raw.message);
+  const team = asString(raw.team_abbr || raw.team || raw.club).toUpperCase() || null;
+  const playerId = raw.player_id !== undefined && raw.player_id !== null ? String(raw.player_id) : null;
+  const playerName = normalizePlayerName(raw);
+  const source = asString(raw.source || raw.provider || "database");
+  const category = asString(raw.category || raw.event_category || eventType);
+  const confidence = Math.max(0, Math.min(1, asNumber(raw.confidence, 1)));
+  const severity = classifySeverity(impact);
+
   return {
-    date,
-    value: Number(toNumber(value, 0).toFixed(2)),
-    ...extra,
+    id: raw.id !== undefined && raw.id !== null ? String(raw.id) : `${eventDate || "unknown"}:${eventType}:${playerId || "team"}`,
+    eventDate,
+    eventTimestamp: toIsoTimestamp(raw.event_date),
+    eventType,
+    impact,
+    title,
+    detail: detail || null,
+    team,
+    playerId,
+    playerName,
+    source,
+    category,
+    confidence: round(confidence, 4),
+    severity,
+    metadata: safeObject(raw.metadata)
   };
 }
 
-/* =========================
-   SEEDED RANDOM (DETERMINISTIC)
-========================= */
-
-function seededUnit(seed) {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
+function isRowUsable(row) {
+  if (!row) return false;
+  if (!row.eventDate) return false;
+  if (!Number.isFinite(row.impact)) return false;
+  return true;
 }
 
-function seededRange(seed, min, max) {
-  return min + seededUnit(seed) * (max - min);
+function compareEvents(a, b) {
+  const at = a.eventTimestamp || a.eventDate || "";
+  const bt = b.eventTimestamp || b.eventDate || "";
+  if (at < bt) return -1;
+  if (at > bt) return 1;
+  if (a.id < b.id) return -1;
+  if (a.id > b.id) return 1;
+  return 0;
 }
 
-function getSeasonProfile(season) {
-  return {
-    offenseBias: seededRange(season * 1.13, -0.9, 1.4),
-    defenseBias: seededRange(season * 1.37, -1.1, 1.1),
-    volatilityBias: seededRange(season * 1.73, 0.35, 1.25),
-    lateSeasonBias: seededRange(season * 1.97, -0.4, 1.2),
-    peakShift: Math.floor(seededRange(season * 2.11, 0, 4)),
-    recoveryBias: seededRange(season * 2.41, 0.2, 0.95),
-  };
+function dedupeEvents(events) {
+  const seen = new Set();
+  const out = [];
+  for (const event of safeArray(events)) {
+    const key = [
+      event.id,
+      event.eventDate,
+      event.eventType,
+      event.playerId,
+      event.team,
+      event.impact
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(event);
+  }
+  return out;
 }
 
-function createSyntheticSeasonEvents(season) {
-  const profile = getSeasonProfile(season);
-  const events = [];
+function aggregatePointsByDay(events) {
+  const map = new Map();
 
-  for (let month = 0; month < 12; month++) {
-    const shockSeed = season * 100 + month * 17;
+  for (const event of safeArray(events)) {
+    if (!event.eventDate) continue;
+    const existing = map.get(event.eventDate) || {
+      date: event.eventDate,
+      value: 0,
+      positive: 0,
+      negative: 0,
+      count: 0,
+      eventTypes: new Set(),
+      players: new Set(),
+      teams: new Set()
+    };
 
-    if (seededUnit(shockSeed + 3) > 0.82) {
-      events.push({
-        month,
-        impact: -seededRange(shockSeed + 5, 0.5, 1.35) * profile.volatilityBias,
-        label: "injury/slump",
-      });
+    existing.value += event.impact;
+    existing.count += 1;
+    existing.eventTypes.add(event.eventType);
+
+    if (event.playerName) existing.players.add(event.playerName);
+    if (event.team) existing.teams.add(event.team);
+
+    if (event.impact >= 0) {
+      existing.positive += event.impact;
+    } else {
+      existing.negative += event.impact;
     }
 
-    if (seededUnit(shockSeed + 11) > 0.86) {
-      events.push({
-        month,
-        impact: seededRange(shockSeed + 13, 0.45, 1.15),
-        label: "return/boost",
-      });
-    }
+    map.set(event.eventDate, existing);
   }
 
-  return events;
+  return Array.from(map.values())
+    .map((point) => ({
+      date: point.date,
+      value: round(point.value, 2),
+      positive: round(point.positive, 2),
+      negative: round(point.negative, 2),
+      count: point.count,
+      eventTypes: Array.from(point.eventTypes).sort(),
+      players: Array.from(point.players).sort(),
+      teams: Array.from(point.teams).sort()
+    }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
-/* =========================
-   SYNTHETIC TIMELINE (FIXED)
-========================= */
+function buildRunningSeries(points) {
+  let cumulative = 0;
+  return safeArray(points).map((point) => {
+    cumulative += point.value;
+    return {
+      ...point,
+      cumulative: round(cumulative, 2)
+    };
+  });
+}
 
-function buildSyntheticTimeline(season = DEFAULT_SEASON) {
-  const profile = getSeasonProfile(season);
-  const syntheticEvents = createSyntheticSeasonEvents(season);
-
-  const eventMap = new Map();
-  for (const evt of syntheticEvents) {
-    if (!eventMap.has(evt.month)) {
-      eventMap.set(evt.month, []);
-    }
-    eventMap.get(evt.month).push(evt);
+function findExtremes(points) {
+  if (!points.length) {
+    return {
+      highestDaily: null,
+      lowestDaily: null,
+      highestCumulative: null,
+      lowestCumulative: null
+    };
   }
 
-  const points = [];
-  let runningValue =
-    DEFAULT_BASELINE +
-    profile.offenseBias * 0.65 -
-    profile.defenseBias * 0.35 +
-    seededRange(season * 3.01, -0.45, 0.45);
+  let highestDaily = points[0];
+  let lowestDaily = points[0];
+  let highestCumulative = points[0];
+  let lowestCumulative = points[0];
 
-  for (let month = 0; month < 12; month++) {
-    const shiftedMonth = month + profile.peakShift;
-
-    const wavePrimary =
-      Math.sin(shiftedMonth / 1.45 + season * 0.061) * 1.15;
-
-    const waveSecondary =
-      Math.cos(shiftedMonth / 2.35 + season * 0.027) * 0.58;
-
-    const earlySeasonAdjustment =
-      month <= 2 ? seededRange(season * 10 + month, -0.3, 0.35) : 0;
-
-    const midSeasonStability =
-      month >= 3 && month <= 7
-        ? 0.22 - profile.volatilityBias * 0.08
-        : 0;
-
-    const lateSeasonPush =
-      month >= 8
-        ? 0.35 + profile.lateSeasonBias * 0.55 + month * 0.035
-        : 0;
-
-    const monthNoise =
-      seededRange(season * 1000 + month * 31, -0.22, 0.22) *
-      profile.volatilityBias;
-
-    const monthEvents = eventMap.get(month) || [];
-    const eventImpact = monthEvents.reduce((sum, evt) => sum + evt.impact, 0);
-
-    const recovery =
-      month > 0
-        ? (points[month - 1]?.value - DEFAULT_BASELINE) *
-          (-0.08 * profile.recoveryBias)
-        : 0;
-
-    const delta =
-      wavePrimary +
-      waveSecondary +
-      earlySeasonAdjustment +
-      midSeasonStability +
-      lateSeasonPush +
-      monthNoise +
-      eventImpact +
-      recovery;
-
-    runningValue += delta * 0.42;
-
-    runningValue = Math.max(1.2, Math.min(11.8, runningValue));
-
-    points.push(
-      formatPoint(
-        new Date(Date.UTC(season, month, 1)).toISOString(),
-        runningValue,
-        {
-          source: "synthetic",
-          syntheticEvents: monthEvents.map((evt) => ({
-            label: evt.label,
-            impact: Number(evt.impact.toFixed(2)),
-          })),
-        }
-      )
-    );
+  for (const point of points) {
+    if (point.value > highestDaily.value) highestDaily = point;
+    if (point.value < lowestDaily.value) lowestDaily = point;
+    if (point.cumulative > highestCumulative.cumulative) highestCumulative = point;
+    if (point.cumulative < lowestCumulative.cumulative) lowestCumulative = point;
   }
 
   return {
-    season,
-    points,
-    inflectionPoints: detectInflectionPoints(points),
-    summary: buildSummary(points),
-    eventCount: syntheticEvents.length,
-    synthetic: true,
+    highestDaily,
+    lowestDaily,
+    highestCumulative,
+    lowestCumulative
   };
 }
 
-/* =========================
-   REAL DATA PIPELINE
-========================= */
-
-function aggregateRowsByDay(rows = []) {
-  const grouped = new Map();
-
-  for (const row of rows) {
-    const isoDay = toIsoDay(row.event_date);
-    if (!isoDay) continue;
-
-    const signedImpact = classifyImpact(row.event_type, row.impact_score);
-
-    if (!grouped.has(isoDay)) {
-      grouped.set(isoDay, { date: isoDay, value: 0 });
-    }
-
-    grouped.get(isoDay).value += signedImpact;
+function computeTrend(points) {
+  if (points.length < 2) {
+    return {
+      direction: "flat",
+      slope: 0,
+      recentDelta: 0
+    };
   }
 
-  return Array.from(grouped.values()).sort(
-    (a, b) => new Date(a.date) - new Date(b.date)
-  );
-}
+  const first = points[0].cumulative;
+  const last = points[points.length - 1].cumulative;
+  const slope = (last - first) / Math.max(1, points.length - 1);
 
-function buildSummary(points = []) {
-  let total = 0;
-  let max = points[0];
-  let min = points[0];
-
-  for (const p of points) {
-    total += p.value;
-    if (p.value > max.value) max = p;
-    if (p.value < min.value) min = p;
+  let recentDelta = 0;
+  if (points.length >= 5) {
+    const prev = points[points.length - 5].cumulative;
+    recentDelta = last - prev;
+  } else {
+    recentDelta = last - first;
   }
+
+  let direction = "flat";
+  if (slope > 0.35) direction = "up";
+  else if (slope < -0.35) direction = "down";
 
   return {
-    netImpact: Number(total.toFixed(2)),
-    highestPoint: max,
-    lowestPoint: min,
+    direction,
+    slope: round(slope, 4),
+    recentDelta: round(recentDelta, 2)
   };
 }
 
-function detectInflectionPoints(points = []) {
+function detectInflectionPoints(points) {
   if (points.length < 3) return [];
 
   const result = [];
 
-  for (let i = 1; i < points.length - 1; i++) {
-    const prev = points[i - 1].value;
-    const curr = points[i].value;
-    const next = points[i + 1].value;
+  for (let i = 1; i < points.length - 1; i += 1) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const next = points[i + 1];
 
-    if (curr > prev && curr > next) {
-      result.push({ ...points[i], type: "peak" });
-    } else if (curr < prev && curr < next) {
-      result.push({ ...points[i], type: "valley" });
+    const dailyPeak = curr.value > prev.value && curr.value > next.value;
+    const dailyValley = curr.value < prev.value && curr.value < next.value;
+    const cumulativePeak = curr.cumulative > prev.cumulative && curr.cumulative > next.cumulative;
+    const cumulativeValley = curr.cumulative < prev.cumulative && curr.cumulative < next.cumulative;
+
+    if (dailyPeak || cumulativePeak) {
+      result.push({
+        date: curr.date,
+        type: "peak",
+        mode: dailyPeak ? "daily" : "cumulative",
+        value: curr.value,
+        cumulative: curr.cumulative,
+        count: curr.count
+      });
+      continue;
+    }
+
+    if (dailyValley || cumulativeValley) {
+      result.push({
+        date: curr.date,
+        type: "valley",
+        mode: dailyValley ? "daily" : "cumulative",
+        value: curr.value,
+        cumulative: curr.cumulative,
+        count: curr.count
+      });
     }
   }
 
   return result;
 }
 
-/* =========================
-   MAIN API FUNCTIONS
-========================= */
+function summarizeEvents(events) {
+  const types = {};
+  const severities = {};
+  const teams = {};
+  const players = new Set();
+  let positiveEvents = 0;
+  let negativeEvents = 0;
+  let zeroEvents = 0;
 
-async function getTimelineData(season = DEFAULT_SEASON) {
+  for (const event of safeArray(events)) {
+    types[event.eventType] = (types[event.eventType] || 0) + 1;
+    severities[event.severity] = (severities[event.severity] || 0) + 1;
+    if (event.team) teams[event.team] = (teams[event.team] || 0) + 1;
+    if (event.playerName) players.add(event.playerName);
+
+    if (event.impact > 0) positiveEvents += 1;
+    else if (event.impact < 0) negativeEvents += 1;
+    else zeroEvents += 1;
+  }
+
+  return {
+    byType: types,
+    bySeverity: severities,
+    byTeam: teams,
+    uniquePlayers: players.size,
+    positiveEvents,
+    negativeEvents,
+    zeroEvents
+  };
+}
+
+function buildSummary(points, events) {
+  const eventSummary = summarizeEvents(events);
+  const extremes = findExtremes(points);
+  const trend = computeTrend(points);
+  const netImpact = points.length ? points[points.length - 1].cumulative : 0;
+  const averageDailyImpact = points.length
+    ? round(points.reduce((sum, p) => sum + p.value, 0) / points.length, 2)
+    : 0;
+
+  return {
+    netImpact: round(netImpact, 2),
+    averageDailyImpact,
+    highestDaily: extremes.highestDaily,
+    lowestDaily: extremes.lowestDaily,
+    highestCumulative: extremes.highestCumulative,
+    lowestCumulative: extremes.lowestCumulative,
+    trend,
+    eventSummary
+  };
+}
+
+function buildEmptyTimeline(season, reason, filters = {}) {
+  return {
+    season,
+    filters,
+    points: [],
+    events: [],
+    inflectionPoints: [],
+    summary: buildSummary([], []),
+    eventCount: 0,
+    pointCount: 0,
+    synthetic: false,
+    dataUnavailable: true,
+    reason
+  };
+}
+
+function buildWhereClause({ season, team, playerId, startDate, endDate, eventTypes }) {
+  const clauses = [];
+  const params = [];
+  let idx = 1;
+
+  clauses.push(`EXTRACT(YEAR FROM event_date) = $${idx}`);
+  params.push(season);
+  idx += 1;
+
+  if (team) {
+    clauses.push(`UPPER(COALESCE(team_abbr, team, club)) = $${idx}`);
+    params.push(team.toUpperCase());
+    idx += 1;
+  }
+
+  if (playerId) {
+    clauses.push(`CAST(player_id AS TEXT) = $${idx}`);
+    params.push(String(playerId));
+    idx += 1;
+  }
+
+  if (startDate) {
+    clauses.push(`event_date >= $${idx}`);
+    params.push(startDate);
+    idx += 1;
+  }
+
+  if (endDate) {
+    clauses.push(`event_date <= $${idx}`);
+    params.push(endDate);
+    idx += 1;
+  }
+
+  if (safeArray(eventTypes).length) {
+    const placeholders = eventTypes.map(() => `$${idx++}`);
+    clauses.push(`LOWER(REPLACE(COALESCE(event_type, ''), ' ', '_')) IN (${placeholders.join(", ")})`);
+    params.push(...eventTypes.map((v) => normalizeEventType(v)));
+  }
+
+  return {
+    whereSql: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "",
+    params
+  };
+}
+
+async function fetchTimelineRows(filters) {
+  const season = normalizeSeason(filters.season);
+  const team = asString(filters.team).toUpperCase() || null;
+  const playerId = filters.playerId !== undefined && filters.playerId !== null ? String(filters.playerId) : null;
+  const startDate = toIsoDay(filters.startDate);
+  const endDate = toIsoDay(filters.endDate);
+  const eventTypes = safeArray(filters.eventTypes).map(normalizeEventType).filter(Boolean);
+
+  const normalizedFilters = {
+    season,
+    team,
+    playerId,
+    startDate,
+    endDate,
+    eventTypes
+  };
+
+  const { whereSql, params } = buildWhereClause(normalizedFilters);
+
+  const sql = `
+    SELECT
+      id,
+      event_date,
+      event_type,
+      impact_score,
+      title,
+      detail,
+      description,
+      message,
+      player_id,
+      player_name,
+      first_name,
+      last_name,
+      team_abbr,
+      team,
+      club,
+      source,
+      provider,
+      category,
+      event_category,
+      confidence,
+      metadata
+    FROM player_events
+    ${whereSql}
+    ORDER BY event_date ASC, id ASC
+    LIMIT ${MAX_EVENTS}
+  `;
+
+  const result = await db.query(sql, params);
+  return {
+    rows: safeArray(result.rows),
+    filters: normalizedFilters
+  };
+}
+
+function normalizeEvents(rows) {
+  return dedupeEvents(
+    safeArray(rows)
+      .map(normalizeRawRow)
+      .filter(isRowUsable)
+      .sort(compareEvents)
+  );
+}
+
+function applyClientFilters(events, filters) {
+  const minAbsImpact = asNumber(filters.minAbsImpact, 0);
+  const severity = asString(filters.severity).toLowerCase() || null;
+  const source = asString(filters.source).toLowerCase() || null;
+
+  return safeArray(events).filter((event) => {
+    if (Math.abs(event.impact) < minAbsImpact) return false;
+    if (severity && event.severity !== severity) return false;
+    if (source && event.source.toLowerCase() !== source) return false;
+    return true;
+  });
+}
+
+async function getTimelineData(input = {}) {
+  const filters = safeObject(input);
+  const season = normalizeSeason(filters.season);
+
   try {
-    const result = await db.query(
-      `SELECT event_date, impact_score, event_type 
-       FROM player_events 
-       WHERE EXTRACT(YEAR FROM event_date) = $1`,
-      [season]
-    );
+    const fetched = await fetchTimelineRows(filters);
+    let events = normalizeEvents(fetched.rows);
+    events = applyClientFilters(events, filters);
 
-    if (!result.rows.length) {
-      return buildSyntheticTimeline(season);
+    if (!events.length) {
+      return buildEmptyTimeline(season, "NO_REAL_TIMELINE_DATA", fetched.filters);
     }
 
-    const points = aggregateRowsByDay(result.rows);
+    const points = buildRunningSeries(aggregatePointsByDay(events));
+    const inflectionPoints = detectInflectionPoints(points);
+    const summary = buildSummary(points, events);
 
     return {
       season,
+      filters: fetched.filters,
       points,
-      inflectionPoints: detectInflectionPoints(points),
-      summary: buildSummary(points),
-      eventCount: result.rows.length,
+      events,
+      inflectionPoints,
+      summary,
+      eventCount: events.length,
+      pointCount: points.length,
       synthetic: false,
+      dataUnavailable: false,
+      reason: null
     };
-  } catch (err) {
-    return buildSyntheticTimeline(season);
+  } catch (error) {
+    return {
+      ...buildEmptyTimeline(season, "TIMELINE_QUERY_FAILED", {
+        season,
+        team: asString(filters.team).toUpperCase() || null,
+        playerId: filters.playerId !== undefined && filters.playerId !== null ? String(filters.playerId) : null,
+        startDate: toIsoDay(filters.startDate),
+        endDate: toIsoDay(filters.endDate),
+        eventTypes: safeArray(filters.eventTypes).map(normalizeEventType).filter(Boolean)
+      }),
+      error: error.message
+    };
   }
 }
 
-async function getInflectionPoints(season) {
-  const data = await getTimelineData(season);
+async function getInflectionPoints(input = {}) {
+  const data = await getTimelineData(input);
   return {
-    season,
+    season: data.season,
+    filters: data.filters,
     inflectionPoints: data.inflectionPoints,
+    dataUnavailable: data.dataUnavailable,
+    reason: data.reason,
+    summary: {
+      netImpact: data.summary.netImpact,
+      trend: data.summary.trend
+    }
+  };
+}
+
+async function getTimelineEvents(input = {}) {
+  const data = await getTimelineData(input);
+  return {
+    season: data.season,
+    filters: data.filters,
+    events: data.events,
+    eventCount: data.eventCount,
+    dataUnavailable: data.dataUnavailable,
+    reason: data.reason
   };
 }
 
 module.exports = {
   getTimelineData,
   getInflectionPoints,
+  getTimelineEvents,
+  normalizeRawRow,
+  normalizeEvents,
+  aggregatePointsByDay,
+  buildRunningSeries,
   detectInflectionPoints,
+  buildSummary
 };
