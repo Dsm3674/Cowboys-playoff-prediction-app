@@ -10,17 +10,17 @@
 
 <link rel="icon" href="https://static.www.nfl.com/league/api/clubs/logos/DAL" />
 
-<!-- Base styles (was incorrectly "styles.css" — fixed to "style.css") -->
+<!-- Base styles -->
 <link rel="stylesheet" href="./style.css" />
 
-<!-- Cowboys theme layer — loads AFTER base to override/extend -->
+<!-- Cowboys theme layer -->
 <link rel="stylesheet" href="./cowboys-theme.css" />
 
 <!-- Component-specific styles -->
 <link rel="stylesheet" href="./src/styles/EventsAdmin.css" />
 <link rel="stylesheet" href="./src/styles/Timeline.css" />
 
-<!-- Google Fonts (Oswald + Roboto Condensed, referenced in cowboys-theme.css) -->
+<!-- Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Roboto+Condensed:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -31,11 +31,9 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-
 #global-loader {
   position: fixed;
   inset: 0;
-  /* Cowboys navy gradient — matches cowboys-theme.css */
   background: linear-gradient(135deg, #001E62 0%, #003594 60%, #004ab8 100%);
   display: flex;
   align-items: center;
@@ -48,7 +46,6 @@
   letter-spacing: 0.08em;
 }
 
-/* Pulsing star above the loader ring */
 #global-loader::before {
   content: "★";
   font-size: 3rem;
@@ -74,7 +71,6 @@
   margin-bottom: 1.5rem;
 }
 
-/* Spinner ring — silver/navy colors */
 .loader-ring {
   width: 56px;
   height: 56px;
@@ -90,10 +86,9 @@
 
 @keyframes starPulse {
   0%, 100% { opacity: 0.4; transform: scale(1); }
-  50%       { opacity: 1;   transform: scale(1.15); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
-/* Debug panel */
 #debug-panel {
   position: fixed;
   bottom: 0;
@@ -117,7 +112,6 @@
   opacity: 0.6;
 }
 
-/* Scroll progress bar — Cowboys gradient */
 #scroll-progress {
   position: fixed;
   top: 0;
@@ -133,45 +127,42 @@
 </head>
 <body>
 
-<!-- Accessibility skip link -->
 <a href="#root" class="skip-link">Skip to main content</a>
 
-<!-- Global page loader -->
 <div id="global-loader">
   <h2>LoneStar Analytics</h2>
   <div class="loader-tagline">Dallas Cowboys · Advanced Data Hub</div>
   <div class="loader-ring"></div>
 </div>
 
-<!-- Primary navigation -->
 <nav class="nav-bar" role="navigation" aria-label="Main navigation">
-  <div class="nav-link" data-page="dashboard"  onclick="window.setPage('dashboard')" >Dashboard</div>
-  <div class="nav-link" data-page="simulator"  onclick="window.setPage('simulator')" >AI Simulator</div>
-  <div class="nav-link" data-page="analytics"  onclick="window.setPage('analytics')" >Analytics</div>
-  <div class="nav-link" data-page="rival"      onclick="window.setPage('rival')"     >Rival Impact</div>
-  <div class="nav-link" data-page="clutch"     onclick="window.setPage('clutch')"    >Clutch Index</div>
-  <div class="nav-link" data-page="timeline"   onclick="window.setPage('timeline')"  >Timeline</div>
-  <div class="nav-link" data-page="paths"      onclick="window.setPage('paths')"     >Season Paths</div>
-  <div class="nav-link" data-page="liveprob"   onclick="window.setPage('liveprob')"  >Live Win Prob</div>
-  <div class="nav-link" data-page="events"     onclick="window.setPage('events')"    >Events Admin</div>
+  <div class="nav-link" data-page="dashboard" onclick="window.setPage('dashboard')">Dashboard</div>
+  <div class="nav-link" data-page="simulator" onclick="window.setPage('simulator')">AI Simulator</div>
+  <div class="nav-link" data-page="analytics" onclick="window.setPage('analytics')">Analytics</div>
+  <div class="nav-link" data-page="rival" onclick="window.setPage('rival')">Rival Impact</div>
+  <div class="nav-link" data-page="clutch" onclick="window.setPage('clutch')">Clutch Index</div>
+  <div class="nav-link" data-page="timeline" onclick="window.setPage('timeline')">Timeline</div>
+  <div class="nav-link" data-page="paths" onclick="window.setPage('paths')">Season Paths</div>
+  <div class="nav-link" data-page="liveprob" onclick="window.setPage('liveprob')">Live Win Prob</div>
+  <div class="nav-link" data-page="events" onclick="window.setPage('events')">Events Admin</div>
+
+  <!-- ADDED -->
+  <div class="nav-link" data-page="quantum" onclick="window.setPage('quantum')">Quantum</div>
 </nav>
 
-<!-- React root -->
 <main id="app-shell" role="main">
   <div id="root"></div>
 </main>
 
-<!-- Scroll progress indicator -->
 <div id="scroll-progress" role="progressbar" aria-hidden="true"></div>
 
-<!-- Dev debug panel -->
 <div id="debug-panel" aria-hidden="true">
   <div id="route-indicator">Route: dashboard</div>
   <div id="network-status">Network: online</div>
   <div id="fps-indicator">FPS: --</div>
 </div>
 
-<!-- React component scripts (Babel-compiled in-browser) -->
+<!-- React component scripts -->
 <script type="text/babel" src="./src/api.js"></script>
 <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
 <script type="text/babel" src="./src/components/GameTable.jsx"></script>
@@ -189,12 +180,15 @@
 <script type="text/babel" src="./src/components/ClutchIndex.jsx"></script>
 <script type="text/babel" src="./src/components/EventsAdmin.jsx"></script>
 <script type="text/babel" src="./src/components/Timeline.jsx"></script>
+
+<!-- ADDED -->
+<script type="text/babel" src="./src/components/QuantumEngineIntegrated.jsx"></script>
+
 <script type="text/babel" src="./src/main.jsx"></script>
 
 <script>
 (function () {
   "use strict";
-
 
   function hideLoader() {
     var loader = document.getElementById("global-loader");
@@ -206,14 +200,12 @@
     }, 420);
   }
 
-  // Fallback: always hide after 1.2s even if React fails
   setTimeout(hideLoader, 1200);
 
   window.addEventListener("load", function () {
     setTimeout(hideLoader, 300);
   });
 
-  // Check if React root has rendered
   document.addEventListener("DOMContentLoaded", function () {
     var poll = setInterval(function () {
       var root = document.getElementById("root");
@@ -222,21 +214,20 @@
         hideLoader();
       }
     }, 100);
-    // Stop polling after 2s regardless
-    setTimeout(function () { clearInterval(poll); }, 2000);
-  });
 
+    setTimeout(function () {
+      clearInterval(poll);
+    }, 2000);
+  });
 
   function enhanceRouter() {
     var original = window.setPage;
     if (!original) return;
 
     window.setPage = function (page) {
-      // Update debug route indicator
       var routeEl = document.getElementById("route-indicator");
       if (routeEl) routeEl.textContent = "Route: " + page;
 
-      // Sync nav-link active states
       document.querySelectorAll(".nav-link").forEach(function (el) {
         el.classList.toggle("active", el.dataset.page === page);
       });
@@ -245,20 +236,19 @@
     };
   }
 
-  // Retry until main.jsx exposes window.setPage
   var routerPoll = setInterval(function () {
     if (typeof window.setPage === "function") {
       clearInterval(routerPoll);
       enhanceRouter();
 
-      // Apply initial hash route
       var hash = window.location.hash.replace("#", "");
       if (hash) window.setPage(hash);
     }
   }, 50);
 
-  setTimeout(function () { clearInterval(routerPoll); }, 3000);
-
+  setTimeout(function () {
+    clearInterval(routerPoll);
+  }, 3000);
 
   var lastTime = performance.now();
   var frameCount = 0;
@@ -276,7 +266,6 @@
   }
   requestAnimationFrame(countFPS);
 
-
   window.addEventListener("scroll", function () {
     var docH = document.body.scrollHeight - window.innerHeight;
     var pct = docH > 0 ? (window.scrollY / docH) * 100 : 0;
@@ -284,7 +273,6 @@
     if (bar) bar.style.width = pct + "%";
   }, { passive: true });
 
- 
   function setNetworkStatus(online) {
     var el = document.getElementById("network-status");
     if (!el) return;
@@ -292,12 +280,15 @@
     el.style.color = online ? "" : "#ff6b6b";
   }
 
-  window.addEventListener("online",  function () { setNetworkStatus(true);  });
-  window.addEventListener("offline", function () { setNetworkStatus(false); });
+  window.addEventListener("online", function () {
+    setNetworkStatus(true);
+  });
 
+  window.addEventListener("offline", function () {
+    setNetworkStatus(false);
+  });
 })();
 </script>
 
 </body>
 </html>
-
