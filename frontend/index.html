@@ -37,7 +37,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at center, rgba(30,41,59,0.94), rgba(2,6,23,0.98));
+      background: radial-gradient(circle at center, rgba(30, 41, 59, 0.94), rgba(2, 6, 23, 0.98));
       z-index: 9999;
       transition: opacity 0.35s ease;
     }
@@ -48,7 +48,7 @@
       border: 1px solid rgba(148, 163, 184, 0.2);
       border-radius: 18px;
       padding: 28px;
-      box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
       text-align: center;
     }
 
@@ -155,7 +155,7 @@
     }
 
     .nav-link.active {
-      background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(99,102,241,0.18));
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(99, 102, 241, 0.18));
       border-color: rgba(96, 165, 250, 0.45);
       color: #ffffff;
       font-weight: 700;
@@ -194,7 +194,7 @@
     <div class="global-loader__box">
       <div class="global-loader__title">Loading LoneStar Analytics</div>
       <div class="global-loader__subtitle">
-        Preparing live views and deterministic analytics
+        Preparing interactive dashboards and simulation views
       </div>
       <div class="global-loader__bar">
         <div class="global-loader__fill"></div>
@@ -216,6 +216,8 @@
 
       <nav class="sidebar__nav" aria-label="Main navigation">
         <button class="nav-link active" data-page="dashboard">Dashboard</button>
+        <button class="nav-link" data-page="simulator">AI Story Simulator</button>
+        <button class="nav-link" data-page="quantum">Quantum Engine</button>
         <button class="nav-link" data-page="analytics">Analytics</button>
         <button class="nav-link" data-page="rival">Rival Impact</button>
         <button class="nav-link" data-page="clutch">Clutch Index</button>
@@ -233,9 +235,26 @@
     </main>
   </div>
 
-  <script>
-    window.BASE_URL = window.BASE_URL || "";
+  <script type="text/babel" src="./src/api.js"></script>
+  <script type="text/babel" src="./src/components/UserProfileCard.jsx"></script>
+  <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
+  <script type="text/babel" src="./src/components/TSICard.jsx"></script>
+  <script type="text/babel" src="./src/components/MustWinCard.jsx"></script>
+  <script type="text/babel" src="./src/components/LiveWinProbTool.jsx"></script>
+  <script type="text/babel" src="./src/components/GameTable.jsx"></script>
+  <script type="text/babel" src="./src/components/PlayerRadar.jsx"></script>
+  <script type="text/babel" src="./src/components/Maps.jsx"></script>
+  <script type="text/babel" src="./src/components/ClutchIndex.jsx"></script>
+  <script type="text/babel" src="./src/components/EventsAdmin.jsx"></script>
+  <script type="text/babel" src="./src/components/Timeline.jsx"></script>
+  <script type="text/babel" src="./src/components/RivalTeamImpactPage.jsx"></script>
+  <script type="text/babel" src="./src/components/SeasonPathExplorer.jsx"></script>
+  <script type="text/babel" src="./src/components/HistoryPage.jsx"></script>
+  <script type="text/babel" src="./src/components/AIStorySimulator.jsx"></script>
+  <script type="text/babel" src="./src/components/QuantumEngineIntegrated.jsx"></script>
+  <script type="text/babel" src="./src/main.jsx"></script>
 
+  <script>
     (function () {
       "use strict";
 
@@ -246,13 +265,58 @@
         loader.style.pointerEvents = "none";
         setTimeout(function () {
           loader.style.display = "none";
-        }, 380);
+        }, 420);
       }
 
       setTimeout(hideLoader, 1200);
+
       window.addEventListener("load", function () {
-        setTimeout(hideLoader, 220);
+        setTimeout(hideLoader, 300);
       });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        var poll = setInterval(function () {
+          var root = document.getElementById("root");
+          if (root && root.children.length > 0) {
+            clearInterval(poll);
+            hideLoader();
+          }
+        }, 100);
+
+        setTimeout(function () {
+          clearInterval(poll);
+        }, 2000);
+      });
+
+      function enhanceRouter() {
+        var original = window.setPage;
+        if (!original) return;
+
+        window.setPage = function (page) {
+          var routeEl = document.getElementById("route-indicator");
+          if (routeEl) routeEl.textContent = "Route: " + page;
+
+          document.querySelectorAll(".nav-link").forEach(function (el) {
+            el.classList.toggle("active", el.dataset.page === page);
+          });
+
+          original(page);
+        };
+      }
+
+      var routerPoll = setInterval(function () {
+        if (typeof window.setPage === "function") {
+          clearInterval(routerPoll);
+          enhanceRouter();
+
+          var hash = window.location.hash.replace("#", "");
+          if (hash) window.setPage(hash);
+        }
+      }, 50);
+
+      setTimeout(function () {
+        clearInterval(routerPoll);
+      }, 3000);
 
       var lastTime = performance.now();
       var frameCount = 0;
@@ -271,11 +335,18 @@
 
       requestAnimationFrame(countFPS);
 
+      window.addEventListener("scroll", function () {
+        var docH = document.body.scrollHeight - window.innerHeight;
+        var pct = docH > 0 ? (window.scrollY / docH) * 100 : 0;
+        var bar = document.getElementById("scroll-progress");
+        if (bar) bar.style.width = pct + "%";
+      }, { passive: true });
+
       function setNetworkStatus(online) {
         var el = document.getElementById("network-status");
         if (!el) return;
         el.textContent = "Network: " + (online ? "online" : "offline");
-        el.style.color = online ? "#cbd5e1" : "#fca5a5";
+        el.style.color = online ? "" : "#ff6b6b";
       }
 
       window.addEventListener("online", function () {
@@ -285,36 +356,7 @@
       window.addEventListener("offline", function () {
         setNetworkStatus(false);
       });
-
-      window.addEventListener(
-        "scroll",
-        function () {
-          var docH = document.body.scrollHeight - window.innerHeight;
-          var pct = docH > 0 ? (window.scrollY / docH) * 100 : 0;
-          var bar = document.getElementById("scroll-progress");
-          if (bar) bar.style.width = pct + "%";
-        },
-        { passive: true }
-      );
     })();
   </script>
-
-  <script type="text/babel" src="./src/api.js"></script>
-  <script type="text/babel" src="./src/components/UserProfileCard.jsx"></script>
-  <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
-  <script type="text/babel" src="./src/components/TSICard.jsx"></script>
-  <script type="text/babel" src="./src/components/MustWinCard.jsx"></script>
-  <script type="text/babel" src="./src/components/LiveWinProbTool.jsx"></script>
-  <script type="text/babel" src="./src/components/GameTable.jsx"></script>
-  <script type="text/babel" src="./src/components/PlayerRadar.jsx"></script>
-  <script type="text/babel" src="./src/components/Maps.jsx"></script>
-  <script type="text/babel" src="./src/components/ClutchIndex.jsx"></script>
-  <script type="text/babel" src="./src/components/EventsAdmin.jsx"></script>
-  <script type="text/babel" src="./src/components/Timeline.jsx"></script>
-  <script type="text/babel" src="./src/components/RivalTeamImpactPage.jsx"></script>
-  <script type="text/babel" src="./src/components/SeasonPathExplorer.jsx"></script>
-  <script type="text/babel" src="./src/components/HistoryPage.jsx"></script>
-  <script type="text/babel" src="./src/components/AIStorySimulator.jsx"></script>
-  <script type="text/babel" src="./src/main.jsx"></script>
 </body>
 </html>
