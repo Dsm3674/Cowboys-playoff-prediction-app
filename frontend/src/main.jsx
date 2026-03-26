@@ -39,23 +39,17 @@ function ConfidenceMeter({ value }) {
   );
 }
 
-// PredictionPanel Component
 function PredictionPanel() {
-  const [pred, setPred] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Keep your existing prediction logic here if you already had it.
-  // This is the same placeholder structure from your current file.
   return (
     <div className="card">
-      <h3>Monte Carlo Playoff Simulator</h3>
-      <p className="text-small text-muted">Simulation module active.</p>
+      <h3>Playoff Outlook</h3>
+      <p className="text-small text-muted">
+        This dashboard now avoids synthetic scenario pages and only links to live analytics modules.
+      </p>
     </div>
   );
 }
 
-// Safe wrapper for components that might not load correctly
 const SafeComponent = (name, Component) => {
   if (Component) return Component;
 
@@ -114,26 +108,46 @@ function Dashboard() {
 function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
 
+  const allowedPages = new Set([
+    "dashboard",
+    "simulator",
+    "analytics",
+    "rival",
+    "clutch",
+    "timeline",
+    "paths",
+    "liveprob",
+    "events",
+    "profile",
+    "history"
+  ]);
+
   useEffect(() => {
     window.setPage = (page) => {
-      setCurrentPage(page);
-      window.location.hash = page;
+      const normalizedPage = allowedPages.has(page) ? page : "dashboard";
+
+      setCurrentPage(normalizedPage);
+      window.location.hash = normalizedPage;
 
       document.querySelectorAll(".nav-link").forEach((el) => {
         el.classList.remove("active");
-        if (el.dataset.page === page) el.classList.add("active");
+        if (el.dataset.page === normalizedPage) el.classList.add("active");
       });
 
       const debugEl = document.getElementById("route-indicator");
-      if (debugEl) debugEl.textContent = `Route: ${page}`;
+      if (debugEl) debugEl.textContent = `Route: ${normalizedPage}`;
     };
 
     const initialHash = window.location.hash.replace("#", "");
+    if (initialHash === "quantum") {
+      window.setPage("dashboard");
+      return;
+    }
+
     if (initialHash) window.setPage(initialHash);
     else window.setPage("dashboard");
   }, []);
 
-  // Safe access to global components
   const AIStorySimulator =
     window.AIStorySimulator || (() => <div>Simulator Loading...</div>);
   const PlayerRadar =
@@ -156,11 +170,6 @@ function App() {
     window.UserProfileCard || (() => <div>Profile Loading...</div>);
   const HistoryPage =
     window.HistoryPage || (() => <div>History Loading...</div>);
-
-  // ADDED: Quantum page hookup
-  const QuantumEngineIntegrated =
-    window.QuantumEngineIntegrated ||
-    (() => <div>Quantum Loading...</div>);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -208,10 +217,6 @@ function App() {
 
       case "history":
         return <HistoryPage />;
-
-      // ADDED: new route
-      case "quantum":
-        return <QuantumEngineIntegrated teamData={{}} />;
 
       default:
         return <Dashboard />;
