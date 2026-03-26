@@ -1,21 +1,10 @@
-const { useEffect, useMemo, useState } = React;
+const { useState, useEffect } = React;
 
 function PlaceholderCard({ title, text }) {
   return (
     <div className="card">
       <h3>{title}</h3>
       <p className="text-small text-muted">{text}</p>
-    </div>
-  );
-}
-
-function PredictionPanel() {
-  return (
-    <div className="card">
-      <h3>Playoff Outlook</h3>
-      <p className="text-small text-muted">
-        The live frontend only exposes deterministic and data-backed views.
-      </p>
     </div>
   );
 }
@@ -48,7 +37,7 @@ function Dashboard() {
       </h1>
 
       <div className="hero-kicker">
-        Dallas Cowboys deterministic analytics dashboard
+        Dallas Cowboys advanced analytics and simulation dashboard
       </div>
 
       <div className="grid-layout">
@@ -60,7 +49,12 @@ function Dashboard() {
         </div>
 
         <div>
-          <PredictionPanel />
+          <div className="card">
+            <h3>Playoff Outlook</h3>
+            <p className="text-small text-muted">
+              Live team metrics plus simulation-driven what-if analysis.
+            </p>
+          </div>
 
           <div style={{ marginTop: "2rem" }}>
             <LiveWinProbTool />
@@ -94,91 +88,11 @@ function AnalyticsPage() {
   );
 }
 
-function useRouter() {
-  const allowedPages = useMemo(
-    () =>
-      new Set([
-        "dashboard",
-        "analytics",
-        "rival",
-        "clutch",
-        "timeline",
-        "paths",
-        "liveprob",
-        "events",
-        "profile",
-        "history",
-        "simulator"
-      ]),
-    []
-  );
-
-  const normalizePage = (page) => {
-    const raw = String(page || "").replace(/^#/, "").trim();
-    if (raw === "quantum") return "dashboard";
-    return allowedPages.has(raw) ? raw : "dashboard";
-  };
-
-  const [currentPage, setCurrentPage] = useState(
-    normalizePage(window.location.hash)
-  );
-
-  useEffect(() => {
-    function syncRouteUi(page) {
-      const routeEl = document.getElementById("route-indicator");
-      if (routeEl) routeEl.textContent = `Route: ${page}`;
-
-      document.querySelectorAll(".nav-link").forEach((el) => {
-        el.classList.toggle("active", el.dataset.page === page);
-      });
-    }
-
-    function navigate(nextPage, options = {}) {
-      const page = normalizePage(nextPage);
-
-      setCurrentPage(page);
-
-      if (!options.skipHashUpdate) {
-        const nextHash = `#${page}`;
-        if (window.location.hash !== nextHash) {
-          history.replaceState(null, "", nextHash);
-        }
-      }
-
-      syncRouteUi(page);
-    }
-
-    function handleHashChange() {
-      navigate(window.location.hash, { skipHashUpdate: true });
-    }
-
-    window.appRouter = {
-      go: navigate,
-      current: () => normalizePage(window.location.hash || currentPage)
-    };
-
-    document.querySelectorAll(".nav-link").forEach((el) => {
-      el.onclick = () => navigate(el.dataset.page);
-    });
-
-    syncRouteUi(currentPage);
-
-    window.addEventListener("hashchange", handleHashChange);
-
-    return () => {
-      window.removeEventListener("hashchange", handleHashChange);
-      document.querySelectorAll(".nav-link").forEach((el) => {
-        el.onclick = null;
-      });
-    };
-  }, [allowedPages, currentPage]);
-
-  return currentPage;
-}
-
 function App() {
-  const currentPage = useRouter();
+  const [currentPage, setCurrentPage] = useState("dashboard");
 
+  const AIStorySimulator = getGlobalComponent("AIStorySimulator", "Simulator");
+  const QuantumEngineIntegrated = getGlobalComponent("QuantumEngineIntegrated", "Quantum Engine");
   const RivalTeamImpactPage = getGlobalComponent("RivalTeamImpactPage", "Rival Impact");
   const ClutchIndex = getGlobalComponent("ClutchIndex", "Clutch Index");
   const Timeline = getGlobalComponent("Timeline", "Timeline");
@@ -187,12 +101,55 @@ function App() {
   const EventsAdmin = getGlobalComponent("EventsAdmin", "Events Admin");
   const UserProfileCard = getGlobalComponent("UserProfileCard", "Profile");
   const HistoryPage = getGlobalComponent("HistoryPage", "History");
-  const AIStorySimulator = getGlobalComponent("AIStorySimulator", "Simulator");
 
-  function renderPage() {
+  useEffect(() => {
+    const allowedPages = new Set([
+      "dashboard",
+      "simulator",
+      "quantum",
+      "analytics",
+      "rival",
+      "clutch",
+      "timeline",
+      "paths",
+      "liveprob",
+      "events",
+      "profile",
+      "history"
+    ]);
+
+    window.setPage = function (page) {
+      const normalized = allowedPages.has(page) ? page : "dashboard";
+      setCurrentPage(normalized);
+      window.location.hash = normalized;
+    };
+
+    const initialHash = window.location.hash.replace("#", "");
+    if (initialHash) {
+      window.setPage(initialHash);
+    } else {
+      window.setPage("dashboard");
+    }
+  }, []);
+
+  const renderPage = () => {
     switch (currentPage) {
       case "dashboard":
         return <Dashboard />;
+
+      case "simulator":
+        return (
+          <div style={{ padding: "24px" }}>
+            <AIStorySimulator />
+          </div>
+        );
+
+      case "quantum":
+        return (
+          <div style={{ padding: "24px" }}>
+            <QuantumEngineIntegrated />
+          </div>
+        );
 
       case "analytics":
         return <AnalyticsPage />;
@@ -253,17 +210,10 @@ function App() {
           </div>
         );
 
-      case "simulator":
-        return (
-          <div style={{ padding: "24px" }}>
-            <AIStorySimulator />
-          </div>
-        );
-
       default:
         return <Dashboard />;
     }
-  }
+  };
 
   return (
     <div className="content-area fade-in">
