@@ -1,814 +1,388 @@
-/**
- * RivalTeamImpactPage.jsx
- * Main page component for displaying rival team impact analysis
- * with toggles for chaos and iterations
- */
-
-function RivalTeamImpactPage({ year = 2025 }) {
+function RivalTeamImpactPage({ year = new Date().getFullYear() }) {
   const [loading, setLoading] = React.useState(false);
   const [data, setData] = React.useState(null);
-  const [chaos, setChaos] = React.useState(0);
-  const [iterations, setIterations] = React.useState(1000);
+  const [error, setError] = React.useState("");
   const [selectedTeam, setSelectedTeam] = React.useState(null);
   const [sortBy, setSortBy] = React.useState("impactScore");
+  const [sortDirection, setSortDirection] = React.useState("desc");
 
-  // Load initial data
-  React.useEffect(() => {
-    loadRivalImpactData();
-  }, [year]);
-
-  const loadRivalImpactData = async () => {
+  const loadRivalImpactData = React.useCallback(async () => {
     try {
       setLoading(true);
-      const result = await window.api.getRivalImpact(year, chaos, iterations);
+      setError("");
+      const result = await window.api.getRivalImpact(year);
       setData(result);
-    } catch (error) {
-      console.error("Error loading rival impact:", error);
+    } catch (err) {
+      setError(err.message || "Unable to load rival impact analysis.");
+      setData(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [year]);
 
-  const handleApplyChanges = () => {
+  React.useEffect(() => {
     loadRivalImpactData();
-  };
+  }, [loadRivalImpactData]);
 
-  const handleChaosChange = (value) => {
-    setChaos(value);
-  };
+  const impacts = React.useMemo(() => {
+    const raw = Array.isArray(data?.rivalImpacts) ? [...data.rivalImpacts] : [];
 
-  const handleIterationsChange = (value) => {
-    setIterations(Math.max(100, Math.min(5000, value)));
-  };
+    raw.sort((a, b) => {
+      const aValue = a?.[sortBy];
+      const bValue = b?.[sortBy];
 
-  if (!data && !loading) {
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "desc" ? bValue - aValue : aValue - bValue;
+      }
+
+      const aText = String(aValue ?? "");
+      const bText = String(bValue ?? "");
+
+      if (sortDirection === "desc") return bText.localeCompare(aText);
+      return aText.localeCompare(bText);
+    });
+
+    return raw;
+  }, [data, sortBy, sortDirection]);
+
+  const cowboys = data?.cowboys || {};
+  const summary = data?.summary || {};
+  const unavailableTeams = Array.isArray(data?.unavailableTeams)
+    ? data.unavailableTeams
+    : [];
+
+  const selectedDetails =
+    impacts.find((item) => item.team === selectedTeam) || null;
+
+  function changeSort(nextSortBy) {
+    if (nextSortBy === sortBy) {
+      setSortDirection((prev) => (prev === "desc" ? "asc" : "desc"));
+      return;
+    }
+    setSortBy(nextSortBy);
+    setSortDirection("desc");
+  }
+
+  if (loading && !data) {
     return (
-      <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: "8px",
-            padding: "2rem",
-            textAlign: "center",
-          }}
-        >
-          <p style={{ color: "#666" }}>Loading impact analysis...</p>
-          <button
-            onClick={loadRivalImpactData}
-            style={{
-              padding: "0.75rem 1.5rem",
-              background: "#0284c7",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "0.9rem",
-              marginTop: "1rem",
-            }}
-          >
-            Load Analysis
+      <div style={styles.page}>
+        <div style={styles.hero}>
+          <h1 style={styles.title}>Rival Impact Analysis</h1>
+          <p style={styles.subtitle}>Loading deterministic playoff pressure data.</p>
+        </div>
+        <div style={styles.panel}>
+          <div style={styles.skeletonBar}></div>
+          <div style={{ ...styles.skeletonBar, width: "80%" }}></div>
+          <div style={{ ...styles.skeletonBar, width: "60%" }}></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.hero}>
+          <h1 style={styles.title}>Rival Impact Analysis</h1>
+          <p style={styles.subtitle}>Live NFC and cross-conference pressure view.</p>
+        </div>
+
+        <div style={styles.errorBox}>
+          <div style={styles.errorTitle}>Could not load rival impact data</div>
+          <div style={styles.errorText}>{error}</div>
+          <button style={styles.primaryButton} onClick={loadRivalImpactData}>
+            Retry
           </button>
         </div>
       </div>
     );
   }
 
-  const impacts = data?.rivalImpacts || [];
-  const cowboys = data?.cowboys || {};
-  const rankedGames = data?.rankedGames || [];
-
-  const sortedImpacts = [...impacts].sort((a, b) => {
-    if (sortBy === "impactScore") return b.impactScore - a.impactScore;
-    if (sortBy === "winProbability")
-      return b.winProbability - a.winProbability;
-    if (sortBy === "urgency") {
-      const urgencyMap = { critical: 3, high: 2, medium: 1 };
-      return (
-        (urgencyMap[b.urgency] || 0) - (urgencyMap[a.urgency] || 0)
-      );
-    }
-    return 0;
-  });
-
   return (
-    <div style={{ padding: "2rem", maxWidth: "1400px", margin: "0 auto" }}>
-      {/* Header */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #1e40af 0%, #0284c7 100%)",
-          color: "#fff",
-          padding: "2rem",
-          borderRadius: "8px",
-          marginBottom: "2rem",
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: "2rem", marginBottom: "0.5rem" }}>
-          Rival Team Impact Analyzer
-        </h1>
-        <p style={{ margin: 0, opacity: 0.9 }}>
-          Visualize how different teams' outcomes impact the Cowboys' playoff
-          chances
-        </p>
-      </div>
-
-      {/* Control Panel */}
-      <div
-        style={{
-          background: "#fff",
-          border: "1px solid #e5e7eb",
-          borderRadius: "8px",
-          padding: "1.5rem",
-          marginBottom: "2rem",
-        }}
-      >
-        <h3 style={{ marginTop: 0, fontSize: "1.1rem", color: "#1f2937" }}>
-          Analysis Parameters
-        </h3>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: "1.5rem",
-            marginBottom: "1.5rem",
-          }}
-        >
-          {/* Cowboys Stats */}
-          <div
-            style={{
-              background: "#f0f9ff",
-              padding: "1rem",
-              borderRadius: "6px",
-              borderLeft: "4px solid #0284c7",
-            }}
-          >
-            <div style={{ fontSize: "0.85rem", color: "#666", marginBottom: "0.5rem" }}>
-              Cowboys TSI
-            </div>
-            <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "#0284c7" }}>
-              {cowboys.tsi || "--"}
-            </div>
-            <div style={{ fontSize: "0.75rem", color: "#999", marginTop: "0.5rem" }}>
-              Playoff Probability: {cowboys.baselinePlayoffProbability}%
-            </div>
-          </div>
-
-          {/* Chaos Control */}
-          <div
-            style={{
-              background: "#fef3c7",
-              padding: "1rem",
-              borderRadius: "6px",
-              borderLeft: "4px solid #d97706",
-            }}
-          >
-            <div style={{ fontSize: "0.85rem", color: "#666", marginBottom: "0.75rem" }}>
-              <strong>Chaos Factor: {(chaos * 100).toFixed(0)}%</strong>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={chaos}
-              onChange={(e) => handleChaosChange(parseFloat(e.target.value))}
-              style={{
-                width: "100%",
-                height: "6px",
-                borderRadius: "3px",
-                background: "#d97706",
-                outline: "none",
-                cursor: "pointer",
-              }}
-            />
-            <div style={{ fontSize: "0.75rem", color: "#666", marginTop: "0.5rem" }}>
-              0 = deterministic, 1 = chaotic scenarios
-            </div>
-          </div>
-
-          {/* Iterations Control */}
-          <div
-            style={{
-              background: "#dcfce7",
-              padding: "1rem",
-              borderRadius: "6px",
-              borderLeft: "4px solid #22c55e",
-            }}
-          >
-            <div style={{ fontSize: "0.85rem", color: "#666", marginBottom: "0.75rem" }}>
-              <strong>Iterations: {iterations.toLocaleString()}</strong>
-            </div>
-            <input
-              type="range"
-              min="100"
-              max="5000"
-              step="100"
-              value={iterations}
-              onChange={(e) => handleIterationsChange(parseInt(e.target.value))}
-              style={{
-                width: "100%",
-                height: "6px",
-                borderRadius: "3px",
-                background: "#22c55e",
-                outline: "none",
-                cursor: "pointer",
-              }}
-            />
-            <div
-              style={{
-                fontSize: "0.75rem",
-                color: "#666",
-                marginTop: "0.5rem",
-              }}
-            >
-              More iterations = more accurate but slower
-            </div>
-          </div>
+    <div style={styles.page}>
+      <div style={styles.hero}>
+        <div>
+          <h1 style={styles.title}>Rival Impact Analysis</h1>
+          <p style={styles.subtitle}>
+            Deterministic view based on real TSI and record context.
+          </p>
         </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: "flex", gap: "1rem" }}>
-          <button
-            onClick={handleApplyChanges}
-            disabled={loading}
-            style={{
-              padding: "0.75rem 1.5rem",
-              background: loading ? "#d1d5db" : "#0284c7",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              cursor: loading ? "not-allowed" : "pointer",
-              fontSize: "0.9rem",
-              fontWeight: 600,
-            }}
-          >
-            {loading ? "Analyzing..." : "Analyze Impact"}
-          </button>
-          <button
-            onClick={() => {
-              setChaos(0);
-              setIterations(1000);
-            }}
-            style={{
-              padding: "0.75rem 1.5rem",
-              background: "#f3f4f6",
-              color: "#374151",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "0.9rem",
-              fontWeight: 600,
-            }}
-          >
-            Reset to Default
+        <div style={styles.heroActions}>
+          <button style={styles.secondaryButton} onClick={loadRivalImpactData}>
+            Refresh
           </button>
         </div>
       </div>
 
-      {/* Ranked Games Section */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 2fr",
-          gap: "2rem",
-          marginBottom: "2rem",
-        }}
-      >
-        {/* Left: Quick Summary */}
-        <div
-          style={{
-            background: "#f8fafc",
-            borderRadius: "8px",
-            padding: "1.5rem",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          <h3 style={{ marginTop: 0, fontSize: "1rem", color: "#1f2937" }}>
-            Summary
-          </h3>
-          <div
-            style={{
-              fontSize: "0.9rem",
-              lineHeight: "1.6",
-              color: "#666",
-              marginBottom: "1rem",
-            }}
-          >
-            {data?.summary}
-          </div>
+      {error ? (
+        <div style={styles.inlineWarning}>
+          Latest refresh failed: {error}
+        </div>
+      ) : null}
 
-          <div style={{ marginTop: "1.5rem" }}>
-            <h4 style={{ marginTop: 0, fontSize: "0.9rem", color: "#1f2937" }}>
-              Impact Distribution
-            </h4>
-            {impacts.slice(0, 5).map((impact) => (
-              <div
-                key={impact.team}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "0.75rem",
-                  padding: "0.5rem",
-                  borderRadius: "4px",
-                  background:
-                    selectedTeam === impact.team ? "#e0f2fe" : "transparent",
-                  cursor: "pointer",
-                }}
-                onClick={() =>
-                  setSelectedTeam(
-                    selectedTeam === impact.team ? null : impact.team
-                  )
-                }
-              >
-                <div
-                  style={{
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "50%",
-                    background: getUrgencyColor(impact.urgency),
-                    color: "#fff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    marginRight: "0.75rem",
-                    flexShrink: 0,
-                  }}
-                >
-                  {impact.impactScore}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{ fontSize: "0.85rem", fontWeight: 600, color: "#1f2937" }}
-                  >
-                    {impact.teamName}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      color: "#999",
-                    }}
-                  >
-                    {impact.tier.replace("_", " ")}
-                  </div>
-                </div>
-              </div>
-            ))}
+      <div style={styles.topGrid}>
+        <div style={styles.metricCard}>
+          <div style={styles.metricLabel}>Cowboys TSI</div>
+          <div style={styles.metricValue}>
+            {formatNumber(cowboys.tsi, 1)}
           </div>
         </div>
 
-        {/* Right: Top Ranked Games */}
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: "8px",
-            border: "1px solid #e5e7eb",
-            padding: "1.5rem",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "1rem",
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: "1rem", color: "#1f2937" }}>
-              Top Games to Root For
-            </h3>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              style={{
-                padding: "0.4rem 0.6rem",
-                border: "1px solid #e5e7eb",
-                borderRadius: "4px",
-                fontSize: "0.85rem",
-                cursor: "pointer",
-              }}
-            >
-              <option value="impactScore">By Impact</option>
-              <option value="winProbability">By Win %</option>
-              <option value="urgency">By Urgency</option>
-            </select>
+        <div style={styles.metricCard}>
+          <div style={styles.metricLabel}>Baseline Playoff Probability</div>
+          <div style={styles.metricValue}>
+            {formatNumber(cowboys.baselinePlayoffProbability, 1)}%
           </div>
+        </div>
 
-          {rankedGames.length === 0 ? (
-            <div style={{ textAlign: "center", color: "#999", padding: "2rem" }}>
-              No games found
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              {rankedGames.slice(0, 8).map((game, idx) => (
-                <div
-                  key={`${game.team}-${idx}`}
-                  style={{
-                    background: "#f9fafb",
-                    border: "1px solid #e5e7eb",
-                    borderLeft: `4px solid ${getUrgencyColor(game.urgency)}`,
-                    borderRadius: "6px",
-                    padding: "0.75rem",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#f0f9ff";
-                    e.currentTarget.style.borderColor = "#0284c7";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#f9fafb";
-                    e.currentTarget.style.borderColor = "#e5e7eb";
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: "0.75rem",
-                    }}
-                  >
-                    <div
-                      style={{
-                        background: getUrgencyColor(game.urgency),
-                        color: "#fff",
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "0.85rem",
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
-                    >
-                      #{game.rank}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          marginBottom: "0.4rem",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "0.7rem",
-                            fontWeight: 700,
-                            background: getTierColor(game.tier),
-                            color: "#fff",
-                            padding: "0.2rem 0.6rem",
-                            borderRadius: "3px",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          {game.tier === "direct_rival"
-                            ? "Division"
-                            : game.tier === "threat"
-                            ? "Threat"
-                            : "Contender"}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: "0.9rem",
-                            fontWeight: 700,
-                            color: "#1f2937",
-                          }}
-                        >
-                          {game.teamName}
-                        </span>
-                      </div>
+        <div style={styles.metricCard}>
+          <div style={styles.metricLabel}>NFC Rank</div>
+          <div style={styles.metricValue}>
+            {summary.nfcRank ?? "--"}
+          </div>
+        </div>
 
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(3, 1fr)",
-                          gap: "0.5rem",
-                          fontSize: "0.8rem",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        <div>
-                          <strong style={{ color: "#666" }}>Impact:</strong>{" "}
-                          <span
-                            style={{
-                              fontWeight: 700,
-                              color: getUrgencyColor(game.urgency),
-                            }}
-                          >
-                            {game.impactScore}
-                          </span>
-                        </div>
-                        <div>
-                          <strong style={{ color: "#666" }}>Root for:</strong>{" "}
-                          <span
-                            style={{
-                              fontWeight: 700,
-                              color:
-                                game.recommendedOutcome === "Loss"
-                                  ? "#dc2626"
-                                  : "#059669",
-                            }}
-                          >
-                            {game.recommendedOutcome}
-                          </span>
-                        </div>
-                        <div>
-                          <strong style={{ color: "#666" }}>Their %:</strong>{" "}
-                          <span
-                            style={{
-                              fontWeight: 700,
-                              color: "#0891b2",
-                            }}
-                          >
-                            {game.winProbability}%
-                          </span>
-                        </div>
-                      </div>
-
-                      {game.simulation && (
-                        <div
-                          style={{
-                            fontSize: "0.75rem",
-                            color: "#666",
-                            background: "#f0f0f0",
-                            padding: "0.4rem",
-                            borderRadius: "3px",
-                          }}
-                        >
-                          If they win: Cowboys {game.simulation.ifRivalWins.average.toFixed(0)}% | If they lose: Cowboys {game.simulation.ifRivalLoses.average.toFixed(0)}%
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <div style={styles.metricCard}>
+          <div style={styles.metricLabel}>Aggregate Pressure</div>
+          <div style={styles.metricValue}>
+            {formatNumber(summary.aggregatePressure, 1)}
+          </div>
         </div>
       </div>
 
-      {/* Detailed Impact Table */}
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: "8px",
-          border: "1px solid #e5e7eb",
-          padding: "1.5rem",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "1rem",
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: "1rem", color: "#1f2937" }}>
-            All Rival Teams Analysis
-          </h3>
-          <span
-            style={{
-              fontSize: "0.85rem",
-              color: "#666",
-            }}
-          >
-            {impacts.length} teams tracked
-          </span>
-        </div>
-
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: "0.85rem",
-            }}
-          >
-            <thead>
-              <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "0.75rem",
-                    fontWeight: 600,
-                    color: "#666",
-                  }}
-                >
-                  Team
-                </th>
-                <th
-                  style={{
-                    textAlign: "center",
-                    padding: "0.75rem",
-                    fontWeight: 600,
-                    color: "#666",
-                  }}
-                >
-                  Tier
-                </th>
-                <th
-                  style={{
-                    textAlign: "center",
-                    padding: "0.75rem",
-                    fontWeight: 600,
-                    color: "#666",
-                  }}
-                >
-                  TSI
-                </th>
-                <th
-                  style={{
-                    textAlign: "center",
-                    padding: "0.75rem",
-                    fontWeight: 600,
-                    color: "#666",
-                  }}
-                >
-                  Impact Score
-                </th>
-                <th
-                  style={{
-                    textAlign: "center",
-                    padding: "0.75rem",
-                    fontWeight: 600,
-                    color: "#666",
-                  }}
-                >
-                  Urgency
-                </th>
-                <th
-                  style={{
-                    textAlign: "center",
-                    padding: "0.75rem",
-                    fontWeight: 600,
-                    color: "#666",
-                  }}
-                >
-                  Win %
-                </th>
-                <th
-                  style={{
-                    textAlign: "center",
-                    padding: "0.75rem",
-                    fontWeight: 600,
-                    color: "#666",
-                  }}
-                >
-                  Cowboys Best Case
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedImpacts.map((impact, idx) => (
-                <tr
-                  key={impact.team}
-                  style={{
-                    borderBottom: "1px solid #e5e7eb",
-                    background: idx % 2 === 0 ? "#fff" : "#f9fafb",
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#f0f9ff";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background =
-                      idx % 2 === 0 ? "#fff" : "#f9fafb";
-                  }}
-                  onClick={() =>
-                    setSelectedTeam(
-                      selectedTeam === impact.team ? null : impact.team
-                    )
-                  }
-                >
-                  <td style={{ padding: "0.75rem", fontWeight: 600, color: "#1f2937" }}>
-                    {impact.teamName}
-                  </td>
-                  <td style={{ padding: "0.75rem", textAlign: "center" }}>
-                    <span
-                      style={{
-                        fontSize: "0.7rem",
-                        fontWeight: 700,
-                        background: getTierColor(impact.tier),
-                        color: "#fff",
-                        padding: "0.3rem 0.6rem",
-                        borderRadius: "3px",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {impact.tier === "direct_rival"
-                        ? "Division"
-                        : impact.tier === "threat"
-                        ? "Threat"
-                        : "Contender"}
-                    </span>
-                  </td>
-                  <td
-                    style={{
-                      padding: "0.75rem",
-                      textAlign: "center",
-                      fontWeight: 600,
-                      color: "#0891b2",
-                    }}
-                  >
-                    {impact.tsi}
-                  </td>
-                  <td
-                    style={{
-                      padding: "0.75rem",
-                      textAlign: "center",
-                      fontWeight: 700,
-                      color: getUrgencyColor(impact.urgency),
-                    }}
-                  >
-                    {impact.impactScore}
-                  </td>
-                  <td style={{ padding: "0.75rem", textAlign: "center" }}>
-                    <span
-                      style={{
-                        fontSize: "0.7rem",
-                        fontWeight: 700,
-                        background: getUrgencyColor(impact.urgency),
-                        color: "#fff",
-                        padding: "0.3rem 0.6rem",
-                        borderRadius: "3px",
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {impact.urgency}
-                    </span>
-                  </td>
-                  <td
-                    style={{
-                      padding: "0.75rem",
-                      textAlign: "center",
-                      fontWeight: 600,
-                      color: "#1f2937",
-                    }}
-                  >
-                    {impact.winProbability}%
-                  </td>
-                  <td
-                    style={{
-                      padding: "0.75rem",
-                      textAlign: "center",
-                      fontWeight: 600,
-                      color: "#059669",
-                    }}
-                  >
-                    {impact.bestCaseScenario}%
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Footer Info */}
-      <div
-        style={{
-          marginTop: "2rem",
-          padding: "1rem",
-          background: "#f5f3ff",
-          borderRadius: "8px",
-          borderLeft: "4px solid #8b5cf6",
-          fontSize: "0.85rem",
-          color: "#666",
-        }}
-      >
-        <strong style={{ color: "#6d28d9" }}>📊 How to Use:</strong>
-        <ul
-          style={{
-            margin: "0.5rem 0 0 1.5rem",
-            paddingLeft: "0",
-          }}
-        >
-          <li>
-            <strong>Chaos:</strong> Introduces uncertainty into predictions
-            (0% = deterministic, 100% = highly variable)
-          </li>
-          <li>
-            <strong>Iterations:</strong> More iterations provide more accurate
-            Monte Carlo simulations but take longer to compute
-          </li>
-          <li>
-            <strong>Impact Score:</strong> How much a rival's outcome affects
-            Cowboys' playoff chances (0-100)
-          </li>
-          <li>
-            <strong>Best Case:</strong> Cowboys' playoff probability if this
-            team loses their next game
-          </li>
+      <div style={styles.infoPanel}>
+        <div style={styles.infoTitle}>What changed</div>
+        <ul style={styles.infoList}>
+          <li>Chaos and iterations controls were removed.</li>
+          <li>Rival analysis now reflects deterministic backend output only.</li>
+          <li>The page surfaces fetch failures directly in the UI.</li>
         </ul>
+      </div>
+
+      <div style={styles.contentGrid}>
+        <div style={styles.leftColumn}>
+          <div style={styles.tableCard}>
+            <div style={styles.tableHeader}>
+              <div>
+                <h2 style={styles.sectionTitle}>Rival Pressure Ranking</h2>
+                <p style={styles.sectionText}>
+                  Sorted view of teams affecting Dallas playoff positioning.
+                </p>
+              </div>
+
+              <div style={styles.sortRow}>
+                <button style={sortButtonStyle(sortBy === "impactScore")} onClick={() => changeSort("impactScore")}>
+                  Impact
+                </button>
+                <button style={sortButtonStyle(sortBy === "tsi")} onClick={() => changeSort("tsi")}>
+                  TSI
+                </button>
+                <button style={sortButtonStyle(sortBy === "winProbability")} onClick={() => changeSort("winProbability")}>
+                  Win %
+                </button>
+                <button style={sortButtonStyle(sortBy === "teamName")} onClick={() => changeSort("teamName")}>
+                  Team
+                </button>
+              </div>
+            </div>
+
+            <div style={styles.tableWrap}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Team</th>
+                    <th style={styles.th}>Tier</th>
+                    <th style={styles.th}>Impact</th>
+                    <th style={styles.th}>Urgency</th>
+                    <th style={styles.th}>TSI</th>
+                    <th style={styles.th}>Win %</th>
+                    <th style={styles.th}>Desired Outcome</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {impacts.map((item) => {
+                    const isSelected = selectedTeam === item.team;
+                    return (
+                      <tr
+                        key={item.team}
+                        style={isSelected ? styles.rowSelected : styles.row}
+                        onClick={() => setSelectedTeam(item.team)}
+                      >
+                        <td style={styles.td}>
+                          <div style={{ fontWeight: 700 }}>{item.teamName}</div>
+                          <div style={styles.tdSub}>{item.team}</div>
+                        </td>
+                        <td style={styles.td}>
+                          <span style={badgeStyle(getTierColor(item.tier))}>
+                            {item.tier}
+                          </span>
+                        </td>
+                        <td style={styles.td}>{formatNumber(item.impactScore, 1)}</td>
+                        <td style={styles.td}>
+                          <span style={badgeStyle(getUrgencyColor(item.urgency))}>
+                            {item.urgency}
+                          </span>
+                        </td>
+                        <td style={styles.td}>{formatNumber(item.tsi, 1)}</td>
+                        <td style={styles.td}>{formatNumber(item.winProbability, 1)}%</td>
+                        <td style={styles.td}>{item.recommendedOutcome}</td>
+                      </tr>
+                    );
+                  })}
+
+                  {!impacts.length ? (
+                    <tr>
+                      <td style={styles.emptyCell} colSpan="7">
+                        No rival impact rows were returned.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {unavailableTeams.length ? (
+            <div style={styles.warningCard}>
+              <h3 style={styles.warningTitle}>Unavailable teams</h3>
+              <ul style={styles.warningList}>
+                {unavailableTeams.map((item) => (
+                  <li key={item.team}>
+                    <strong>{item.teamName}</strong>: {item.error}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+
+        <div style={styles.rightColumn}>
+          <div style={styles.detailCard}>
+            <h2 style={styles.sectionTitle}>Selected Rival Detail</h2>
+
+            {!selectedDetails ? (
+              <p style={styles.sectionText}>
+                Select a row to inspect detailed playoff pressure breakdown.
+              </p>
+            ) : (
+              <>
+                <div style={styles.detailTop}>
+                  <div>
+                    <div style={styles.detailTeam}>{selectedDetails.teamName}</div>
+                    <div style={styles.detailMeta}>
+                      {selectedDetails.team} · {selectedDetails.conference} · {selectedDetails.division}
+                    </div>
+                  </div>
+
+                  <span style={badgeStyle(getUrgencyColor(selectedDetails.urgency))}>
+                    {selectedDetails.urgency}
+                  </span>
+                </div>
+
+                <div style={styles.detailGrid}>
+                  <MetricBox
+                    label="Impact Score"
+                    value={formatNumber(selectedDetails.impactScore, 1)}
+                  />
+                  <MetricBox
+                    label="Playoff Impact"
+                    value={`${formatNumber(selectedDetails.playoffImpactPercentage, 2)}%`}
+                  />
+                  <MetricBox
+                    label="Best Case"
+                    value={`${formatNumber(selectedDetails.bestCaseScenario, 1)}%`}
+                  />
+                  <MetricBox
+                    label="Worst Case"
+                    value={`${formatNumber(selectedDetails.worstCaseScenario, 1)}%`}
+                  />
+                  <MetricBox
+                    label="Expected Impact"
+                    value={formatNumber(selectedDetails.expectedImpact, 1)}
+                  />
+                  <MetricBox
+                    label="TSI"
+                    value={formatNumber(selectedDetails.tsi, 1)}
+                  />
+                </div>
+
+                <div style={styles.breakdownCard}>
+                  <h3 style={styles.breakdownTitle}>Pressure Breakdown</h3>
+                  <BreakdownRow label="Record Pressure" value={selectedDetails.breakdown?.recordPressure} />
+                  <BreakdownRow label="TSI Pressure" value={selectedDetails.breakdown?.tsiPressure} />
+                  <BreakdownRow label="Divisional Pressure" value={selectedDetails.breakdown?.divisionalPressure} />
+                  <BreakdownRow label="Conference Pressure" value={selectedDetails.breakdown?.conferencePressure} />
+                  <BreakdownRow label="Cowboys NFC Rank" value={selectedDetails.breakdown?.nfcRankOfCowboys} />
+                </div>
+
+                <div style={styles.noteBox}>
+                  This page is now aligned to the deterministic backend contract.
+                  Synthetic UI controls were removed.
+                </div>
+              </>
+            )}
+          </div>
+
+          <div style={styles.detailCard}>
+            <h2 style={styles.sectionTitle}>Summary</h2>
+            <SummaryRow
+              label="Highest Impact Team"
+              value={summary.highestImpactTeam?.teamName || "--"}
+            />
+            <SummaryRow
+              label="Top Direct Rival"
+              value={summary.topDirectRival?.teamName || "--"}
+            />
+            <SummaryRow
+              label="Top Conference Threat"
+              value={summary.topConferenceThreat?.teamName || "--"}
+            />
+            <SummaryRow
+              label="Stronger NFC Teams"
+              value={summary.strongerNfcTeamCount ?? "--"}
+            />
+            <div style={styles.summaryNarrative}>
+              {summary.narrative || "No summary available."}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
+}
+
+function MetricBox({ label, value }) {
+  return (
+    <div style={styles.metricMini}>
+      <div style={styles.metricMiniLabel}>{label}</div>
+      <div style={styles.metricMiniValue}>{value}</div>
+    </div>
+  );
+}
+
+function BreakdownRow({ label, value }) {
+  return (
+    <div style={styles.breakdownRow}>
+      <span>{label}</span>
+      <strong>{value ?? "--"}</strong>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }) {
+  return (
+    <div style={styles.summaryRow}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function formatNumber(value, digits = 1) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "--";
+  return n.toFixed(digits);
 }
 
 function getUrgencyColor(urgency) {
@@ -817,8 +391,10 @@ function getUrgencyColor(urgency) {
       return "#dc2626";
     case "high":
       return "#f59e0b";
-    default:
+    case "medium":
       return "#3b82f6";
+    default:
+      return "#64748b";
   }
 }
 
@@ -833,5 +409,325 @@ function getTierColor(tier) {
   }
 }
 
+function badgeStyle(color) {
+  return {
+    display: "inline-block",
+    padding: "0.35rem 0.6rem",
+    borderRadius: "999px",
+    background: `${color}22`,
+    color,
+    fontWeight: 700,
+    fontSize: "0.8rem"
+  };
+}
+
+function sortButtonStyle(active) {
+  return {
+    padding: "0.55rem 0.8rem",
+    background: active ? "#2563eb" : "#0f172a",
+    color: active ? "#fff" : "#cbd5e1",
+    border: "1px solid rgba(148,163,184,0.2)",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "0.85rem"
+  };
+}
+
+const styles = {
+  page: {
+    maxWidth: "1400px",
+    margin: "0 auto",
+    color: "#e5e7eb"
+  },
+  hero: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "16px",
+    marginBottom: "20px"
+  },
+  heroActions: {
+    display: "flex",
+    gap: "10px"
+  },
+  title: {
+    margin: 0,
+    fontSize: "2rem",
+    color: "#f8fafc"
+  },
+  subtitle: {
+    marginTop: "8px",
+    marginBottom: 0,
+    color: "#94a3b8"
+  },
+  topGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: "14px",
+    marginBottom: "16px"
+  },
+  metricCard: {
+    background: "rgba(15,23,42,0.75)",
+    border: "1px solid rgba(148,163,184,0.15)",
+    borderRadius: "16px",
+    padding: "18px"
+  },
+  metricLabel: {
+    color: "#94a3b8",
+    fontSize: "0.85rem",
+    marginBottom: "8px"
+  },
+  metricValue: {
+    fontSize: "1.7rem",
+    fontWeight: 800,
+    color: "#f8fafc"
+  },
+  metricMini: {
+    background: "rgba(2,6,23,0.45)",
+    border: "1px solid rgba(148,163,184,0.12)",
+    borderRadius: "12px",
+    padding: "14px"
+  },
+  metricMiniLabel: {
+    color: "#94a3b8",
+    fontSize: "0.8rem",
+    marginBottom: "6px"
+  },
+  metricMiniValue: {
+    color: "#f8fafc",
+    fontSize: "1.15rem",
+    fontWeight: 800
+  },
+  infoPanel: {
+    background: "rgba(15,23,42,0.72)",
+    border: "1px solid rgba(148,163,184,0.15)",
+    borderRadius: "14px",
+    padding: "16px",
+    marginBottom: "18px"
+  },
+  infoTitle: {
+    fontWeight: 800,
+    color: "#f8fafc",
+    marginBottom: "8px"
+  },
+  infoList: {
+    margin: 0,
+    color: "#cbd5e1",
+    paddingLeft: "18px"
+  },
+  contentGrid: {
+    display: "grid",
+    gridTemplateColumns: "1.4fr 0.9fr",
+    gap: "18px"
+  },
+  leftColumn: {
+    minWidth: 0
+  },
+  rightColumn: {
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: "18px"
+  },
+  tableCard: {
+    background: "rgba(15,23,42,0.75)",
+    border: "1px solid rgba(148,163,184,0.15)",
+    borderRadius: "16px",
+    padding: "18px"
+  },
+  tableHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "18px",
+    marginBottom: "14px"
+  },
+  sectionTitle: {
+    margin: 0,
+    color: "#f8fafc"
+  },
+  sectionText: {
+    marginTop: "6px",
+    color: "#94a3b8"
+  },
+  sortRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px"
+  },
+  tableWrap: {
+    overflowX: "auto"
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "collapse"
+  },
+  th: {
+    textAlign: "left",
+    padding: "12px 10px",
+    color: "#94a3b8",
+    fontSize: "0.8rem",
+    borderBottom: "1px solid rgba(148,163,184,0.14)"
+  },
+  td: {
+    padding: "14px 10px",
+    borderBottom: "1px solid rgba(148,163,184,0.08)",
+    color: "#e5e7eb",
+    cursor: "pointer"
+  },
+  tdSub: {
+    color: "#94a3b8",
+    fontSize: "0.8rem",
+    marginTop: "4px"
+  },
+  row: {
+    background: "transparent"
+  },
+  rowSelected: {
+    background: "rgba(59,130,246,0.08)"
+  },
+  emptyCell: {
+    padding: "24px",
+    color: "#94a3b8",
+    textAlign: "center"
+  },
+  detailCard: {
+    background: "rgba(15,23,42,0.75)",
+    border: "1px solid rgba(148,163,184,0.15)",
+    borderRadius: "16px",
+    padding: "18px"
+  },
+  detailTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "12px",
+    marginBottom: "14px"
+  },
+  detailTeam: {
+    color: "#f8fafc",
+    fontWeight: 800,
+    fontSize: "1.2rem"
+  },
+  detailMeta: {
+    color: "#94a3b8",
+    marginTop: "6px"
+  },
+  detailGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "10px",
+    marginBottom: "16px"
+  },
+  breakdownCard: {
+    background: "rgba(2,6,23,0.42)",
+    border: "1px solid rgba(148,163,184,0.12)",
+    borderRadius: "12px",
+    padding: "14px",
+    marginBottom: "14px"
+  },
+  breakdownTitle: {
+    marginTop: 0,
+    marginBottom: "10px",
+    color: "#f8fafc"
+  },
+  breakdownRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    padding: "8px 0",
+    borderBottom: "1px solid rgba(148,163,184,0.08)",
+    color: "#cbd5e1"
+  },
+  noteBox: {
+    background: "rgba(37,99,235,0.08)",
+    color: "#bfdbfe",
+    border: "1px solid rgba(96,165,250,0.2)",
+    borderRadius: "12px",
+    padding: "12px 14px"
+  },
+  summaryRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    padding: "10px 0",
+    borderBottom: "1px solid rgba(148,163,184,0.08)",
+    color: "#cbd5e1"
+  },
+  summaryNarrative: {
+    marginTop: "14px",
+    color: "#bfdbfe",
+    lineHeight: 1.5
+  },
+  primaryButton: {
+    padding: "0.8rem 1.2rem",
+    background: "#2563eb",
+    color: "#fff",
+    border: "none",
+    borderRadius: "10px",
+    cursor: "pointer",
+    fontWeight: 700
+  },
+  secondaryButton: {
+    padding: "0.8rem 1.2rem",
+    background: "#0f172a",
+    color: "#e5e7eb",
+    border: "1px solid rgba(148,163,184,0.2)",
+    borderRadius: "10px",
+    cursor: "pointer",
+    fontWeight: 700
+  },
+  errorBox: {
+    background: "rgba(127,29,29,0.2)",
+    border: "1px solid rgba(248,113,113,0.3)",
+    borderRadius: "14px",
+    padding: "20px"
+  },
+  errorTitle: {
+    fontWeight: 800,
+    color: "#fecaca",
+    marginBottom: "8px"
+  },
+  errorText: {
+    color: "#fca5a5",
+    marginBottom: "14px"
+  },
+  inlineWarning: {
+    background: "rgba(127,29,29,0.2)",
+    color: "#fecaca",
+    border: "1px solid rgba(248,113,113,0.25)",
+    borderRadius: "12px",
+    padding: "12px 14px",
+    marginBottom: "14px"
+  },
+  warningCard: {
+    marginTop: "18px",
+    background: "rgba(120,53,15,0.18)",
+    border: "1px solid rgba(251,191,36,0.2)",
+    borderRadius: "14px",
+    padding: "16px"
+  },
+  warningTitle: {
+    marginTop: 0,
+    color: "#fde68a"
+  },
+  warningList: {
+    marginBottom: 0,
+    color: "#fcd34d"
+  },
+  panel: {
+    background: "rgba(15,23,42,0.75)",
+    border: "1px solid rgba(148,163,184,0.15)",
+    borderRadius: "14px",
+    padding: "18px"
+  },
+  skeletonBar: {
+    height: "16px",
+    borderRadius: "10px",
+    background: "rgba(148,163,184,0.16)",
+    marginBottom: "12px",
+    width: "100%"
+  }
+};
 
 window.RivalTeamImpactPage = RivalTeamImpactPage;
