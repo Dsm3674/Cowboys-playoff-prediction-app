@@ -1,120 +1,263 @@
-const BASE =
-  window.location.hostname === "localhost"
-    ? "http://localhost:3001"
-    : window.location.origin;
+(function () {
+  "use strict";
 
-window.BASE_URL = BASE;
+  const BASE =
+    window.location.hostname === "localhost"
+      ? "http://localhost:3001"
+      : window.location.origin;
 
-window.api = {
-  getCowboysRecord: async (year) => {
-    const res = await fetch(`${BASE}/api/cowboys/record?year=${year}`);
-    if (!res.ok) throw new Error("record fetch failed");
-    return res.json();
-  },
+  window.BASE_URL = BASE;
 
-  getTSI: async (team, year) => {
-    const res = await fetch(`${BASE}/api/analytics/tsi?team=${team}&year=${year}`);
-    if (!res.ok) throw new Error("tsi fetch failed");
-    return res.json();
-  },
+  function buildQuery(params = {}) {
+    const query = new URLSearchParams();
 
-  getPaths: async (team, year, k, chaos) => {
-    const res = await fetch(
-      `${BASE}/api/analytics/paths?team=${team}&year=${year}&k=${k}&chaos=${chaos}`
-    );
-    if (!res.ok) throw new Error("paths fetch failed");
-    return res.json();
-  },
-
-  getMustWin: async (team, year, chaos) => {
-    const res = await fetch(
-      `${BASE}/api/analytics/mustwin?team=${team}&year=${year}&chaos=${chaos}`
-    );
-    if (!res.ok) throw new Error("mustwin fetch failed");
-    return res.json();
-  },
-
-  getWinProb: async (payload) => {
-    const res = await fetch(`${BASE}/api/analytics/winprob`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === "") return;
+      query.set(key, String(value));
     });
-    if (!res.ok) throw new Error("winprob failed");
-    return res.json();
-  },
 
-  getCowboysSchedule: async (year) => {
-    const res = await fetch(`${BASE}/api/cowboys/schedule?year=${year}`);
-    if (!res.ok) throw new Error("schedule fetch failed");
-    return res.json();
-  },
-
-  generatePrediction: async () => {
-    const res = await fetch(`${BASE}/api/prediction/generate`, {
-      method: "POST",
-    });
-    if (!res.ok) throw new Error("prediction generation failed");
-    return res.json();
-  },
-
-  getCurrentPrediction: async () => {
-    const res = await fetch(`${BASE}/api/prediction/current`);
-    if (!res.ok) throw new Error("prediction fetch failed");
-    return res.json();
-  },
-
-  getPredictionHistory: async () => {
-    const res = await fetch(`${BASE}/api/prediction/history`);
-    if (!res.ok) throw new Error("history fetch failed");
-    return res.json();
-  },
-
-  runWhatIfSimulation: async (payload) => {
-    const res = await fetch(`${BASE}/api/simulation/run`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error("simulation failed");
-    return res.json();
-  },
-
-  getRivalImpact: async (year, chaos = 0, iterations = 1000) => {
-    const res = await fetch(
-      `${BASE}/api/analytics/rivalimpact?year=${year}&chaos=${chaos}&iterations=${iterations}`
-    );
-    if (!res.ok) throw new Error("rival impact fetch failed");
-    return res.json();
-  },
-
-  getPlayerMaps: async () => {
-    const res = await fetch(`${BASE}/api/players/maps`);
-    if (!res.ok) throw new Error("player maps fetch failed");
-    return res.json();
-  },
-
-  getClutchIndex: async (season) => {
-    const res = await fetch(`${BASE}/api/players/clutch?season=${season}`);
-    if (!res.ok) throw new Error("clutch fetch failed");
-    return res.json();
-  },
-
-  getPlayerEvents: async (season, limit = 100) => {
-    const res = await fetch(`${BASE}/api/players/events?season=${season}&limit=${limit}`);
-    if (!res.ok) throw new Error("events fetch failed");
-    return res.json();
-  },
-
-  getTimelinePoints: async (season) => {
-    const res = await fetch(`${BASE}/api/timeline/points?season=${season}`);
-    if (!res.ok) throw new Error("timeline fetch failed");
-    return res.json();
-  },
-
-  getCacheStats: async () => {
-    const res = await fetch(`${BASE}/api/analytics/cache-stats`);
-    if (!res.ok) throw new Error("cache stats failed");
-    return res.json();
+    const out = query.toString();
+    return out ? `?${out}` : "";
   }
-};
+
+  async function parseResponse(res) {
+    const contentType = res.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+      return res.json();
+    }
+
+    const text = await res.text();
+    return { raw: text };
+  }
+
+  async function request(path, options = {}) {
+    const {
+      method = "GET",
+      query = null,
+      body = undefined,
+      headers = {}
+    } = options;
+
+    const url = `${BASE}${path}${query ? buildQuery(query) : ""}`;
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...headers
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined
+    });
+
+    const payload = await parseResponse(res);
+
+    if (!res.ok) {
+      const message =
+        payload?.error ||
+        payload?.message ||
+        `${method} ${path} failed with status ${res.status}`;
+
+      const err = new Error(message);
+      err.status = res.status;
+      err.payload = payload;
+      throw err;
+    }
+
+    return payload;
+  }
+
+  async function tryRequest(candidates) {
+    let lastError = null;
+
+    for (const candidate of candidates) {
+      try {
+        return await request(candidate.path, candidate.options || {});
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    throw lastError || new Error("All request candidates failed.");
+  }
+
+  async function getCowboysRecord(year) {
+    return request("/api/cowboys/record", {
+      query: { year }
+    });
+  }
+
+  async function getRecord(year) {
+    return getCowboysRecord(year);
+  }
+
+  async function getCowboysSchedule(year) {
+    return request("/api/cowboys/schedule", {
+      query: { year }
+    });
+  }
+
+  async function getSchedule(year, team) {
+    return request("/api/cowboys/schedule", {
+      query: { year, team }
+    });
+  }
+
+  async function getTSI(team, year) {
+    return request("/api/analytics/tsi", {
+      query: { team, year }
+    });
+  }
+
+  async function getPaths(team, year, k = 25, chaos = 0) {
+    return request("/api/analytics/paths", {
+      query: { team, year, k, chaos }
+    });
+  }
+
+  async function getSeasonPaths(team, year, k = 25, chaos = 0) {
+    return getPaths(team, year, k, chaos);
+  }
+
+  async function getMustWin(team, year, chaos = 0) {
+    return request("/api/analytics/mustwin", {
+      query: { team, year, chaos }
+    });
+  }
+
+  async function getMustWinGames(team, year, chaos = 0) {
+    return getMustWin(team, year, chaos);
+  }
+
+  async function getWinProb(payload) {
+    return request("/api/analytics/winprob", {
+      method: "POST",
+      body: payload
+    });
+  }
+
+  async function getWinProbability(payload) {
+    return getWinProb(payload);
+  }
+
+  async function getRivalImpact(year, chaos = 0, iterations = 1000) {
+    return tryRequest([
+      {
+        path: "/api/analytics/rivalimpact",
+        options: {
+          query: { year, chaos, iterations }
+        }
+      },
+      {
+        path: "/api/analytics/rivalimpact",
+        options: {
+          query: { year }
+        }
+      }
+    ]);
+  }
+
+  async function getPlayerMaps() {
+    return request("/api/players/maps");
+  }
+
+  async function getClutchIndex(season) {
+    return request("/api/players/clutch", {
+      query: { season }
+    });
+  }
+
+  async function getPlayerEvents(season, limit = 100) {
+    return request("/api/players/events", {
+      query: { season, limit }
+    });
+  }
+
+  async function getTimelinePoints(season) {
+    return request("/api/timeline/points", {
+      query: { season }
+    });
+  }
+
+  async function getCacheStats() {
+    return request("/api/analytics/cache-stats");
+  }
+
+  async function generatePrediction() {
+    return tryRequest([
+      {
+        path: "/api/prediction/generate",
+        options: { method: "POST" }
+      },
+      {
+        path: "/api/predictions/generate",
+        options: { method: "POST" }
+      }
+    ]);
+  }
+
+  async function getCurrentPrediction() {
+    return tryRequest([
+      {
+        path: "/api/prediction/current"
+      },
+      {
+        path: "/api/predictions/current"
+      }
+    ]);
+  }
+
+  async function getPredictionHistory() {
+    return tryRequest([
+      {
+        path: "/api/prediction/history"
+      },
+      {
+        path: "/api/predictions/history"
+      }
+    ]);
+  }
+
+  async function runWhatIfSimulation(payload) {
+    return tryRequest([
+      {
+        path: "/api/simulation/run",
+        options: {
+          method: "POST",
+          body: payload
+        }
+      },
+      {
+        path: "/api/prediction/simulate",
+        options: {
+          method: "POST",
+          body: payload
+        }
+      }
+    ]);
+  }
+
+  window.api = {
+    getCowboysRecord,
+    getRecord,
+    getCowboysSchedule,
+    getSchedule,
+    getTSI,
+    getPaths,
+    getSeasonPaths,
+    getMustWin,
+    getMustWinGames,
+    getWinProb,
+    getWinProbability,
+    getRivalImpact,
+    getPlayerMaps,
+    getClutchIndex,
+    getPlayerEvents,
+    getTimelinePoints,
+    getCacheStats,
+    generatePrediction,
+    getCurrentPrediction,
+    getPredictionHistory,
+    runWhatIfSimulation
+  };
+})();
