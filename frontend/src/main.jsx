@@ -1,40 +1,10 @@
-const { useState, useEffect } = React;
+const { useEffect, useMemo, useState } = React;
 
-function SkeletonCard({ title }) {
+function PlaceholderCard({ title, text }) {
   return (
-    <div className="card card-dense">
-      <div className="text-small text-muted">{title}</div>
-      <div
-        style={{
-          height: "22px",
-          background: "#e5e7eb",
-          borderRadius: "6px",
-          marginTop: "10px",
-        }}
-      />
-      <div
-        style={{
-          height: "8px",
-          background: "#e5e7eb",
-          borderRadius: "6px",
-          marginTop: "12px",
-        }}
-      />
-    </div>
-  );
-}
-
-function ConfidenceMeter({ value }) {
-  const pct = Math.max(0, Math.min(100, (Number(value) || 0) * 100));
-
-  return (
-    <div style={{ marginTop: "0.6rem" }}>
-      <div className="progress-bar">
-        <div className="progress-fill" style={{ width: pct + "%" }} />
-      </div>
-      <div className="progress-label">
-        Confidence meter: {pct.toFixed(0)}%
-      </div>
+    <div className="card">
+      <h3>{title}</h3>
+      <p className="text-small text-muted">{text}</p>
     </div>
   );
 }
@@ -44,42 +14,42 @@ function PredictionPanel() {
     <div className="card">
       <h3>Playoff Outlook</h3>
       <p className="text-small text-muted">
-        This dashboard now avoids synthetic scenario pages and only links to live analytics modules.
+        The live frontend only exposes deterministic and data-backed views.
       </p>
     </div>
   );
 }
 
-const SafeComponent = (name, Component) => {
-  if (Component) return Component;
-
-  return () => (
-    <div className="card">
-      <h3>{name} Unavailable</h3>
-      <p>Component script not found or failed to load.</p>
-    </div>
-  );
-};
+function getGlobalComponent(name, fallbackTitle) {
+  return window[name]
+    ? window[name]
+    : () => (
+        <PlaceholderCard
+          title={fallbackTitle}
+          text={`${name} is unavailable right now.`}
+        />
+      );
+}
 
 function Dashboard() {
   const year = new Date().getFullYear();
 
-  const UserProfileCard =
-    window.UserProfileCard || (() => <div>Profile Loading...</div>);
-  const RecordCard = window.RecordCard || (() => <div>Record Loading...</div>);
-  const TSICard = window.TSICard || (() => <div>TSI Loading...</div>);
-  const MustWinCard =
-    window.MustWinCard || (() => <div>Must Win Loading...</div>);
-  const LiveWinProbTool =
-    window.LiveWinProbTool || (() => <div>Win Prob Loading...</div>);
-  const GameTable = window.GameTable || (() => <div>Schedule Loading...</div>);
+  const UserProfileCard = getGlobalComponent("UserProfileCard", "Profile");
+  const RecordCard = getGlobalComponent("RecordCard", "Record");
+  const TSICard = getGlobalComponent("TSICard", "TSI");
+  const MustWinCard = getGlobalComponent("MustWinCard", "Must Win");
+  const LiveWinProbTool = getGlobalComponent("LiveWinProbTool", "Win Probability");
+  const GameTable = getGlobalComponent("GameTable", "Schedule");
 
   return (
-    <div>
+    <div style={{ padding: "24px" }}>
       <h1 className="hero-title">
         LoneStar <span>Analytics</span>
       </h1>
-      <div className="hero-kicker">Dallas Cowboys Advanced Data Hub</div>
+
+      <div className="hero-kicker">
+        Dallas Cowboys deterministic analytics dashboard
+      </div>
 
       <div className="grid-layout">
         <div>
@@ -105,123 +75,195 @@ function Dashboard() {
   );
 }
 
-function App() {
-  const [currentPage, setCurrentPage] = useState("dashboard");
+function AnalyticsPage() {
+  const PlayerRadar = getGlobalComponent("PlayerRadar", "Player Radar");
+  const Maps = getGlobalComponent("Maps", "Maps");
 
-  const allowedPages = new Set([
-    "dashboard",
-    "simulator",
-    "analytics",
-    "rival",
-    "clutch",
-    "timeline",
-    "paths",
-    "liveprob",
-    "events",
-    "profile",
-    "history"
-  ]);
+  return (
+    <div style={{ padding: "24px" }}>
+      <h1 className="hero-title">Advanced Analytics</h1>
+      <div className="grid-layout">
+        <div>
+          <PlayerRadar />
+        </div>
+        <div>
+          <Maps />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function useRouter() {
+  const allowedPages = useMemo(
+    () =>
+      new Set([
+        "dashboard",
+        "analytics",
+        "rival",
+        "clutch",
+        "timeline",
+        "paths",
+        "liveprob",
+        "events",
+        "profile",
+        "history",
+        "simulator"
+      ]),
+    []
+  );
+
+  const normalizePage = (page) => {
+    const raw = String(page || "").replace(/^#/, "").trim();
+    if (raw === "quantum") return "dashboard";
+    return allowedPages.has(raw) ? raw : "dashboard";
+  };
+
+  const [currentPage, setCurrentPage] = useState(
+    normalizePage(window.location.hash)
+  );
 
   useEffect(() => {
-    window.setPage = (page) => {
-      const normalizedPage = allowedPages.has(page) ? page : "dashboard";
-
-      setCurrentPage(normalizedPage);
-      window.location.hash = normalizedPage;
+    function syncRouteUi(page) {
+      const routeEl = document.getElementById("route-indicator");
+      if (routeEl) routeEl.textContent = `Route: ${page}`;
 
       document.querySelectorAll(".nav-link").forEach((el) => {
-        el.classList.remove("active");
-        if (el.dataset.page === normalizedPage) el.classList.add("active");
+        el.classList.toggle("active", el.dataset.page === page);
       });
-
-      const debugEl = document.getElementById("route-indicator");
-      if (debugEl) debugEl.textContent = `Route: ${normalizedPage}`;
-    };
-
-    const initialHash = window.location.hash.replace("#", "");
-    if (initialHash === "quantum") {
-      window.setPage("dashboard");
-      return;
     }
 
-    if (initialHash) window.setPage(initialHash);
-    else window.setPage("dashboard");
-  }, []);
+    function navigate(nextPage, options = {}) {
+      const page = normalizePage(nextPage);
 
-  const AIStorySimulator =
-    window.AIStorySimulator || (() => <div>Simulator Loading...</div>);
-  const PlayerRadar =
-    window.PlayerRadar || (() => <div>Radar Loading...</div>);
-  const Maps = window.Maps || (() => <div>Maps Loading...</div>);
-  const RivalTeamImpactPage =
-    window.RivalTeamImpactPage ||
-    (() => <div>Rival Analysis Loading...</div>);
-  const ClutchIndex =
-    window.ClutchIndex || (() => <div>Clutch Index Loading...</div>);
-  const Timeline =
-    window.Timeline || (() => <div>Timeline Loading...</div>);
-  const SeasonPathExplorer =
-    window.SeasonPathExplorer || (() => <div>Paths Loading...</div>);
-  const LiveWinProbTool =
-    window.LiveWinProbTool || (() => <div>Win Prob Loading...</div>);
-  const EventsAdmin =
-    window.EventsAdmin || (() => <div>Admin Loading...</div>);
-  const UserProfileCard =
-    window.UserProfileCard || (() => <div>Profile Loading...</div>);
-  const HistoryPage =
-    window.HistoryPage || (() => <div>History Loading...</div>);
+      setCurrentPage(page);
 
-  const renderPage = () => {
+      if (!options.skipHashUpdate) {
+        const nextHash = `#${page}`;
+        if (window.location.hash !== nextHash) {
+          history.replaceState(null, "", nextHash);
+        }
+      }
+
+      syncRouteUi(page);
+    }
+
+    function handleHashChange() {
+      navigate(window.location.hash, { skipHashUpdate: true });
+    }
+
+    window.appRouter = {
+      go: navigate,
+      current: () => normalizePage(window.location.hash || currentPage)
+    };
+
+    document.querySelectorAll(".nav-link").forEach((el) => {
+      el.onclick = () => navigate(el.dataset.page);
+    });
+
+    syncRouteUi(currentPage);
+
+    window.addEventListener("hashchange", handleHashChange);
+
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+      document.querySelectorAll(".nav-link").forEach((el) => {
+        el.onclick = null;
+      });
+    };
+  }, [allowedPages, currentPage]);
+
+  return currentPage;
+}
+
+function App() {
+  const currentPage = useRouter();
+
+  const RivalTeamImpactPage = getGlobalComponent("RivalTeamImpactPage", "Rival Impact");
+  const ClutchIndex = getGlobalComponent("ClutchIndex", "Clutch Index");
+  const Timeline = getGlobalComponent("Timeline", "Timeline");
+  const SeasonPathExplorer = getGlobalComponent("SeasonPathExplorer", "Season Paths");
+  const LiveWinProbTool = getGlobalComponent("LiveWinProbTool", "Live Win Probability");
+  const EventsAdmin = getGlobalComponent("EventsAdmin", "Events Admin");
+  const UserProfileCard = getGlobalComponent("UserProfileCard", "Profile");
+  const HistoryPage = getGlobalComponent("HistoryPage", "History");
+  const AIStorySimulator = getGlobalComponent("AIStorySimulator", "Simulator");
+
+  function renderPage() {
     switch (currentPage) {
       case "dashboard":
         return <Dashboard />;
 
-      case "simulator":
-        return <AIStorySimulator />;
-
       case "analytics":
+        return <AnalyticsPage />;
+
+      case "rival":
         return (
-          <div>
-            <h1 className="hero-title">Advanced Analytics</h1>
-            <div className="grid-layout">
-              <div>
-                <PlayerRadar />
-              </div>
-              <div>
-                <Maps />
-              </div>
-            </div>
+          <div style={{ padding: "24px" }}>
+            <RivalTeamImpactPage year={new Date().getFullYear()} />
           </div>
         );
 
-      case "rival":
-        return <RivalTeamImpactPage />;
-
       case "clutch":
-        return <ClutchIndex />;
+        return (
+          <div style={{ padding: "24px" }}>
+            <ClutchIndex />
+          </div>
+        );
 
       case "timeline":
-        return <Timeline />;
+        return (
+          <div style={{ padding: "24px" }}>
+            <Timeline />
+          </div>
+        );
 
       case "paths":
-        return <SeasonPathExplorer />;
+        return (
+          <div style={{ padding: "24px" }}>
+            <SeasonPathExplorer />
+          </div>
+        );
 
       case "liveprob":
-        return <LiveWinProbTool />;
+        return (
+          <div style={{ padding: "24px" }}>
+            <LiveWinProbTool />
+          </div>
+        );
 
       case "events":
-        return <EventsAdmin />;
+        return (
+          <div style={{ padding: "24px" }}>
+            <EventsAdmin />
+          </div>
+        );
 
       case "profile":
-        return <UserProfileCard />;
+        return (
+          <div style={{ padding: "24px" }}>
+            <UserProfileCard />
+          </div>
+        );
 
       case "history":
-        return <HistoryPage />;
+        return (
+          <div style={{ padding: "24px" }}>
+            <HistoryPage />
+          </div>
+        );
+
+      case "simulator":
+        return (
+          <div style={{ padding: "24px" }}>
+            <AIStorySimulator />
+          </div>
+        );
 
       default:
         return <Dashboard />;
     }
-  };
+  }
 
   return (
     <div className="content-area fade-in">
