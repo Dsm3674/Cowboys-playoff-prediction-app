@@ -1,294 +1,320 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>LoneStar Analytics – Advanced Cowboys Analytics Platform</title>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+  <title>LoneStar Analytics</title>
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="Advanced NFL analytics dashboard featuring Monte Carlo playoff modeling, Team Strength Index, win probability engines, and season path exploration." />
-<meta name="theme-color" content="#003594" />
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./src/styles/Timeline.css" />
+  <link rel="stylesheet" href="./src/styles/EventsAdmin.css" />
 
-<link rel="icon" href="https://static.www.nfl.com/league/api/clubs/logos/DAL" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-<!-- Base styles -->
-<link rel="stylesheet" href="./style.css" />
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0b1120;
+      color: #e5e7eb;
+      font-family: Inter, Arial, sans-serif;
+      min-height: 100%;
+    }
 
-<!-- Cowboys theme layer -->
-<link rel="stylesheet" href="./cowboys-theme.css" />
+    #root {
+      min-height: 100vh;
+    }
 
-<!-- Component-specific styles -->
-<link rel="stylesheet" href="./src/styles/EventsAdmin.css" />
-<link rel="stylesheet" href="./src/styles/Timeline.css" />
+    #global-loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, rgba(30,41,59,0.94), rgba(2,6,23,0.98));
+      z-index: 9999;
+      transition: opacity 0.35s ease;
+    }
 
-<!-- Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Roboto+Condensed:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    .global-loader__box {
+      width: min(520px, 90vw);
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+      text-align: center;
+    }
 
-<script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    .global-loader__title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #f8fafc;
+    }
 
-<style>
-#global-loader {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(135deg, #001E62 0%, #003594 60%, #004ab8 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  color: white;
-  z-index: 9999;
-  transition: opacity .4s ease;
-  font-family: 'Oswald', 'Impact', sans-serif;
-  letter-spacing: 0.08em;
-}
+    .global-loader__subtitle {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      margin-bottom: 18px;
+    }
 
-#global-loader::before {
-  content: "★";
-  font-size: 3rem;
-  color: rgba(192, 198, 203, 0.6);
-  margin-bottom: 0.5rem;
-  animation: starPulse 2s ease-in-out infinite;
-}
+    .global-loader__bar {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.18);
+      overflow: hidden;
+    }
 
-#global-loader h2 {
-  margin: 0 0 0.25rem;
-  font-weight: 700;
-  font-size: 1.5rem;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: #fff;
-}
+    .global-loader__fill {
+      width: 45%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #38bdf8, #6366f1);
+      animation: pulsebar 1.2s infinite ease-in-out;
+    }
 
-#global-loader .loader-tagline {
-  font-size: 0.7rem;
-  letter-spacing: 0.30em;
-  text-transform: uppercase;
-  color: rgba(192, 198, 203, 0.65);
-  margin-bottom: 1.5rem;
-}
+    @keyframes pulsebar {
+      0% { transform: translateX(-90%); }
+      50% { transform: translateX(90%); }
+      100% { transform: translateX(210%); }
+    }
 
-.loader-ring {
-  width: 56px;
-  height: 56px;
-  border: 4px solid rgba(134, 147, 151, 0.25);
-  border-top: 4px solid #C0C6CB;
-  border-radius: 50%;
-  animation: spin 0.9s linear infinite;
-}
+    .top-debug-strip {
+      position: sticky;
+      top: 0;
+      z-index: 2000;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px;
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      backdrop-filter: blur(8px);
+      font-size: 0.85rem;
+      color: #cbd5e1;
+    }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+    .top-debug-strip span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
-@keyframes starPulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.15); }
-}
+    .shell {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: calc(100vh - 44px);
+    }
 
-#debug-panel {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: rgba(0, 14, 48, 0.94);
-  color: rgba(134, 147, 151, 0.8);
-  font-size: 11px;
-  padding: 5px 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 9998;
-  border-top: 1px solid rgba(134, 147, 151, 0.18);
-  font-family: 'Oswald', monospace;
-  letter-spacing: 0.06em;
-  gap: 1rem;
-}
+    .sidebar {
+      background: #111827;
+      border-right: 1px solid rgba(148, 163, 184, 0.12);
+      padding: 22px 16px;
+    }
 
-#debug-panel span {
-  opacity: 0.6;
-}
+    .sidebar__title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-bottom: 18px;
+      letter-spacing: 0.02em;
+    }
 
-#scroll-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #003594, #C0C6CB);
-  width: 0%;
-  z-index: 10000;
-  transition: width 50ms linear;
-}
-</style>
+    .sidebar__nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
+    .nav-link {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      color: #cbd5e1;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.18s ease;
+    }
+
+    .nav-link:hover {
+      background: rgba(59, 130, 246, 0.08);
+      border-color: rgba(59, 130, 246, 0.18);
+      color: #f8fafc;
+    }
+
+    .nav-link.active {
+      background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(99,102,241,0.18));
+      border-color: rgba(96, 165, 250, 0.45);
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .main-stage {
+      min-width: 0;
+      background: linear-gradient(180deg, #0b1120 0%, #0f172a 100%);
+    }
+
+    #scroll-progress {
+      position: fixed;
+      top: 44px;
+      left: 0;
+      width: 0%;
+      height: 3px;
+      z-index: 3000;
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      transition: width 0.08s linear;
+    }
+
+    @media (max-width: 980px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      }
+    }
+  </style>
 </head>
 <body>
+  <div id="global-loader" aria-live="polite">
+    <div class="global-loader__box">
+      <div class="global-loader__title">Loading LoneStar Analytics</div>
+      <div class="global-loader__subtitle">
+        Preparing live views and deterministic analytics
+      </div>
+      <div class="global-loader__bar">
+        <div class="global-loader__fill"></div>
+      </div>
+    </div>
+  </div>
 
-<a href="#root" class="skip-link">Skip to main content</a>
+  <div class="top-debug-strip">
+    <span id="route-indicator">Route: dashboard</span>
+    <span id="network-status">Network: online</span>
+    <span id="fps-indicator">FPS: --</span>
+  </div>
 
-<div id="global-loader">
-  <h2>LoneStar Analytics</h2>
-  <div class="loader-tagline">Dallas Cowboys · Advanced Data Hub</div>
-  <div class="loader-ring"></div>
-</div>
+  <div id="scroll-progress"></div>
 
-<nav class="nav-bar" role="navigation" aria-label="Main navigation">
-  <div class="nav-link" data-page="dashboard" onclick="window.setPage('dashboard')">Dashboard</div>
-  <div class="nav-link" data-page="simulator" onclick="window.setPage('simulator')">AI Simulator</div>
-  <div class="nav-link" data-page="analytics" onclick="window.setPage('analytics')">Analytics</div>
-  <div class="nav-link" data-page="rival" onclick="window.setPage('rival')">Rival Impact</div>
-  <div class="nav-link" data-page="clutch" onclick="window.setPage('clutch')">Clutch Index</div>
-  <div class="nav-link" data-page="timeline" onclick="window.setPage('timeline')">Timeline</div>
-  <div class="nav-link" data-page="paths" onclick="window.setPage('paths')">Season Paths</div>
-  <div class="nav-link" data-page="liveprob" onclick="window.setPage('liveprob')">Live Win Prob</div>
-  <div class="nav-link" data-page="events" onclick="window.setPage('events')">Events Admin</div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar__title">LoneStar Analytics</div>
 
-  <!-- ADDED -->
-  <div class="nav-link" data-page="quantum" onclick="window.setPage('quantum')">Quantum</div>
-</nav>
+      <nav class="sidebar__nav" aria-label="Main navigation">
+        <button class="nav-link active" data-page="dashboard">Dashboard</button>
+        <button class="nav-link" data-page="analytics">Analytics</button>
+        <button class="nav-link" data-page="rival">Rival Impact</button>
+        <button class="nav-link" data-page="clutch">Clutch Index</button>
+        <button class="nav-link" data-page="timeline">Timeline</button>
+        <button class="nav-link" data-page="paths">Season Paths</button>
+        <button class="nav-link" data-page="liveprob">Live Win Prob</button>
+        <button class="nav-link" data-page="events">Events Admin</button>
+        <button class="nav-link" data-page="profile">Profile</button>
+        <button class="nav-link" data-page="history">History</button>
+      </nav>
+    </aside>
 
-<main id="app-shell" role="main">
-  <div id="root"></div>
-</main>
+    <main class="main-stage">
+      <div id="root"></div>
+    </main>
+  </div>
 
-<div id="scroll-progress" role="progressbar" aria-hidden="true"></div>
+  <script>
+    window.BASE_URL = window.BASE_URL || "";
 
-<div id="debug-panel" aria-hidden="true">
-  <div id="route-indicator">Route: dashboard</div>
-  <div id="network-status">Network: online</div>
-  <div id="fps-indicator">FPS: --</div>
-</div>
+    (function () {
+      "use strict";
 
-<!-- React component scripts -->
-<script type="text/babel" src="./src/api.js"></script>
-<script type="text/babel" src="./src/components/RecordCard.jsx"></script>
-<script type="text/babel" src="./src/components/GameTable.jsx"></script>
-<script type="text/babel" src="./src/components/PlayerRadar.jsx"></script>
-<script type="text/babel" src="./src/components/UserProfileCard.jsx"></script>
-<script type="text/babel" src="./src/components/AIStorySimulator.jsx"></script>
-<script type="text/babel" src="./src/components/HistoryPage.jsx"></script>
-<script type="text/babel" src="./src/components/TSICard.jsx"></script>
-<script type="text/babel" src="./src/components/MustWinCard.jsx"></script>
-<script type="text/babel" src="./src/components/SeasonPathExplorer.jsx"></script>
-<script type="text/babel" src="./src/components/LiveWinProbTool.jsx"></script>
-<script type="text/babel" src="./src/components/RivalTeamImpactVisual.jsx"></script>
-<script type="text/babel" src="./src/components/RivalTeamImpactPage.jsx"></script>
-<script type="text/babel" src="./src/components/Maps.jsx"></script>
-<script type="text/babel" src="./src/components/ClutchIndex.jsx"></script>
-<script type="text/babel" src="./src/components/EventsAdmin.jsx"></script>
-<script type="text/babel" src="./src/components/Timeline.jsx"></script>
-
-<!-- ADDED -->
-<script type="text/babel" src="./src/components/QuantumEngineIntegrated.jsx"></script>
-
-<script type="text/babel" src="./src/main.jsx"></script>
-
-<script>
-(function () {
-  "use strict";
-
-  function hideLoader() {
-    var loader = document.getElementById("global-loader");
-    if (!loader) return;
-    loader.style.opacity = "0";
-    loader.style.pointerEvents = "none";
-    setTimeout(function () {
-      loader.style.display = "none";
-    }, 420);
-  }
-
-  setTimeout(hideLoader, 1200);
-
-  window.addEventListener("load", function () {
-    setTimeout(hideLoader, 300);
-  });
-
-  document.addEventListener("DOMContentLoaded", function () {
-    var poll = setInterval(function () {
-      var root = document.getElementById("root");
-      if (root && root.children.length > 0) {
-        clearInterval(poll);
-        hideLoader();
+      function hideLoader() {
+        var loader = document.getElementById("global-loader");
+        if (!loader) return;
+        loader.style.opacity = "0";
+        loader.style.pointerEvents = "none";
+        setTimeout(function () {
+          loader.style.display = "none";
+        }, 380);
       }
-    }, 100);
 
-    setTimeout(function () {
-      clearInterval(poll);
-    }, 2000);
-  });
-
-  function enhanceRouter() {
-    var original = window.setPage;
-    if (!original) return;
-
-    window.setPage = function (page) {
-      var routeEl = document.getElementById("route-indicator");
-      if (routeEl) routeEl.textContent = "Route: " + page;
-
-      document.querySelectorAll(".nav-link").forEach(function (el) {
-        el.classList.toggle("active", el.dataset.page === page);
+      setTimeout(hideLoader, 1200);
+      window.addEventListener("load", function () {
+        setTimeout(hideLoader, 220);
       });
 
-      original(page);
-    };
-  }
+      var lastTime = performance.now();
+      var frameCount = 0;
 
-  var routerPoll = setInterval(function () {
-    if (typeof window.setPage === "function") {
-      clearInterval(routerPoll);
-      enhanceRouter();
+      function countFPS() {
+        var now = performance.now();
+        frameCount++;
+        if (now > lastTime + 1000) {
+          var el = document.getElementById("fps-indicator");
+          if (el) el.textContent = "FPS: " + frameCount;
+          frameCount = 0;
+          lastTime = now;
+        }
+        requestAnimationFrame(countFPS);
+      }
 
-      var hash = window.location.hash.replace("#", "");
-      if (hash) window.setPage(hash);
-    }
-  }, 50);
+      requestAnimationFrame(countFPS);
 
-  setTimeout(function () {
-    clearInterval(routerPoll);
-  }, 3000);
+      function setNetworkStatus(online) {
+        var el = document.getElementById("network-status");
+        if (!el) return;
+        el.textContent = "Network: " + (online ? "online" : "offline");
+        el.style.color = online ? "#cbd5e1" : "#fca5a5";
+      }
 
-  var lastTime = performance.now();
-  var frameCount = 0;
+      window.addEventListener("online", function () {
+        setNetworkStatus(true);
+      });
 
-  function countFPS() {
-    var now = performance.now();
-    frameCount++;
-    if (now > lastTime + 1000) {
-      var el = document.getElementById("fps-indicator");
-      if (el) el.textContent = "FPS: " + frameCount;
-      frameCount = 0;
-      lastTime = now;
-    }
-    requestAnimationFrame(countFPS);
-  }
-  requestAnimationFrame(countFPS);
+      window.addEventListener("offline", function () {
+        setNetworkStatus(false);
+      });
 
-  window.addEventListener("scroll", function () {
-    var docH = document.body.scrollHeight - window.innerHeight;
-    var pct = docH > 0 ? (window.scrollY / docH) * 100 : 0;
-    var bar = document.getElementById("scroll-progress");
-    if (bar) bar.style.width = pct + "%";
-  }, { passive: true });
+      window.addEventListener(
+        "scroll",
+        function () {
+          var docH = document.body.scrollHeight - window.innerHeight;
+          var pct = docH > 0 ? (window.scrollY / docH) * 100 : 0;
+          var bar = document.getElementById("scroll-progress");
+          if (bar) bar.style.width = pct + "%";
+        },
+        { passive: true }
+      );
+    })();
+  </script>
 
-  function setNetworkStatus(online) {
-    var el = document.getElementById("network-status");
-    if (!el) return;
-    el.textContent = "Network: " + (online ? "online" : "offline");
-    el.style.color = online ? "" : "#ff6b6b";
-  }
-
-  window.addEventListener("online", function () {
-    setNetworkStatus(true);
-  });
-
-  window.addEventListener("offline", function () {
-    setNetworkStatus(false);
-  });
-})();
-</script>
-
+  <script type="text/babel" src="./src/api.js"></script>
+  <script type="text/babel" src="./src/components/UserProfileCard.jsx"></script>
+  <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
+  <script type="text/babel" src="./src/components/TSICard.jsx"></script>
+  <script type="text/babel" src="./src/components/MustWinCard.jsx"></script>
+  <script type="text/babel" src="./src/components/LiveWinProbTool.jsx"></script>
+  <script type="text/babel" src="./src/components/GameTable.jsx"></script>
+  <script type="text/babel" src="./src/components/PlayerRadar.jsx"></script>
+  <script type="text/babel" src="./src/components/Maps.jsx"></script>
+  <script type="text/babel" src="./src/components/ClutchIndex.jsx"></script>
+  <script type="text/babel" src="./src/components/EventsAdmin.jsx"></script>
+  <script type="text/babel" src="./src/components/Timeline.jsx"></script>
+  <script type="text/babel" src="./src/components/RivalTeamImpactPage.jsx"></script>
+  <script type="text/babel" src="./src/components/SeasonPathExplorer.jsx"></script>
+  <script type="text/babel" src="./src/components/HistoryPage.jsx"></script>
+  <script type="text/babel" src="./src/components/AIStorySimulator.jsx"></script>
+  <script type="text/babel" src="./src/main.jsx"></script>
 </body>
 </html>
