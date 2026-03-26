@@ -6,137 +6,108 @@ function Timeline() {
   const [inflectionPoints, setInflectionPoints] = React.useState([]);
   const [selectedEvent, setSelectedEvent] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState("");
-  const [timelineReason, setTimelineReason] = React.useState("");
   const canvasWidth = 1000;
   const canvasHeight = 400;
 
-  const fetchEvents = React.useCallback(async () => {
-    const data = await window.api.getPlayerEvents(season, 100);
-    return Array.isArray(data.events) ? data.events : [];
-  }, [season]);
-
-  const fetchTimeline = React.useCallback(async () => {
-    const data = await window.api.getTimelinePoints(season);
-    return {
-      points: Array.isArray(data.points) ? data.points : [],
-      inflectionPoints: Array.isArray(data.inflectionPoints) ? data.inflectionPoints : [],
-      reason: data.reason || "",
-      dataUnavailable: Boolean(data.dataUnavailable)
-    };
-  }, [season]);
-
-  const loadData = React.useCallback(async () => {
+  const fetchEvents = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError("");
-
-      const [eventsResult, timelineResult] = await Promise.all([
-        fetchEvents(),
-        fetchTimeline()
-      ]);
-
-      setEvents(eventsResult);
-      setTimelineData(timelineResult.points);
-      setInflectionPoints(timelineResult.inflectionPoints);
-      setTimelineReason(
-        timelineResult.dataUnavailable
-          ? timelineResult.reason || "No timeline points available."
-          : ""
+      const response = await fetch(
+        `${window.BASE_URL}/api/players/events?season=${season}&limit=100`
       );
+      if (!response.ok) throw new Error("Failed to fetch events");
+      const data = await response.json();
+      setEvents(data.events || []);
     } catch (err) {
-      setError(err.message || "Unable to load timeline data.");
+      console.error("Error fetching events:", err);
       setEvents([]);
-      setTimelineData([]);
-      setInflectionPoints([]);
-      setTimelineReason("");
     } finally {
       setLoading(false);
     }
-  }, [fetchEvents, fetchTimeline]);
+  };
+
+  const fetchTimeline = async () => {
+    try {
+      const response = await fetch(
+        `${window.BASE_URL}/api/timeline/points?season=${season}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch timeline");
+      const data = await response.json();
+      setTimelineData(data.points || []);
+      setInflectionPoints(data.inflectionPoints || []);
+    } catch (err) {
+      console.error("Error fetching timeline:", err);
+      setTimelineData([]);
+      setInflectionPoints([]);
+    }
+  };
 
   React.useEffect(() => {
-    loadData();
-  }, [loadData]);
+    fetchEvents();
+    fetchTimeline();
+  }, [season]);
 
   React.useEffect(() => {
-    drawTimeline({
-      points: timelineData,
-      inflections: inflectionPoints,
-      events,
-      reason: error || timelineReason,
-      state: error ? "error" : timelineData.length ? "ready" : "empty"
-    });
-  }, [timelineData, inflectionPoints, events, error, timelineReason]);
+    if (canvasRef.current && timelineData.length > 0) {
+      drawTimeline();
+    }
+  }, [timelineData, inflectionPoints, events]);
 
-  function clearCanvas(ctx) {
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-    ctx.fillStyle = "rgba(10, 15, 32, 0.98)";
+  const drawTimeline = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const padding = 50;
+
+    ctx.fillStyle = "rgba(20, 20, 40, 0.8)";
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-  }
 
-  function drawGrid(ctx, padding) {
-    ctx.strokeStyle = "rgba(148,163,184,0.12)";
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.lineWidth = 1;
 
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 0; i < 5; i++) {
       const y = padding + ((canvasHeight - padding * 2) / 4) * i;
       ctx.beginPath();
       ctx.moveTo(padding, y);
       ctx.lineTo(canvasWidth - padding, y);
       ctx.stroke();
     }
-  }
 
-  function drawEmptyState(ctx, title, detail) {
-    clearCanvas(ctx);
-
-    ctx.fillStyle = "#e2e8f0";
-    ctx.font = "700 24px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(title, canvasWidth / 2, canvasHeight / 2 - 10);
-
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "16px Arial";
-    ctx.fillText(detail, canvasWidth / 2, canvasHeight / 2 + 24);
-  }
-
-  function drawAxes(ctx, padding, minValue, maxValue) {
-    ctx.strokeStyle = "rgba(226,232,240,0.4)";
-    ctx.lineWidth = 1.5;
-
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(padding, padding);
     ctx.lineTo(padding, canvasHeight - padding);
     ctx.lineTo(canvasWidth - padding, canvasHeight - padding);
     ctx.stroke();
 
-    ctx.fillStyle = "#94a3b8";
+    const values = timelineData.map((point) => Number(point.value || 0));
+    const minValue = Math.min(...values, 0);
+    const maxValue = Math.max(...values, 0);
+    const chartHeight = canvasHeight - padding * 2;
+    const chartWidth = canvasWidth - padding * 2;
+    const range = Math.max(1, maxValue - minValue);
+
+    ctx.fillStyle = "#cbd5e1";
     ctx.font = "12px Arial";
     ctx.textAlign = "right";
 
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 0; i < 5; i++) {
       const value = maxValue - ((maxValue - minValue) / 4) * i;
-      const y = padding + ((canvasHeight - padding * 2) / 4) * i;
+      const y = padding + (chartHeight / 4) * i;
       ctx.fillText(value.toFixed(1), padding - 8, y + 4);
     }
-  }
-
-  function drawLine(ctx, points, padding, minValue, maxValue) {
-    if (!points.length) return;
-
-    const chartWidth = canvasWidth - padding * 2;
-    const chartHeight = canvasHeight - padding * 2;
-    const range = Math.max(1, maxValue - minValue);
 
     ctx.strokeStyle = "#38bdf8";
     ctx.lineWidth = 3;
     ctx.beginPath();
 
-    points.forEach((point, index) => {
-      const x = padding + (index / Math.max(1, points.length - 1)) * chartWidth;
+    timelineData.forEach((point, index) => {
+      const x = padding + (index / Math.max(1, timelineData.length - 1)) * chartWidth;
       const y =
-        padding + ((maxValue - Number(point.value || 0)) / range) * chartHeight;
+        padding +
+        ((maxValue - Number(point.value || 0)) / range) * chartHeight;
 
       if (index === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
@@ -144,153 +115,187 @@ function Timeline() {
 
     ctx.stroke();
 
-    points.forEach((point, index) => {
-      const x = padding + (index / Math.max(1, points.length - 1)) * chartWidth;
+    timelineData.forEach((point, index) => {
+      const x = padding + (index / Math.max(1, timelineData.length - 1)) * chartWidth;
       const y =
-        padding + ((maxValue - Number(point.value || 0)) / range) * chartHeight;
+        padding +
+        ((maxValue - Number(point.value || 0)) / range) * chartHeight;
 
       ctx.beginPath();
       ctx.fillStyle = "#93c5fd";
       ctx.arc(x, y, 4, 0, Math.PI * 2);
       ctx.fill();
     });
-  }
 
-  function drawLabels(ctx, points, padding) {
-    if (!points.length) return;
+    inflectionPoints.forEach((inflection) => {
+      const pointIndex = timelineData.findIndex((point) => point.date === inflection.date);
+      if (pointIndex === -1) return;
 
-    const chartWidth = canvasWidth - padding * 2;
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "11px Arial";
-    ctx.textAlign = "center";
-
-    const step = Math.max(1, Math.floor(points.length / 6));
-
-    for (let i = 0; i < points.length; i += step) {
-      const x = padding + (i / Math.max(1, points.length - 1)) * chartWidth;
-      const date = String(points[i].date || "");
-      ctx.fillText(date.slice(5), x, canvasHeight - padding + 20);
-    }
-  }
-
-  function drawInflections(ctx, points, inflections, padding, minValue, maxValue) {
-    if (!points.length || !inflections.length) return;
-
-    const chartWidth = canvasWidth - padding * 2;
-    const chartHeight = canvasHeight - padding * 2;
-    const range = Math.max(1, maxValue - minValue);
-
-    inflections.forEach((item) => {
-      const pointIndex = points.findIndex((p) => p.date === item.date);
-      if (pointIndex < 0) return;
-
-      const x = padding + (pointIndex / Math.max(1, points.length - 1)) * chartWidth;
-      const y = padding + ((maxValue - Number(points[pointIndex].value || 0)) / range) * chartHeight;
+      const x = padding + (pointIndex / Math.max(1, timelineData.length - 1)) * chartWidth;
+      const y =
+        padding +
+        ((maxValue - Number(timelineData[pointIndex].value || 0)) / range) * chartHeight;
 
       ctx.beginPath();
-      ctx.fillStyle = item.type === "peak" ? "#22c55e" : "#f59e0b";
+      ctx.fillStyle = inflection.type === "peak" ? "#22c55e" : "#f59e0b";
       ctx.arc(x, y, 6, 0, Math.PI * 2);
       ctx.fill();
     });
-  }
 
-  function drawHeader(ctx, points) {
     ctx.fillStyle = "#f8fafc";
-    ctx.font = "700 20px Arial";
+    ctx.font = "700 18px Arial";
     ctx.textAlign = "left";
-    ctx.fillText(`Timeline View · ${season}`, 24, 30);
+    ctx.fillText(`Season Timeline ${season}`, 20, 28);
 
     ctx.fillStyle = "#94a3b8";
-    ctx.font = "14px Arial";
-    ctx.fillText(`Points: ${points.length} · Events: ${events.length}`, 24, 54);
-  }
+    ctx.font = "12px Arial";
+    ctx.fillText(`Points: ${timelineData.length} · Events: ${events.length}`, 20, 48);
 
-  function drawTimeline({ points, inflections, reason, state }) {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#94a3b8";
+    const step = Math.max(1, Math.floor(timelineData.length / 6));
 
-    const ctx = canvas.getContext("2d");
-    const padding = 60;
-
-    if (state === "error") {
-      drawEmptyState(ctx, "Timeline unavailable", reason || "A request failed.");
-      return;
+    for (let i = 0; i < timelineData.length; i += step) {
+      const x = padding + (i / Math.max(1, timelineData.length - 1)) * chartWidth;
+      const label = String(timelineData[i].date || "").slice(5);
+      ctx.fillText(label, x, canvasHeight - padding + 18);
     }
-
-    if (!points.length) {
-      drawEmptyState(
-        ctx,
-        "No timeline data",
-        reason || "No real timeline points were returned for this season."
-      );
-      return;
-    }
-
-    clearCanvas(ctx);
-    drawHeader(ctx, points);
-    drawGrid(ctx, padding);
-
-    const values = points.map((p) => Number(p.value || 0));
-    const minValue = Math.min(...values, 0);
-    const maxValue = Math.max(...values, 0);
-
-    drawAxes(ctx, padding, minValue, maxValue);
-    drawLine(ctx, points, padding, minValue, maxValue);
-    drawInflections(ctx, points, inflections, padding, minValue, maxValue);
-    drawLabels(ctx, points, padding);
-  }
-
-  const eventRows = events.slice(0, 12);
+  };
 
   return (
-    <div style={styles.page}>
-      <div style={styles.header}>
+    <div style={{ padding: "2rem", maxWidth: "1300px", margin: "0 auto" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "end",
+          gap: "1rem",
+          marginBottom: "1.5rem",
+        }}
+      >
         <div>
-          <h1 style={styles.title}>Timeline</h1>
-          <p style={styles.subtitle}>
-            Canvas now clears and repaints on empty, error, and loaded states.
+          <h1 style={{ margin: 0, color: "#1e293b" }}>Timeline</h1>
+          <p style={{ marginTop: "0.5rem", color: "#64748b" }}>
+            Event timeline and inflection points for the selected season.
           </p>
         </div>
 
-        <div style={styles.controls}>
-          <label style={styles.label}>
-            Season
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "end" }}>
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: "0.4rem",
+                fontSize: "0.85rem",
+                fontWeight: "600",
+                color: "#334155",
+              }}
+            >
+              Season
+            </label>
             <input
               type="number"
               value={season}
-              onChange={(e) => setSeason(Number(e.target.value) || new Date().getFullYear())}
-              style={styles.input}
+              onChange={(e) =>
+                setSeason(Number(e.target.value) || new Date().getFullYear())
+              }
+              style={{
+                padding: "0.7rem 0.85rem",
+                border: "1px solid #cbd5e1",
+                borderRadius: "8px",
+                width: "120px",
+              }}
             />
-          </label>
+          </div>
 
-          <button style={styles.button} onClick={loadData}>
+          <button
+            onClick={() => {
+              fetchEvents();
+              fetchTimeline();
+            }}
+            style={{
+              padding: "0.8rem 1.2rem",
+              background: "#0284c7",
+              color: "#fff",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: "600",
+            }}
+          >
             Refresh
           </button>
         </div>
       </div>
 
-      {loading ? <div style={styles.notice}>Loading timeline data…</div> : null}
-      {error ? <div style={styles.error}>{error}</div> : null}
-      {!error && timelineReason ? <div style={styles.notice}>{timelineReason}</div> : null}
+      {loading ? (
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "10px",
+            padding: "1rem 1.25rem",
+            marginBottom: "1rem",
+            color: "#64748b",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
+          Loading timeline data...
+        </div>
+      ) : null}
 
-      <div style={styles.canvasWrap}>
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: "12px",
+          padding: "1rem",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+          overflowX: "auto",
+          marginBottom: "1.5rem",
+        }}
+      >
         <canvas
           ref={canvasRef}
           width={canvasWidth}
           height={canvasHeight}
-          style={styles.canvas}
+          style={{
+            display: "block",
+            width: "100%",
+            maxWidth: "1000px",
+            borderRadius: "8px",
+          }}
         />
       </div>
 
-      <div style={styles.grid}>
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>Inflection Points</h3>
-          {!inflectionPoints.length ? (
-            <p style={styles.cardText}>No inflection points available.</p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "1.5rem",
+        }}
+      >
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "10px",
+            padding: "1.25rem",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
+          <h2 style={{ marginTop: 0, color: "#1e293b" }}>Inflection Points</h2>
+
+          {inflectionPoints.length === 0 ? (
+            <div style={{ color: "#64748b" }}>No inflection points available.</div>
           ) : (
-            <ul style={styles.list}>
-              {inflectionPoints.slice(0, 10).map((point, index) => (
-                <li key={`${point.date}-${index}`} style={styles.listItem}>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {inflectionPoints.slice(0, 12).map((point, idx) => (
+                <li
+                  key={`${point.date}-${idx}`}
+                  style={{
+                    padding: "0.8rem 0",
+                    borderBottom: "1px solid #f1f5f9",
+                    color: "#334155",
+                  }}
+                >
                   <strong>{point.date}</strong> · {point.type} · {point.mode || "daily"}
                 </li>
               ))}
@@ -298,20 +303,35 @@ function Timeline() {
           )}
         </div>
 
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>Recent Events</h3>
-          {!eventRows.length ? (
-            <p style={styles.cardText}>No events returned.</p>
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "10px",
+            padding: "1.25rem",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
+          <h2 style={{ marginTop: 0, color: "#1e293b" }}>Recent Events</h2>
+
+          {events.length === 0 ? (
+            <div style={{ color: "#64748b" }}>No events returned.</div>
           ) : (
-            <ul style={styles.list}>
-              {eventRows.map((event, index) => (
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {events.slice(0, 12).map((event, idx) => (
                 <li
-                  key={event.id || index}
-                  style={styles.listItem}
+                  key={event.id || idx}
                   onClick={() => setSelectedEvent(event)}
+                  style={{
+                    padding: "0.8rem 0",
+                    borderBottom: "1px solid #f1f5f9",
+                    cursor: "pointer",
+                    color: "#334155",
+                  }}
                 >
-                  <strong>{event.title || event.event_type || "Event"}</strong>
-                  <div style={styles.eventSub}>
+                  <div style={{ fontWeight: "700" }}>
+                    {event.title || event.event_type || "Event"}
+                  </div>
+                  <div style={{ color: "#64748b", fontSize: "0.85rem", marginTop: "0.25rem" }}>
                     {event.event_date || event.date || "Unknown date"}
                   </div>
                 </li>
@@ -321,19 +341,28 @@ function Timeline() {
         </div>
       </div>
 
-      <div style={styles.card}>
-        <h3 style={styles.cardTitle}>Selected Event</h3>
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: "10px",
+          padding: "1.25rem",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          marginTop: "1.5rem",
+        }}
+      >
+        <h2 style={{ marginTop: 0, color: "#1e293b" }}>Selected Event</h2>
+
         {!selectedEvent ? (
-          <p style={styles.cardText}>Select an event to inspect its detail.</p>
+          <div style={{ color: "#64748b" }}>Select an event to inspect details.</div>
         ) : (
           <div>
-            <div style={styles.eventDetailTitle}>
+            <div style={{ fontWeight: "700", fontSize: "1.05rem", color: "#0f172a" }}>
               {selectedEvent.title || selectedEvent.event_type || "Event"}
             </div>
-            <div style={styles.eventSub}>
+            <div style={{ color: "#64748b", marginTop: "0.35rem" }}>
               {selectedEvent.event_date || selectedEvent.date || "Unknown date"}
             </div>
-            <div style={styles.eventBody}>
+            <div style={{ color: "#334155", marginTop: "0.9rem", lineHeight: 1.6 }}>
               {selectedEvent.detail ||
                 selectedEvent.description ||
                 selectedEvent.message ||
@@ -345,132 +374,5 @@ function Timeline() {
     </div>
   );
 }
-
-const styles = {
-  page: {
-    maxWidth: "1280px",
-    margin: "0 auto",
-    color: "#e5e7eb"
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "16px",
-    alignItems: "flex-start",
-    marginBottom: "16px"
-  },
-  title: {
-    margin: 0,
-    color: "#f8fafc",
-    fontSize: "2rem"
-  },
-  subtitle: {
-    marginTop: "8px",
-    color: "#94a3b8"
-  },
-  controls: {
-    display: "flex",
-    gap: "12px",
-    alignItems: "end"
-  },
-  label: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-    color: "#cbd5e1",
-    fontSize: "0.9rem"
-  },
-  input: {
-    background: "#0f172a",
-    color: "#f8fafc",
-    border: "1px solid rgba(148,163,184,0.25)",
-    borderRadius: "10px",
-    padding: "10px 12px",
-    width: "120px"
-  },
-  button: {
-    background: "#2563eb",
-    color: "#fff",
-    border: "none",
-    borderRadius: "10px",
-    padding: "10px 14px",
-    cursor: "pointer",
-    fontWeight: 700
-  },
-  notice: {
-    background: "rgba(37,99,235,0.08)",
-    color: "#bfdbfe",
-    border: "1px solid rgba(96,165,250,0.2)",
-    borderRadius: "12px",
-    padding: "12px 14px",
-    marginBottom: "14px"
-  },
-  error: {
-    background: "rgba(127,29,29,0.22)",
-    color: "#fecaca",
-    border: "1px solid rgba(248,113,113,0.3)",
-    borderRadius: "12px",
-    padding: "12px 14px",
-    marginBottom: "14px"
-  },
-  canvasWrap: {
-    background: "rgba(15,23,42,0.8)",
-    border: "1px solid rgba(148,163,184,0.15)",
-    borderRadius: "16px",
-    padding: "16px",
-    marginBottom: "18px",
-    overflowX: "auto"
-  },
-  canvas: {
-    width: "100%",
-    maxWidth: "1000px",
-    borderRadius: "12px",
-    display: "block"
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "18px",
-    marginBottom: "18px"
-  },
-  card: {
-    background: "rgba(15,23,42,0.8)",
-    border: "1px solid rgba(148,163,184,0.15)",
-    borderRadius: "16px",
-    padding: "18px"
-  },
-  cardTitle: {
-    marginTop: 0,
-    color: "#f8fafc"
-  },
-  cardText: {
-    color: "#94a3b8"
-  },
-  list: {
-    listStyle: "none",
-    padding: 0,
-    margin: 0
-  },
-  listItem: {
-    padding: "10px 0",
-    borderBottom: "1px solid rgba(148,163,184,0.08)",
-    cursor: "pointer"
-  },
-  eventSub: {
-    color: "#94a3b8",
-    fontSize: "0.85rem",
-    marginTop: "4px"
-  },
-  eventDetailTitle: {
-    fontWeight: 800,
-    color: "#f8fafc",
-    fontSize: "1.05rem"
-  },
-  eventBody: {
-    marginTop: "10px",
-    color: "#cbd5e1",
-    lineHeight: 1.6
-  }
-};
 
 window.Timeline = Timeline;
