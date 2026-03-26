@@ -1,5 +1,3 @@
-// frontend/src/components/Timeline.jsx
-
 function Timeline() {
   const canvasRef = React.useRef(null);
   const [events, setEvents] = React.useState([]);
@@ -8,299 +6,471 @@ function Timeline() {
   const [inflectionPoints, setInflectionPoints] = React.useState([]);
   const [selectedEvent, setSelectedEvent] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [timelineReason, setTimelineReason] = React.useState("");
   const canvasWidth = 1000;
   const canvasHeight = 400;
 
-  // Fetch player events
-  const fetchEvents = async () => {
-    setLoading(true);
+  const fetchEvents = React.useCallback(async () => {
+    const data = await window.api.getPlayerEvents(season, 100);
+    return Array.isArray(data.events) ? data.events : [];
+  }, [season]);
+
+  const fetchTimeline = React.useCallback(async () => {
+    const data = await window.api.getTimelinePoints(season);
+    return {
+      points: Array.isArray(data.points) ? data.points : [],
+      inflectionPoints: Array.isArray(data.inflectionPoints) ? data.inflectionPoints : [],
+      reason: data.reason || "",
+      dataUnavailable: Boolean(data.dataUnavailable)
+    };
+  }, [season]);
+
+  const loadData = React.useCallback(async () => {
     try {
-      const response = await fetch(
-        `${window.BASE_URL}/api/players/events?season=${season}&limit=100`
+      setLoading(true);
+      setError("");
+
+      const [eventsResult, timelineResult] = await Promise.all([
+        fetchEvents(),
+        fetchTimeline()
+      ]);
+
+      setEvents(eventsResult);
+      setTimelineData(timelineResult.points);
+      setInflectionPoints(timelineResult.inflectionPoints);
+      setTimelineReason(
+        timelineResult.dataUnavailable
+          ? timelineResult.reason || "No timeline points available."
+          : ""
       );
-      if (!response.ok) throw new Error("Failed to fetch events");
-      const data = await response.json();
-      setEvents(data.events || []);
     } catch (err) {
-      console.error("Error fetching events:", err);
+      setError(err.message || "Unable to load timeline data.");
       setEvents([]);
+      setTimelineData([]);
+      setInflectionPoints([]);
+      setTimelineReason("");
     } finally {
       setLoading(false);
     }
-  };
-
-  // Fetch timeline data with inflection points
-  const fetchTimeline = async () => {
-    try {
-      const response = await fetch(
-        `${window.BASE_URL}/api/timeline/points?season=${season}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch timeline");
-      const data = await response.json();
-      setTimelineData(data.points || []);
-      setInflectionPoints(data.inflectionPoints || []);
-    } catch (err) {
-      console.error("Error fetching timeline:", err);
-      setTimelineData([]);
-      setInflectionPoints([]);
-    }
-  };
+  }, [fetchEvents, fetchTimeline]);
 
   React.useEffect(() => {
-    fetchEvents();
-    fetchTimeline();
-  }, [season]);
+    loadData();
+  }, [loadData]);
 
   React.useEffect(() => {
-    if (canvasRef.current && timelineData.length > 0) {
-      drawTimeline();
-    }
-  }, [timelineData, inflectionPoints, events]);
+    drawTimeline({
+      points: timelineData,
+      inflections: inflectionPoints,
+      events,
+      reason: error || timelineReason,
+      state: error ? "error" : timelineData.length ? "ready" : "empty"
+    });
+  }, [timelineData, inflectionPoints, events, error, timelineReason]);
 
-  const drawTimeline = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    const padding = 50;
-    
-    // Clear canvas
-    ctx.fillStyle = "rgba(20, 20, 40, 0.8)";
+  function clearCanvas(ctx) {
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    ctx.fillStyle = "rgba(10, 15, 32, 0.98)";
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  }
 
-    // Draw border
-    ctx.strokeStyle = "rgba(0, 212, 255, 0.3)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(20, 20, canvasWidth - 40, canvasHeight - 40);
-
-    if (timelineData.length === 0) {
-      ctx.fillStyle = "#909090";
-      ctx.font = "16px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("No timeline data available", canvasWidth / 2, canvasHeight / 2);
-      return;
-    }
-
-    // Find min/max values
-    const values = timelineData.map((p) => p.value);
-    const minValue = Math.min(...values);
-    const maxValue = Math.max(...values);
-    const valueRange = maxValue - minValue || 1;
-
-    // Draw grid lines
-    ctx.strokeStyle = "rgba(0, 212, 255, 0.1)";
+  function drawGrid(ctx, padding) {
+    ctx.strokeStyle = "rgba(148,163,184,0.12)";
     ctx.lineWidth = 1;
-    const graphHeight = canvasHeight - 2 * padding;
-    
-    for (let i = 0; i <= 4; i++) {
-      const y = padding + (graphHeight / 4) * i;
+
+    for (let i = 0; i < 5; i += 1) {
+      const y = padding + ((canvasHeight - padding * 2) / 4) * i;
       ctx.beginPath();
       ctx.moveTo(padding, y);
       ctx.lineTo(canvasWidth - padding, y);
       ctx.stroke();
-
-      // Y-axis labels
-      const value = maxValue - (valueRange / 4) * i;
-      ctx.fillStyle = "#909090";
-      ctx.font = "12px Arial";
-      ctx.textAlign = "right";
-      ctx.fillText(value.toFixed(1), padding - 10, y + 4);
     }
+  }
 
-    const graphWidth = canvasWidth - 2 * padding;
+  function drawEmptyState(ctx, title, detail) {
+    clearCanvas(ctx);
 
-    // Draw X-axis labels (dates)
-    ctx.fillStyle = "#909090";
-    ctx.font = "12px Arial";
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = "700 24px Arial";
     ctx.textAlign = "center";
-    for (let i = 0; i < timelineData.length; i += Math.max(1, Math.floor(timelineData.length / 5))) {
-      const x = padding + (graphWidth / (timelineData.length - 1)) * i;
-      const date = new Date(timelineData[i].date);
-      ctx.fillText(date.toLocaleDateString(), x, canvasHeight - 15);
-    }
+    ctx.fillText(title, canvasWidth / 2, canvasHeight / 2 - 10);
 
-    // Draw main timeline line
-    ctx.strokeStyle = "#00d4ff";
-    ctx.lineWidth = 2;
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "16px Arial";
+    ctx.fillText(detail, canvasWidth / 2, canvasHeight / 2 + 24);
+  }
+
+  function drawAxes(ctx, padding, minValue, maxValue) {
+    ctx.strokeStyle = "rgba(226,232,240,0.4)";
+    ctx.lineWidth = 1.5;
+
     ctx.beginPath();
-    for (let i = 0; i < timelineData.length; i++) {
-      const x = padding + (graphWidth / (timelineData.length - 1)) * i;
-      const y = canvasHeight - padding - ((timelineData[i].value - minValue) / valueRange) * graphHeight;
-
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    }
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, canvasHeight - padding);
+    ctx.lineTo(canvasWidth - padding, canvasHeight - padding);
     ctx.stroke();
 
-    // Draw main data points
-    ctx.fillStyle = "#00d4ff";
-    for (let i = 0; i < timelineData.length; i++) {
-      const x = padding + (graphWidth / (timelineData.length - 1)) * i;
-      const y = canvasHeight - padding - ((timelineData[i].value - minValue) / valueRange) * graphHeight;
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "right";
+
+    for (let i = 0; i < 5; i += 1) {
+      const value = maxValue - ((maxValue - minValue) / 4) * i;
+      const y = padding + ((canvasHeight - padding * 2) / 4) * i;
+      ctx.fillText(value.toFixed(1), padding - 8, y + 4);
+    }
+  }
+
+  function drawLine(ctx, points, padding, minValue, maxValue) {
+    if (!points.length) return;
+
+    const chartWidth = canvasWidth - padding * 2;
+    const chartHeight = canvasHeight - padding * 2;
+    const range = Math.max(1, maxValue - minValue);
+
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+
+    points.forEach((point, index) => {
+      const x = padding + (index / Math.max(1, points.length - 1)) * chartWidth;
+      const y =
+        padding + ((maxValue - Number(point.value || 0)) / range) * chartHeight;
+
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+
+    ctx.stroke();
+
+    points.forEach((point, index) => {
+      const x = padding + (index / Math.max(1, points.length - 1)) * chartWidth;
+      const y =
+        padding + ((maxValue - Number(point.value || 0)) / range) * chartHeight;
 
       ctx.beginPath();
-      ctx.arc(x, y, 4, 0, 2 * Math.PI);
+      ctx.fillStyle = "#93c5fd";
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
       ctx.fill();
+    });
+  }
+
+  function drawLabels(ctx, points, padding) {
+    if (!points.length) return;
+
+    const chartWidth = canvasWidth - padding * 2;
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "11px Arial";
+    ctx.textAlign = "center";
+
+    const step = Math.max(1, Math.floor(points.length / 6));
+
+    for (let i = 0; i < points.length; i += step) {
+      const x = padding + (i / Math.max(1, points.length - 1)) * chartWidth;
+      const date = String(points[i].date || "");
+      ctx.fillText(date.slice(5), x, canvasHeight - padding + 20);
+    }
+  }
+
+  function drawInflections(ctx, points, inflections, padding, minValue, maxValue) {
+    if (!points.length || !inflections.length) return;
+
+    const chartWidth = canvasWidth - padding * 2;
+    const chartHeight = canvasHeight - padding * 2;
+    const range = Math.max(1, maxValue - minValue);
+
+    inflections.forEach((item) => {
+      const pointIndex = points.findIndex((p) => p.date === item.date);
+      if (pointIndex < 0) return;
+
+      const x = padding + (pointIndex / Math.max(1, points.length - 1)) * chartWidth;
+      const y = padding + ((maxValue - Number(points[pointIndex].value || 0)) / range) * chartHeight;
+
+      ctx.beginPath();
+      ctx.fillStyle = item.type === "peak" ? "#22c55e" : "#f59e0b";
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  function drawHeader(ctx, points) {
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "700 20px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(`Timeline View · ${season}`, 24, 30);
+
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "14px Arial";
+    ctx.fillText(`Points: ${points.length} · Events: ${events.length}`, 24, 54);
+  }
+
+  function drawTimeline({ points, inflections, reason, state }) {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const padding = 60;
+
+    if (state === "error") {
+      drawEmptyState(ctx, "Timeline unavailable", reason || "A request failed.");
+      return;
     }
 
-    // Draw inflection points
-    inflectionPoints.forEach((point) => {
-      const idx = timelineData.findIndex((p) => p.date === point.date);
-      if (idx !== -1) {
-        const x = padding + (graphWidth / (timelineData.length - 1)) * idx;
-        const y = canvasHeight - padding - ((timelineData[idx].value - minValue) / valueRange) * graphHeight;
-
-        // Draw inflection indicator
-        ctx.strokeStyle = point.type === "peak" ? "#ff4444" : "#44ff44";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(x, y, 10, 0, 2 * Math.PI);
-        ctx.stroke();
-
-        // Draw label
-        ctx.fillStyle = point.type === "peak" ? "#ff8888" : "#88ff88";
-        ctx.font = "bold 12px Arial";
-        ctx.textAlign = "center";
-        const labelY = point.type === "peak" ? y - 25 : y + 20;
-        ctx.fillText(point.type.toUpperCase(), x, labelY);
-      }
-    });
-
-    // Draw event markers
-    events.forEach((event) => {
-      const eventIdx = timelineData.findIndex(
-        (p) => p.date.split("T")[0] === event.event_date.split("T")[0]
+    if (!points.length) {
+      drawEmptyState(
+        ctx,
+        "No timeline data",
+        reason || "No real timeline points were returned for this season."
       );
-      if (eventIdx !== -1) {
-        const x = padding + (graphWidth / (timelineData.length - 1)) * eventIdx;
-        const y = canvasHeight - padding - ((timelineData[eventIdx].value - minValue) / valueRange) * graphHeight;
+      return;
+    }
 
-        // Draw event marker (diamond)
-        const size = 8;
-        ctx.fillStyle = "#ffaa00";
-        ctx.beginPath();
-        ctx.moveTo(x, y - size);
-        ctx.lineTo(x + size, y);
-        ctx.lineTo(x, y + size);
-        ctx.lineTo(x - size, y);
-        ctx.closePath();
-        ctx.fill();
-      }
-    });
-  };
+    clearCanvas(ctx);
+    drawHeader(ctx, points);
+    drawGrid(ctx, padding);
+
+    const values = points.map((p) => Number(p.value || 0));
+    const minValue = Math.min(...values, 0);
+    const maxValue = Math.max(...values, 0);
+
+    drawAxes(ctx, padding, minValue, maxValue);
+    drawLine(ctx, points, padding, minValue, maxValue);
+    drawInflections(ctx, points, inflections, padding, minValue, maxValue);
+    drawLabels(ctx, points, padding);
+  }
+
+  const eventRows = events.slice(0, 12);
 
   return (
-    <div className="timeline-page">
-      <div className="timeline-container">
-        <h1>Cowboys Timeline Analytics</h1>
-        <p className="subtitle">Season performance with inflection points and events</p>
+    <div style={styles.page}>
+      <div style={styles.header}>
+        <div>
+          <h1 style={styles.title}>Timeline</h1>
+          <p style={styles.subtitle}>
+            Canvas now clears and repaints on empty, error, and loaded states.
+          </p>
+        </div>
 
-        <div className="timeline-controls">
-          <div className="control-group">
-            <label htmlFor="season">Season:</label>
-            <select
-              id="season"
+        <div style={styles.controls}>
+          <label style={styles.label}>
+            Season
+            <input
+              type="number"
               value={season}
-              onChange={(e) => setSeason(Number(e.target.value))}
-              className="season-select"
-            >
-              {[2020, 2021, 2022, 2023, 2024, 2025].map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {loading && <div className="loading">Loading...</div>}
-        </div>
-
-        <div className="timeline-content">
-          <div className="canvas-wrapper">
-            <canvas
-              ref={canvasRef}
-              width={canvasWidth}
-              height={canvasHeight}
-              className="timeline-canvas"
+              onChange={(e) => setSeason(Number(e.target.value) || new Date().getFullYear())}
+              style={styles.input}
             />
-          </div>
+          </label>
 
-          <div className="legend">
-            <h3>Legend</h3>
-            <div className="legend-item">
-              <div className="legend-color cyan"></div>
-              <span>Timeline</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-color gold"></div>
-              <span>Player Events</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-marker peak"></div>
-              <span>Peak (Local Max)</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-marker valley"></div>
-              <span>Valley (Local Min)</span>
-            </div>
-          </div>
+          <button style={styles.button} onClick={loadData}>
+            Refresh
+          </button>
         </div>
+      </div>
 
-        <div className="inflection-details">
-          <h2>Inflection Points</h2>
-          {inflectionPoints.length === 0 ? (
-            <p className="no-data">No inflection points detected</p>
+      {loading ? <div style={styles.notice}>Loading timeline data…</div> : null}
+      {error ? <div style={styles.error}>{error}</div> : null}
+      {!error && timelineReason ? <div style={styles.notice}>{timelineReason}</div> : null}
+
+      <div style={styles.canvasWrap}>
+        <canvas
+          ref={canvasRef}
+          width={canvasWidth}
+          height={canvasHeight}
+          style={styles.canvas}
+        />
+      </div>
+
+      <div style={styles.grid}>
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Inflection Points</h3>
+          {!inflectionPoints.length ? (
+            <p style={styles.cardText}>No inflection points available.</p>
           ) : (
-            <ul className="inflection-list">
-              {inflectionPoints.map((point, idx) => (
-                <li key={idx} className={`inflection-item ${point.type}`}>
-                  <div className="inflection-type">{point.type.toUpperCase()}</div>
-                  <div className="inflection-date">{new Date(point.date).toLocaleDateString()}</div>
-                  {point.description && (
-                    <div className="inflection-description">{point.description}</div>
-                  )}
+            <ul style={styles.list}>
+              {inflectionPoints.slice(0, 10).map((point, index) => (
+                <li key={`${point.date}-${index}`} style={styles.listItem}>
+                  <strong>{point.date}</strong> · {point.type} · {point.mode || "daily"}
                 </li>
               ))}
             </ul>
           )}
         </div>
 
-        <div className="events-timeline">
-          <h2>Events ({events.length})</h2>
-          {events.length === 0 ? (
-            <p className="no-data">No events recorded</p>
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Recent Events</h3>
+          {!eventRows.length ? (
+            <p style={styles.cardText}>No events returned.</p>
           ) : (
-            <div className="events-list">
-              {events.map((event, idx) => (
-                <div
-                  key={idx}
-                  className={`event-card ${selectedEvent === idx ? "selected" : ""}`}
-                  onClick={() => setSelectedEvent(selectedEvent === idx ? null : idx)}
+            <ul style={styles.list}>
+              {eventRows.map((event, index) => (
+                <li
+                  key={event.id || index}
+                  style={styles.listItem}
+                  onClick={() => setSelectedEvent(event)}
                 >
-                  <div className="event-card-header">
-                    <span className="event-card-player">{event.player_name}</span>
-                    <span className="event-card-type">{event.event_type}</span>
+                  <strong>{event.title || event.event_type || "Event"}</strong>
+                  <div style={styles.eventSub}>
+                    {event.event_date || event.date || "Unknown date"}
                   </div>
-                  <div className="event-card-date">
-                    {new Date(event.event_date).toLocaleDateString()}
-                  </div>
-                  <div className={`event-card-impact impact-${Math.ceil(event.impact_score / 2)}`}>
-                    Impact: {event.impact_score}/10
-                  </div>
-                  {event.description && selectedEvent === idx && (
-                    <div className="event-card-description">{event.description}</div>
-                  )}
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
+      </div>
+
+      <div style={styles.card}>
+        <h3 style={styles.cardTitle}>Selected Event</h3>
+        {!selectedEvent ? (
+          <p style={styles.cardText}>Select an event to inspect its detail.</p>
+        ) : (
+          <div>
+            <div style={styles.eventDetailTitle}>
+              {selectedEvent.title || selectedEvent.event_type || "Event"}
+            </div>
+            <div style={styles.eventSub}>
+              {selectedEvent.event_date || selectedEvent.date || "Unknown date"}
+            </div>
+            <div style={styles.eventBody}>
+              {selectedEvent.detail ||
+                selectedEvent.description ||
+                selectedEvent.message ||
+                "No additional detail available."}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+const styles = {
+  page: {
+    maxWidth: "1280px",
+    margin: "0 auto",
+    color: "#e5e7eb"
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "16px",
+    alignItems: "flex-start",
+    marginBottom: "16px"
+  },
+  title: {
+    margin: 0,
+    color: "#f8fafc",
+    fontSize: "2rem"
+  },
+  subtitle: {
+    marginTop: "8px",
+    color: "#94a3b8"
+  },
+  controls: {
+    display: "flex",
+    gap: "12px",
+    alignItems: "end"
+  },
+  label: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    color: "#cbd5e1",
+    fontSize: "0.9rem"
+  },
+  input: {
+    background: "#0f172a",
+    color: "#f8fafc",
+    border: "1px solid rgba(148,163,184,0.25)",
+    borderRadius: "10px",
+    padding: "10px 12px",
+    width: "120px"
+  },
+  button: {
+    background: "#2563eb",
+    color: "#fff",
+    border: "none",
+    borderRadius: "10px",
+    padding: "10px 14px",
+    cursor: "pointer",
+    fontWeight: 700
+  },
+  notice: {
+    background: "rgba(37,99,235,0.08)",
+    color: "#bfdbfe",
+    border: "1px solid rgba(96,165,250,0.2)",
+    borderRadius: "12px",
+    padding: "12px 14px",
+    marginBottom: "14px"
+  },
+  error: {
+    background: "rgba(127,29,29,0.22)",
+    color: "#fecaca",
+    border: "1px solid rgba(248,113,113,0.3)",
+    borderRadius: "12px",
+    padding: "12px 14px",
+    marginBottom: "14px"
+  },
+  canvasWrap: {
+    background: "rgba(15,23,42,0.8)",
+    border: "1px solid rgba(148,163,184,0.15)",
+    borderRadius: "16px",
+    padding: "16px",
+    marginBottom: "18px",
+    overflowX: "auto"
+  },
+  canvas: {
+    width: "100%",
+    maxWidth: "1000px",
+    borderRadius: "12px",
+    display: "block"
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "18px",
+    marginBottom: "18px"
+  },
+  card: {
+    background: "rgba(15,23,42,0.8)",
+    border: "1px solid rgba(148,163,184,0.15)",
+    borderRadius: "16px",
+    padding: "18px"
+  },
+  cardTitle: {
+    marginTop: 0,
+    color: "#f8fafc"
+  },
+  cardText: {
+    color: "#94a3b8"
+  },
+  list: {
+    listStyle: "none",
+    padding: 0,
+    margin: 0
+  },
+  listItem: {
+    padding: "10px 0",
+    borderBottom: "1px solid rgba(148,163,184,0.08)",
+    cursor: "pointer"
+  },
+  eventSub: {
+    color: "#94a3b8",
+    fontSize: "0.85rem",
+    marginTop: "4px"
+  },
+  eventDetailTitle: {
+    fontWeight: 800,
+    color: "#f8fafc",
+    fontSize: "1.05rem"
+  },
+  eventBody: {
+    marginTop: "10px",
+    color: "#cbd5e1",
+    lineHeight: 1.6
+  }
+};
 
 window.Timeline = Timeline;
