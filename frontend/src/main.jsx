@@ -1,4 +1,4 @@
-const { useState, useEffect } = React;
+const { useEffect, useMemo, useState } = React;
 
 function PlaceholderCard({ title, text }) {
   return (
@@ -52,7 +52,7 @@ function Dashboard() {
           <div className="card">
             <h3>Playoff Outlook</h3>
             <p className="text-small text-muted">
-              Live team metrics plus simulation-driven what-if analysis.
+              Live team metrics plus what-if analysis.
             </p>
           </div>
 
@@ -88,8 +88,92 @@ function AnalyticsPage() {
   );
 }
 
+function useAppRouter() {
+  const allowedPages = useMemo(
+    () =>
+      new Set([
+        "dashboard",
+        "simulator",
+        "quantum",
+        "analytics",
+        "rival",
+        "clutch",
+        "timeline",
+        "paths",
+        "liveprob",
+        "events",
+        "profile",
+        "history"
+      ]),
+    []
+  );
+
+  function normalizePage(page) {
+    const raw = String(page || "").replace(/^#/, "").trim();
+    return allowedPages.has(raw) ? raw : "dashboard";
+  }
+
+  const [currentPage, setCurrentPage] = useState(
+    normalizePage(window.location.hash)
+  );
+
+  useEffect(() => {
+    function updateIndicators(page) {
+      const routeEl = document.getElementById("route-indicator");
+      if (routeEl) routeEl.textContent = `Route: ${page}`;
+
+      document.querySelectorAll(".nav-link").forEach((el) => {
+        el.classList.toggle("active", el.dataset.page === page);
+      });
+    }
+
+    function navigate(page, options = {}) {
+      const normalized = normalizePage(page);
+      setCurrentPage(normalized);
+
+      if (!options.skipHashUpdate) {
+        const nextHash = `#${normalized}`;
+        if (window.location.hash !== nextHash) {
+          window.location.hash = normalized;
+        }
+      }
+
+      updateIndicators(normalized);
+    }
+
+    function handleHashChange() {
+      navigate(window.location.hash, { skipHashUpdate: true });
+    }
+
+    window.setPage = navigate;
+
+    document.querySelectorAll(".nav-link").forEach((el) => {
+      el.onclick = () => navigate(el.dataset.page);
+    });
+
+    updateIndicators(currentPage);
+    window.addEventListener("hashchange", handleHashChange);
+
+    const initialHash = window.location.hash.replace("#", "");
+    if (initialHash) {
+      navigate(initialHash, { skipHashUpdate: true });
+    } else {
+      navigate("dashboard", { skipHashUpdate: true });
+    }
+
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+      document.querySelectorAll(".nav-link").forEach((el) => {
+        el.onclick = null;
+      });
+    };
+  }, [allowedPages, currentPage]);
+
+  return currentPage;
+}
+
 function App() {
-  const [currentPage, setCurrentPage] = useState("dashboard");
+  const currentPage = useAppRouter();
 
   const AIStorySimulator = getGlobalComponent("AIStorySimulator", "Simulator");
   const QuantumEngineIntegrated = getGlobalComponent("QuantumEngineIntegrated", "Quantum Engine");
@@ -102,37 +186,7 @@ function App() {
   const UserProfileCard = getGlobalComponent("UserProfileCard", "Profile");
   const HistoryPage = getGlobalComponent("HistoryPage", "History");
 
-  useEffect(() => {
-    const allowedPages = new Set([
-      "dashboard",
-      "simulator",
-      "quantum",
-      "analytics",
-      "rival",
-      "clutch",
-      "timeline",
-      "paths",
-      "liveprob",
-      "events",
-      "profile",
-      "history"
-    ]);
-
-    window.setPage = function (page) {
-      const normalized = allowedPages.has(page) ? page : "dashboard";
-      setCurrentPage(normalized);
-      window.location.hash = normalized;
-    };
-
-    const initialHash = window.location.hash.replace("#", "");
-    if (initialHash) {
-      window.setPage(initialHash);
-    } else {
-      window.setPage("dashboard");
-    }
-  }, []);
-
-  const renderPage = () => {
+  function renderPage() {
     switch (currentPage) {
       case "dashboard":
         return <Dashboard />;
@@ -213,7 +267,7 @@ function App() {
       default:
         return <Dashboard />;
     }
-  };
+  }
 
   return (
     <div className="content-area fade-in">
