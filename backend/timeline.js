@@ -1,439 +1,141 @@
-"use strict";
-
 const db = require("./databases");
 
-const DEFAULT_SEASON = new Date().getUTCFullYear();
-const MAX_EVENTS = 5000;
-const ALLOWED_EVENT_TYPES = new Set([
-  "injury",
-  "absence",
-  "suspension",
-  "downgrade",
-  "upgrade",
-  "return",
-  "boost",
-  "loss",
-  "win",
-  "missed_game",
-  "availability",
-  "status_change",
-  "performance",
-  "transaction"
-]);
+const MAX_EVENTS = 500;
+const DEFAULT_TEAM = "DAL";
+const DEFAULT_REASON_MESSAGES = {
+  NO_REAL_TIMELINE_DATA: "No real timeline data found for the selected filters.",
+  TIMELINE_QUERY_FAILED: "Timeline query failed."
+};
 
-function asNumber(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function asString(value, fallback = "") {
-  if (value === null || value === undefined) return fallback;
-  return String(value).trim();
-}
-
-function normalizeSeason(value) {
-  const year = parseInt(value, 10);
-  if (!Number.isInteger(year)) return DEFAULT_SEASON;
-  if (year < 2000) return DEFAULT_SEASON;
-  if (year > DEFAULT_SEASON + 1) return DEFAULT_SEASON;
-  return year;
-}
-
-function isValidDate(date) {
-  return date instanceof Date && !Number.isNaN(date.getTime());
-}
-
-function toDate(value) {
-  if (!value) return null;
-  const d = value instanceof Date ? value : new Date(value);
-  return isValidDate(d) ? d : null;
-}
-
-function toIsoDay(value) {
-  const d = toDate(value);
-  if (!d) return null;
-  return d.toISOString().slice(0, 10);
-}
-
-function toIsoTimestamp(value) {
-  const d = toDate(value);
-  if (!d) return null;
-  return d.toISOString();
-}
-
-function round(value, digits = 2) {
-  const factor = 10 ** digits;
-  return Math.round(asNumber(value, 0) * factor) / factor;
+function safeObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
 function safeArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-function safeObject(value) {
-  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+function asString(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+function toNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function normalizeSeason(value) {
+  const year = Number(value);
+  if (Number.isInteger(year) && year >= 1900 && year <= 3000) return year;
+  return new Date().getFullYear();
+}
+
+function toIsoDay(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
 }
 
 function normalizeEventType(value) {
-  const type = asString(value).toLowerCase().replace(/\s+/g, "_");
-  if (!type) return "unknown";
-  return ALLOWED_EVENT_TYPES.has(type) ? type : type;
+  return asString(value).toLowerCase().replace(/\s+/g, "_");
 }
 
-function inferDirectionFromType(type) {
-  if (["injury", "absence", "suspension", "downgrade", "loss", "missed_game"].includes(type)) {
-    return -1;
-  }
-  if (["upgrade", "return", "boost", "win", "availability", "status_change", "performance", "transaction"].includes(type)) {
-    return 1;
-  }
-  return 0;
-}
+function impactForEventType(type, rawImpact) {
+  const normalized = normalizeEventType(type);
+  if (Number.isFinite(Number(rawImpact))) return Number(rawImpact);
 
-function classifySeverity(rawImpact) {
-  const value = Math.abs(asNumber(rawImpact, 0));
-  if (value >= 8) return "critical";
-  if (value >= 5) return "high";
-  if (value >= 2.5) return "medium";
-  if (value > 0) return "low";
-  return "none";
-}
-
-function normalizeImpact(eventType, impactScore) {
-  const raw = asNumber(impactScore, 0);
-  const type = normalizeEventType(eventType);
-  if (raw === 0) return 0;
-  if (raw < 0) return raw;
-  const direction = inferDirectionFromType(type);
-  if (direction === 0) return raw;
-  return round(Math.abs(raw) * direction, 2);
-}
-
-function normalizePlayerName(row) {
-  const first = asString(row.first_name);
-  const last = asString(row.last_name);
-  const full = asString(row.player_name);
-  if (full) return full;
-  return [first, last].filter(Boolean).join(" ").trim() || null;
-}
-
-function normalizeRawRow(row) {
-  const raw = safeObject(row);
-  const eventType = normalizeEventType(raw.event_type);
-  const eventDate = toIsoDay(raw.event_date);
-  const impact = normalizeImpact(eventType, raw.impact_score);
-  const title = asString(raw.title) || eventType.replace(/_/g, " ");
-  const detail = asString(raw.detail || raw.description || raw.message);
-  const team = asString(raw.team_abbr || raw.team || raw.club).toUpperCase() || null;
-  const playerId = raw.player_id !== undefined && raw.player_id !== null ? String(raw.player_id) : null;
-  const playerName = normalizePlayerName(raw);
-  const source = asString(raw.source || raw.provider || "database");
-  const category = asString(raw.category || raw.event_category || eventType);
-  const confidence = Math.max(0, Math.min(1, asNumber(raw.confidence, 1)));
-  const severity = classifySeverity(impact);
-
-  return {
-    id: raw.id !== undefined && raw.id !== null ? String(raw.id) : `${eventDate || "unknown"}:${eventType}:${playerId || "team"}`,
-    eventDate,
-    eventTimestamp: toIsoTimestamp(raw.event_date),
-    eventType,
-    impact,
-    title,
-    detail: detail || null,
-    team,
-    playerId,
-    playerName,
-    source,
-    category,
-    confidence: round(confidence, 4),
-    severity,
-    metadata: safeObject(raw.metadata)
+  const defaults = {
+    injury: -8,
+    suspension: -7,
+    absence: -5,
+    setback: -4,
+    return: 7,
+    activation: 6,
+    breakout: 8,
+    performance_peak: 9,
+    achievement: 5,
+    trade: 3,
+    signing: 4,
+    release: -3
   };
+
+  return defaults[normalized] ?? 0;
 }
 
-function isRowUsable(row) {
-  if (!row) return false;
-  if (!row.eventDate) return false;
-  if (!Number.isFinite(row.impact)) return false;
-  return true;
+function classifySeverity(impact) {
+  const abs = Math.abs(Number(impact) || 0);
+  if (abs >= 8) return "high";
+  if (abs >= 4) return "medium";
+  return "low";
 }
 
-function compareEvents(a, b) {
-  const at = a.eventTimestamp || a.eventDate || "";
-  const bt = b.eventTimestamp || b.eventDate || "";
-  if (at < bt) return -1;
-  if (at > bt) return 1;
-  if (a.id < b.id) return -1;
-  if (a.id > b.id) return 1;
-  return 0;
+function inferTrend(netImpact) {
+  if (netImpact > 5) return "up";
+  if (netImpact < -5) return "down";
+  return "flat";
 }
 
-function dedupeEvents(events) {
-  const seen = new Set();
-  const out = [];
-  for (const event of safeArray(events)) {
-    const key = [
-      event.id,
-      event.eventDate,
-      event.eventType,
-      event.playerId,
-      event.team,
-      event.impact
-    ].join("|");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(event);
-  }
-  return out;
+function formatReason(code) {
+  return DEFAULT_REASON_MESSAGES[code] || code;
 }
 
-function aggregatePointsByDay(events) {
-  const map = new Map();
-
-  for (const event of safeArray(events)) {
-    if (!event.eventDate) continue;
-    const existing = map.get(event.eventDate) || {
-      date: event.eventDate,
-      value: 0,
-      positive: 0,
-      negative: 0,
-      count: 0,
-      eventTypes: new Set(),
-      players: new Set(),
-      teams: new Set()
-    };
-
-    existing.value += event.impact;
-    existing.count += 1;
-    existing.eventTypes.add(event.eventType);
-
-    if (event.playerName) existing.players.add(event.playerName);
-    if (event.team) existing.teams.add(event.team);
-
-    if (event.impact >= 0) {
-      existing.positive += event.impact;
-    } else {
-      existing.negative += event.impact;
-    }
-
-    map.set(event.eventDate, existing);
-  }
-
-  return Array.from(map.values())
-    .map((point) => ({
-      date: point.date,
-      value: round(point.value, 2),
-      positive: round(point.positive, 2),
-      negative: round(point.negative, 2),
-      count: point.count,
-      eventTypes: Array.from(point.eventTypes).sort(),
-      players: Array.from(point.players).sort(),
-      teams: Array.from(point.teams).sort()
-    }))
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-}
-
-function buildRunningSeries(points) {
-  let cumulative = 0;
-  return safeArray(points).map((point) => {
-    cumulative += point.value;
-    return {
-      ...point,
-      cumulative: round(cumulative, 2)
-    };
-  });
-}
-
-function findExtremes(points) {
-  if (!points.length) {
-    return {
-      highestDaily: null,
-      lowestDaily: null,
-      highestCumulative: null,
-      lowestCumulative: null
-    };
-  }
-
-  let highestDaily = points[0];
-  let lowestDaily = points[0];
-  let highestCumulative = points[0];
-  let lowestCumulative = points[0];
-
-  for (const point of points) {
-    if (point.value > highestDaily.value) highestDaily = point;
-    if (point.value < lowestDaily.value) lowestDaily = point;
-    if (point.cumulative > highestCumulative.cumulative) highestCumulative = point;
-    if (point.cumulative < lowestCumulative.cumulative) lowestCumulative = point;
-  }
-
-  return {
-    highestDaily,
-    lowestDaily,
-    highestCumulative,
-    lowestCumulative
-  };
-}
-
-function computeTrend(points) {
-  if (points.length < 2) {
-    return {
-      direction: "flat",
-      slope: 0,
-      recentDelta: 0
-    };
-  }
-
-  const first = points[0].cumulative;
-  const last = points[points.length - 1].cumulative;
-  const slope = (last - first) / Math.max(1, points.length - 1);
-
-  let recentDelta = 0;
-  if (points.length >= 5) {
-    const prev = points[points.length - 5].cumulative;
-    recentDelta = last - prev;
-  } else {
-    recentDelta = last - first;
-  }
-
-  let direction = "flat";
-  if (slope > 0.35) direction = "up";
-  else if (slope < -0.35) direction = "down";
-
-  return {
-    direction,
-    slope: round(slope, 4),
-    recentDelta: round(recentDelta, 2)
-  };
-}
-
-function detectInflectionPoints(points) {
-  if (points.length < 3) return [];
-
-  const result = [];
-
-  for (let i = 1; i < points.length - 1; i += 1) {
-    const prev = points[i - 1];
-    const curr = points[i];
-    const next = points[i + 1];
-
-    const dailyPeak = curr.value > prev.value && curr.value > next.value;
-    const dailyValley = curr.value < prev.value && curr.value < next.value;
-    const cumulativePeak = curr.cumulative > prev.cumulative && curr.cumulative > next.cumulative;
-    const cumulativeValley = curr.cumulative < prev.cumulative && curr.cumulative < next.cumulative;
-
-    if (dailyPeak || cumulativePeak) {
-      result.push({
-        date: curr.date,
-        type: "peak",
-        mode: dailyPeak ? "daily" : "cumulative",
-        value: curr.value,
-        cumulative: curr.cumulative,
-        count: curr.count
-      });
-      continue;
-    }
-
-    if (dailyValley || cumulativeValley) {
-      result.push({
-        date: curr.date,
-        type: "valley",
-        mode: dailyValley ? "daily" : "cumulative",
-        value: curr.value,
-        cumulative: curr.cumulative,
-        count: curr.count
-      });
-    }
-  }
-
-  return result;
-}
-
-function summarizeEvents(events) {
-  const types = {};
-  const severities = {};
-  const teams = {};
-  const players = new Set();
-  let positiveEvents = 0;
-  let negativeEvents = 0;
-  let zeroEvents = 0;
-
-  for (const event of safeArray(events)) {
-    types[event.eventType] = (types[event.eventType] || 0) + 1;
-    severities[event.severity] = (severities[event.severity] || 0) + 1;
-    if (event.team) teams[event.team] = (teams[event.team] || 0) + 1;
-    if (event.playerName) players.add(event.playerName);
-
-    if (event.impact > 0) positiveEvents += 1;
-    else if (event.impact < 0) negativeEvents += 1;
-    else zeroEvents += 1;
-  }
-
-  return {
-    byType: types,
-    bySeverity: severities,
-    byTeam: teams,
-    uniquePlayers: players.size,
-    positiveEvents,
-    negativeEvents,
-    zeroEvents
-  };
-}
-
-function buildSummary(points, events) {
-  const eventSummary = summarizeEvents(events);
-  const extremes = findExtremes(points);
-  const trend = computeTrend(points);
-  const netImpact = points.length ? points[points.length - 1].cumulative : 0;
-  const averageDailyImpact = points.length
-    ? round(points.reduce((sum, p) => sum + p.value, 0) / points.length, 2)
-    : 0;
-
-  return {
-    netImpact: round(netImpact, 2),
-    averageDailyImpact,
-    highestDaily: extremes.highestDaily,
-    lowestDaily: extremes.lowestDaily,
-    highestCumulative: extremes.highestCumulative,
-    lowestCumulative: extremes.lowestCumulative,
-    trend,
-    eventSummary
-  };
-}
-
-function buildEmptyTimeline(season, reason, filters = {}) {
+function buildEmptyTimeline(season, reasonCode, filters = {}) {
   return {
     season,
     filters,
     points: [],
     events: [],
     inflectionPoints: [],
-    summary: buildSummary([], []),
+    summary: {
+      netImpact: 0,
+      trend: "flat",
+      positiveEvents: 0,
+      negativeEvents: 0,
+      neutralEvents: 0
+    },
     eventCount: 0,
     pointCount: 0,
     synthetic: false,
     dataUnavailable: true,
-    reason
+    reason: formatReason(reasonCode)
   };
 }
 
-function buildWhereClause({ season, team, playerId, startDate, endDate, eventTypes }) {
+async function fetchTimelineRows(filters) {
+  const season = normalizeSeason(filters.season);
+  const team = asString(filters.team).toUpperCase() || null;
+  const playerId =
+    filters.playerId !== undefined && filters.playerId !== null
+      ? String(filters.playerId)
+      : null;
+  const startDate = toIsoDay(filters.startDate);
+  const endDate = toIsoDay(filters.endDate);
+  const eventTypes = safeArray(filters.eventTypes)
+    .map(normalizeEventType)
+    .filter(Boolean);
+
+  const normalizedFilters = {
+    season,
+    team,
+    playerId,
+    startDate,
+    endDate,
+    eventTypes
+  };
+
   const clauses = [];
   const params = [];
   let idx = 1;
 
-  clauses.push(`EXTRACT(YEAR FROM event_date) = $${idx}`);
+  clauses.push(`season = $${idx}`);
   params.push(season);
   idx += 1;
 
-  if (team) {
-    clauses.push(`UPPER(COALESCE(team_abbr, team, club)) = $${idx}`);
-    params.push(team.toUpperCase());
-    idx += 1;
-  }
-
   if (playerId) {
     clauses.push(`CAST(player_id AS TEXT) = $${idx}`);
-    params.push(String(playerId));
+    params.push(playerId);
     idx += 1;
   }
 
@@ -449,36 +151,15 @@ function buildWhereClause({ season, team, playerId, startDate, endDate, eventTyp
     idx += 1;
   }
 
-  if (safeArray(eventTypes).length) {
+  if (eventTypes.length) {
     const placeholders = eventTypes.map(() => `$${idx++}`);
-    clauses.push(`LOWER(REPLACE(COALESCE(event_type, ''), ' ', '_')) IN (${placeholders.join(", ")})`);
-    params.push(...eventTypes.map((v) => normalizeEventType(v)));
+    clauses.push(
+      `LOWER(REPLACE(COALESCE(event_type, ''), ' ', '_')) IN (${placeholders.join(", ")})`
+    );
+    params.push(...eventTypes);
   }
 
-  return {
-    whereSql: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "",
-    params
-  };
-}
-
-async function fetchTimelineRows(filters) {
-  const season = normalizeSeason(filters.season);
-  const team = asString(filters.team).toUpperCase() || null;
-  const playerId = filters.playerId !== undefined && filters.playerId !== null ? String(filters.playerId) : null;
-  const startDate = toIsoDay(filters.startDate);
-  const endDate = toIsoDay(filters.endDate);
-  const eventTypes = safeArray(filters.eventTypes).map(normalizeEventType).filter(Boolean);
-
-  const normalizedFilters = {
-    season,
-    team,
-    playerId,
-    startDate,
-    endDate,
-    eventTypes
-  };
-
-  const { whereSql, params } = buildWhereClause(normalizedFilters);
+  const whereSql = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
 
   const sql = `
     SELECT
@@ -486,23 +167,23 @@ async function fetchTimelineRows(filters) {
       event_date,
       event_type,
       impact_score,
-      title,
-      detail,
+      NULL::text AS title,
+      NULL::text AS detail,
       description,
-      message,
+      NULL::text AS message,
       player_id,
       player_name,
-      first_name,
-      last_name,
-      team_abbr,
-      team,
-      club,
-      source,
-      provider,
-      category,
-      event_category,
-      confidence,
-      metadata
+      NULL::text AS first_name,
+      NULL::text AS last_name,
+      NULL::text AS team_abbr,
+      NULL::text AS team,
+      NULL::text AS club,
+      NULL::text AS source,
+      NULL::text AS provider,
+      NULL::text AS category,
+      NULL::text AS event_category,
+      NULL::numeric AS confidence,
+      NULL::jsonb AS metadata
     FROM player_events
     ${whereSql}
     ORDER BY event_date ASC, id ASC
@@ -510,25 +191,163 @@ async function fetchTimelineRows(filters) {
   `;
 
   const result = await db.query(sql, params);
+
   return {
     rows: safeArray(result.rows),
     filters: normalizedFilters
   };
 }
 
+function normalizeRawRow(raw) {
+  const eventType = normalizeEventType(raw.event_type || raw.category || raw.event_category);
+  const playerName =
+    asString(raw.player_name) ||
+    [asString(raw.first_name), asString(raw.last_name)].filter(Boolean).join(" ") ||
+    "Unknown player";
+
+  const impact = impactForEventType(eventType, raw.impact_score);
+  const dateValue = raw.event_date || raw.date || raw.created_at;
+  const date = dateValue ? new Date(dateValue).toISOString() : null;
+
+  const title = asString(raw.title) || eventType.replace(/_/g, " ");
+  const description =
+    asString(raw.description) ||
+    asString(raw.detail) ||
+    asString(raw.message) ||
+    title;
+
+  const source =
+    asString(raw.source) ||
+    asString(raw.provider) ||
+    "database";
+
+  return {
+    id: raw.id ?? `${playerName}-${date}-${eventType}`,
+    date,
+    day: date ? date.slice(0, 10) : null,
+    eventType,
+    title,
+    description,
+    impact,
+    severity: classifySeverity(impact),
+    source: source.toLowerCase(),
+    playerId:
+      raw.player_id !== undefined && raw.player_id !== null
+        ? String(raw.player_id)
+        : null,
+    playerName,
+    team:
+      asString(raw.team_abbr) ||
+      asString(raw.team) ||
+      asString(raw.club) ||
+      DEFAULT_TEAM,
+    confidence:
+      raw.confidence !== undefined && raw.confidence !== null
+        ? toNumber(raw.confidence, null)
+        : null,
+    metadata: safeObject(raw.metadata)
+  };
+}
+
 function normalizeEvents(rows) {
-  return dedupeEvents(
-    safeArray(rows)
-      .map(normalizeRawRow)
-      .filter(isRowUsable)
-      .sort(compareEvents)
-  );
+  return safeArray(rows)
+    .map(normalizeRawRow)
+    .filter((event) => event.date && event.day && event.eventType)
+    .sort((a, b) => {
+      const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return String(a.id).localeCompare(String(b.id));
+    });
+}
+
+function aggregatePointsByDay(events) {
+  const byDay = new Map();
+
+  safeArray(events).forEach((event) => {
+    const current = byDay.get(event.day) || {
+      date: event.day,
+      delta: 0,
+      eventCount: 0,
+      events: []
+    };
+
+    current.delta += Number(event.impact || 0);
+    current.eventCount += 1;
+    current.events.push(event);
+    byDay.set(event.day, current);
+  });
+
+  return Array.from(byDay.values()).sort((a, b) => {
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
+}
+
+function buildRunningSeries(dayBuckets) {
+  let running = 0;
+
+  return safeArray(dayBuckets).map((bucket) => {
+    running += Number(bucket.delta || 0);
+
+    return {
+      date: bucket.date,
+      value: Number(running.toFixed(2)),
+      delta: Number(Number(bucket.delta || 0).toFixed(2)),
+      eventCount: bucket.eventCount
+    };
+  });
+}
+
+function detectInflectionPoints(points) {
+  const list = safeArray(points);
+  if (list.length < 3) return [];
+
+  const inflections = [];
+
+  for (let i = 1; i < list.length - 1; i += 1) {
+    const prev = Number(list[i - 1].value || 0);
+    const curr = Number(list[i].value || 0);
+    const next = Number(list[i + 1].value || 0);
+
+    if (curr > prev && curr > next) {
+      inflections.push({
+        date: list[i].date,
+        type: "peak",
+        value: curr
+      });
+    } else if (curr < prev && curr < next) {
+      inflections.push({
+        date: list[i].date,
+        type: "valley",
+        value: curr
+      });
+    }
+  }
+
+  return inflections;
+}
+
+function buildSummary(points, events) {
+  const netImpact = safeArray(points).length
+    ? Number(points[points.length - 1].value || 0)
+    : 0;
+
+  const positiveEvents = safeArray(events).filter((event) => event.impact > 0).length;
+  const negativeEvents = safeArray(events).filter((event) => event.impact < 0).length;
+  const neutralEvents = safeArray(events).filter((event) => event.impact === 0).length;
+
+  return {
+    netImpact,
+    trend: inferTrend(netImpact),
+    positiveEvents,
+    negativeEvents,
+    neutralEvents
+  };
 }
 
 function applyClientFilters(events, filters) {
-  const minAbsImpact = asNumber(filters.minAbsImpact, 0);
-  const severity = asString(filters.severity).toLowerCase() || null;
-  const source = asString(filters.source).toLowerCase() || null;
+  const minAbsImpact = Number(filters.minAbsImpact || 0);
+  const severity = asString(filters.severity).toLowerCase();
+  const source = asString(filters.source).toLowerCase();
 
   return safeArray(events).filter((event) => {
     if (Math.abs(event.impact) < minAbsImpact) return false;
@@ -573,7 +392,10 @@ async function getTimelineData(input = {}) {
       ...buildEmptyTimeline(season, "TIMELINE_QUERY_FAILED", {
         season,
         team: asString(filters.team).toUpperCase() || null,
-        playerId: filters.playerId !== undefined && filters.playerId !== null ? String(filters.playerId) : null,
+        playerId:
+          filters.playerId !== undefined && filters.playerId !== null
+            ? String(filters.playerId)
+            : null,
         startDate: toIsoDay(filters.startDate),
         endDate: toIsoDay(filters.endDate),
         eventTypes: safeArray(filters.eventTypes).map(normalizeEventType).filter(Boolean)
