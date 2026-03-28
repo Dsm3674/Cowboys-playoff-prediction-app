@@ -29,7 +29,7 @@ async function getNflTeamIdMap() {
   const data = await res.json();
 
   // ESPN structure: sports[0].leagues[0].teams is common
-  let teams = [];
+  let teams =[];
   if (Array.isArray(data.sports) && data.sports[0]?.leagues?.[0]?.teams) {
     teams = data.sports[0].leagues[0].teams;
   } else if (Array.isArray(data.leagues) && data.leagues[0]?.teams) {
@@ -51,7 +51,7 @@ async function getNflTeamIdMap() {
   return map;
 }
 
-function parseEspnScheduleEvents(events = []) {
+function parseEspnScheduleEvents(events =[]) {
   const getScore = (comp) => {
     if (!comp) return 0;
     if (comp.score?.value != null) return Number(comp.score.value);
@@ -76,6 +76,7 @@ function parseEspnScheduleEvents(events = []) {
       if (!home || !away) return null;
 
       return {
+        id: event.id, // Included for fetching deep play-by-play logs
         week: event.week?.number ?? null,
         date: event.date,
         homeTeamName: home.team?.displayName ?? "Home",
@@ -102,19 +103,19 @@ async function fetchTeamGamesSeasonToDate(teamAbbr, year = getNFLSeasonYear()) {
     if (!teamId) {
       const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${abbr.toLowerCase()}/schedule?season=${year}`;
       const res = await fetch(url);
-      if (!res.ok) return [];
+      if (!res.ok) return[];
       const data = await res.json();
-      return parseEspnScheduleEvents(data.events || []);
+      return parseEspnScheduleEvents(data.events ||[]);
     }
 
     const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${teamId}/schedule?season=${year}`;
     const res = await fetch(url);
-    if (!res.ok) return [];
+    if (!res.ok) return[];
     const data = await res.json();
-    return parseEspnScheduleEvents(data.events || []);
+    return parseEspnScheduleEvents(data.events ||[]);
   } catch (err) {
     console.error("ESPN fetch error:", err);
-    return [];
+    return[];
   }
 }
 
@@ -122,20 +123,6 @@ async function fetchCowboysGamesSeasonToDate(year = getNFLSeasonYear()) {
   return fetchTeamGamesSeasonToDate("DAL", year);
 }
 
-// FIX: computeRecordFromGames() was hardcoded to always check "DAL" as the
-//      team abbreviation. This meant every call for a non-Cowboys opponent
-//      (Eagles, Chiefs, etc.) computed the Cowboys' result instead of the
-//      opponent's, producing completely wrong win/loss records.
-//
-//      This affected:
-//        - tsi.js: opponent SOS loop → all opponent records were Cowboys records
-//        - rivalAnalysis.js: every rival's winPct was wrong
-//        - seasonPath.js: opponent strength estimates were wrong
-//        - prediction.js: oppRecord was wrong for every game
-//
-//      Added teamAbbr parameter (defaults to "DAL" for backward compatibility).
-//      All callers in tsi.js, seasonPath.js, and prediction.js should now pass
-//      the correct team abbr; existing DAL-only callers continue to work unchanged.
 function computeRecordFromGames(games, teamAbbr = "DAL") {
   const abbr = String(teamAbbr || "DAL").toUpperCase();
 
@@ -171,7 +158,7 @@ function computeRecordFromGames(games, teamAbbr = "DAL") {
 
 function computeTeamAveragesFromGames(teamAbbr, games) {
   const abbr = String(teamAbbr || "").toUpperCase();
-  const completed = (games || []).filter((g) => g.completed);
+  const completed = (games ||[]).filter((g) => g.completed);
 
   let pf = 0;
   let pa = 0;
