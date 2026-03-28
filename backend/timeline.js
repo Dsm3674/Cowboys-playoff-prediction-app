@@ -1,19 +1,20 @@
 "use strict";
 
-const express = require("express");
-const router = express.Router();
-const timeline = require("../timeline");
-const cache = require("../cache");
+const db = require("./databases");
 
-const CACHE_TTL_SECONDS = 600;
-const DEFAULT_LIMIT = 100;
-const MAX_LIMIT = 500;
+const MAX_EVENTS = 500;
+const DEFAULT_TEAM = "DAL";
+const DEFAULT_REASON_MESSAGES = {
+  NO_REAL_TIMELINE_DATA: "No real timeline data found for the selected filters.",
+  TIMELINE_QUERY_FAILED: "Timeline query failed."
+};
 
-function normalizeSeason(value) {
-  const year = Number(value);
-  return Number.isInteger(year) && year >= 1900 && year <= 3000
-    ? year
-    : new Date().getFullYear();
+function safeObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function asString(value) {
@@ -21,485 +22,426 @@ function asString(value) {
   return String(value).trim();
 }
 
-function toOptionalString(value) {
-  const str = asString(value);
-  return str ? str : null;
-}
-
-function toOptionalNumber(value) {
-  if (value === undefined || value === null || value === "") return null;
+function toNumber(value, fallback = 0) {
   const num = Number(value);
-  return Number.isFinite(num) ? num : null;
+  return Number.isFinite(num) ? num : fallback;
 }
 
-function toOptionalBoolean(value) {
-  if (value === undefined || value === null || value === "") return null;
-  if (typeof value === "boolean") return value;
-  const normalized = String(value).trim().toLowerCase();
-  if (["true", "1", "yes"].includes(normalized)) return true;
-  if (["false", "0", "no"].includes(normalized)) return false;
-  return null;
+function normalizeSeason(value) {
+  const year = Number(value);
+  if (Number.isInteger(year) && year >= 1900 && year <= 3000) return year;
+  return new Date().getFullYear();
 }
 
-function toOptionalArray(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item).trim()).filter(Boolean);
-  }
-
-  if (typeof value === "string") {
-    return value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-
-  return [];
+function toIsoDay(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
 }
 
-function normalizeLimit(value, fallback = DEFAULT_LIMIT, max = MAX_LIMIT) {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-  return Math.min(parsed, max);
+function normalizeEventType(value) {
+  return asString(value).toLowerCase().replace(/\s+/g, "_");
 }
 
-function uniqueStrings(values) {
-  return [...new Set((Array.isArray(values) ? values : []).filter(Boolean))];
+function impactForEventType(type, rawImpact) {
+  const normalized = normalizeEventType(type);
+  if (Number.isFinite(Number(rawImpact))) return Number(rawImpact);
+
+  const defaults = {
+    injury: -8,
+    suspension: -7,
+    absence: -5,
+    setback: -4,
+    return: 7,
+    activation: 6,
+    breakout: 8,
+    performance_peak: 9,
+    achievement: 5,
+    trade: 3,
+    signing: 4,
+    release: -3
+  };
+
+  return defaults[normalized] ?? 0;
 }
 
-function buildBaseFilters(query) {
+function classifySeverity(impact) {
+  const abs = Math.abs(Number(impact) || 0);
+  if (abs >= 8) return "high";
+  if (abs >= 4) return "medium";
+  return "low";
+}
+
+function inferTrend(netImpact) {
+  if (netImpact > 5) return "up";
+  if (netImpact < -5) return "down";
+  return "flat";
+}
+
+function formatReason(code) {
+  return DEFAULT_REASON_MESSAGES[code] || code;
+}
+
+function buildEmptyTimeline(season, reasonCode, filters = {}) {
   return {
-    season: normalizeSeason(query.season),
-    team: toOptionalString(query.team),
-    playerId: toOptionalString(query.playerId),
-    startDate: toOptionalString(query.startDate),
-    endDate: toOptionalString(query.endDate),
-    eventTypes: uniqueStrings(toOptionalArray(query.eventTypes)),
-    severity: toOptionalString(query.severity),
-    source: toOptionalString(query.source),
-    minAbsImpact: toOptionalNumber(query.minAbsImpact)
-  };
-}
-
-function buildProjectionOptions(query) {
-  return {
-    includeEvents: toOptionalBoolean(query.includeEvents),
-    includePoints: toOptionalBoolean(query.includePoints),
-    includeInflectionPoints: toOptionalBoolean(query.includeInflectionPoints),
-    includeSummary: toOptionalBoolean(query.includeSummary),
-    includeFilters: toOptionalBoolean(query.includeFilters),
-    limit: normalizeLimit(query.limit)
-  };
-}
-
-function stableObject(value) {
-  if (Array.isArray(value)) {
-    return value.map(stableObject);
-  }
-
-  if (value && typeof value === "object") {
-    const sorted = {};
-    Object.keys(value)
-      .sort()
-      .forEach((key) => {
-        const child = value[key];
-        if (child !== undefined) {
-          sorted[key] = stableObject(child);
-        }
-      });
-    return sorted;
-  }
-
-  return value;
-}
-
-function makeCacheKey(namespace, payload) {
-  return `${namespace}:${JSON.stringify(stableObject(payload))}`;
-}
-
-function projectTimelineData(data, options = {}) {
-  const includeEvents =
-    options.includeEvents === null || options.includeEvents === undefined
-      ? true
-      : Boolean(options.includeEvents);
-
-  const includePoints =
-    options.includePoints === null || options.includePoints === undefined
-      ? true
-      : Boolean(options.includePoints);
-
-  const includeInflectionPoints =
-    options.includeInflectionPoints === null ||
-    options.includeInflectionPoints === undefined
-      ? true
-      : Boolean(options.includeInflectionPoints);
-
-  const includeSummary =
-    options.includeSummary === null || options.includeSummary === undefined
-      ? true
-      : Boolean(options.includeSummary);
-
-  const includeFilters =
-    options.includeFilters === null || options.includeFilters === undefined
-      ? true
-      : Boolean(options.includeFilters);
-
-  const limit = normalizeLimit(options.limit);
-
-  const response = {
-    season: data.season,
-    dataUnavailable: Boolean(data.dataUnavailable),
-    reason: data.reason || null,
-    synthetic: Boolean(data.synthetic),
-    eventCount: Number(data.eventCount || 0),
-    pointCount: Number(data.pointCount || 0)
-  };
-
-  if (includeFilters) {
-    response.filters = data.filters || {};
-  }
-
-  if (includeSummary) {
-    response.summary = data.summary || {
+    season,
+    filters,
+    points: [],
+    events: [],
+    inflectionPoints: [],
+    summary: {
       netImpact: 0,
       trend: "flat",
       positiveEvents: 0,
       negativeEvents: 0,
       neutralEvents: 0
+    },
+    eventCount: 0,
+    pointCount: 0,
+    synthetic: false,
+    dataUnavailable: true,
+    reason: formatReason(reasonCode)
+  };
+}
+
+async function fetchTimelineRows(filters) {
+  const season = normalizeSeason(filters.season);
+  const team = asString(filters.team).toUpperCase() || null;
+  const playerId =
+    filters.playerId !== undefined && filters.playerId !== null
+      ? String(filters.playerId)
+      : null;
+  const startDate = toIsoDay(filters.startDate);
+  const endDate = toIsoDay(filters.endDate);
+  const eventTypes = safeArray(filters.eventTypes)
+    .map(normalizeEventType)
+    .filter(Boolean);
+
+  const normalizedFilters = {
+    season,
+    team,
+    playerId,
+    startDate,
+    endDate,
+    eventTypes
+  };
+
+  const clauses = [];
+  const params = [];
+  let idx = 1;
+
+  clauses.push(`season = $${idx}`);
+  params.push(season);
+  idx += 1;
+
+  if (playerId) {
+    clauses.push(`CAST(player_id AS TEXT) = $${idx}`);
+    params.push(playerId);
+    idx += 1;
+  }
+
+  if (startDate) {
+    clauses.push(`event_date >= $${idx}`);
+    params.push(startDate);
+    idx += 1;
+  }
+
+  if (endDate) {
+    clauses.push(`event_date <= $${idx}`);
+    params.push(endDate);
+    idx += 1;
+  }
+
+  if (eventTypes.length) {
+    const placeholders = eventTypes.map(() => `$${idx++}`);
+    clauses.push(
+      `LOWER(REPLACE(COALESCE(event_type, ''), ' ', '_')) IN (${placeholders.join(", ")})`
+    );
+    params.push(...eventTypes);
+  }
+
+  const whereSql = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+
+  const sql = `
+    SELECT
+      id,
+      event_date,
+      event_type,
+      impact_score,
+      NULL::text AS title,
+      NULL::text AS detail,
+      description,
+      NULL::text AS message,
+      player_id,
+      player_name,
+      NULL::text AS first_name,
+      NULL::text AS last_name,
+      NULL::text AS team_abbr,
+      NULL::text AS team,
+      NULL::text AS club,
+      NULL::text AS source,
+      NULL::text AS provider,
+      NULL::text AS category,
+      NULL::text AS event_category,
+      NULL::numeric AS confidence,
+      NULL::jsonb AS metadata
+    FROM player_events
+    ${whereSql}
+    ORDER BY event_date ASC, id ASC
+    LIMIT ${MAX_EVENTS}
+  `;
+
+  const result = await db.query(sql, params);
+
+  return {
+    rows: safeArray(result.rows),
+    filters: normalizedFilters
+  };
+}
+
+function normalizeRawRow(raw) {
+  const eventType = normalizeEventType(raw.event_type || raw.category || raw.event_category);
+  const playerName =
+    asString(raw.player_name) ||
+    [asString(raw.first_name), asString(raw.last_name)].filter(Boolean).join(" ") ||
+    "Unknown player";
+
+  const impact = impactForEventType(eventType, raw.impact_score);
+  const dateValue = raw.event_date || raw.date || raw.created_at;
+  const date = dateValue ? new Date(dateValue).toISOString() : null;
+
+  const title = asString(raw.title) || eventType.replace(/_/g, " ");
+  const description =
+    asString(raw.description) ||
+    asString(raw.detail) ||
+    asString(raw.message) ||
+    title;
+
+  const source =
+    asString(raw.source) ||
+    asString(raw.provider) ||
+    "database";
+
+  return {
+    id: raw.id ?? `${playerName}-${date}-${eventType}`,
+    date,
+    day: date ? date.slice(0, 10) : null,
+    eventType,
+    title,
+    description,
+    impact,
+    severity: classifySeverity(impact),
+    source: source.toLowerCase(),
+    playerId:
+      raw.player_id !== undefined && raw.player_id !== null
+        ? String(raw.player_id)
+        : null,
+    playerName,
+    team:
+      asString(raw.team_abbr) ||
+      asString(raw.team) ||
+      asString(raw.club) ||
+      DEFAULT_TEAM,
+    confidence:
+      raw.confidence !== undefined && raw.confidence !== null
+        ? toNumber(raw.confidence, null)
+        : null,
+    metadata: safeObject(raw.metadata)
+  };
+}
+
+function normalizeEvents(rows) {
+  return safeArray(rows)
+    .map(normalizeRawRow)
+    .filter((event) => event.date && event.day && event.eventType)
+    .sort((a, b) => {
+      const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return String(a.id).localeCompare(String(b.id));
+    });
+}
+
+function aggregatePointsByDay(events) {
+  const byDay = new Map();
+
+  safeArray(events).forEach((event) => {
+    const current = byDay.get(event.day) || {
+      date: event.day,
+      delta: 0,
+      eventCount: 0,
+      events: []
     };
-  }
 
-  if (includePoints) {
-    response.points = Array.isArray(data.points) ? data.points : [];
-  }
+    current.delta += Number(event.impact || 0);
+    current.eventCount += 1;
+    current.events.push(event);
+    byDay.set(event.day, current);
+  });
 
-  if (includeInflectionPoints) {
-    response.inflectionPoints = Array.isArray(data.inflectionPoints)
-      ? data.inflectionPoints
-      : [];
-  }
-
-  if (includeEvents) {
-    response.events = Array.isArray(data.events) ? data.events.slice(0, limit) : [];
-  }
-
-  return response;
+  return Array.from(byDay.values()).sort((a, b) => {
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
 }
 
-function projectInflectionData(data) {
-  return {
-    season: data.season,
-    filters: data.filters || {},
-    inflectionPoints: Array.isArray(data.inflectionPoints) ? data.inflectionPoints : [],
-    dataUnavailable: Boolean(data.dataUnavailable),
-    reason: data.reason || null,
-    summary: data.summary || {
-      netImpact: 0,
-      trend: "flat"
-    }
-  };
-}
+function buildRunningSeries(dayBuckets) {
+  let running = 0;
 
-function projectEventsData(data, limit) {
-  return {
-    season: data.season,
-    filters: data.filters || {},
-    events: Array.isArray(data.events) ? data.events.slice(0, limit) : [],
-    eventCount: Number(data.eventCount || 0),
-    dataUnavailable: Boolean(data.dataUnavailable),
-    reason: data.reason || null
-  };
-}
+  return safeArray(dayBuckets).map((bucket) => {
+    running += Number(bucket.delta || 0);
 
-function buildMetrics(data) {
-  const events = Array.isArray(data.events) ? data.events : [];
-  const points = Array.isArray(data.points) ? data.points : [];
-  const inflectionPoints = Array.isArray(data.inflectionPoints) ? data.inflectionPoints : [];
-
-  const positiveEvents = events.filter((event) => Number(event.impact || 0) > 0).length;
-  const negativeEvents = events.filter((event) => Number(event.impact || 0) < 0).length;
-  const neutralEvents = events.filter((event) => Number(event.impact || 0) === 0).length;
-
-  const highSeverityEvents = events.filter((event) => event.severity === "high").length;
-  const mediumSeverityEvents = events.filter((event) => event.severity === "medium").length;
-  const lowSeverityEvents = events.filter((event) => event.severity === "low").length;
-
-  const sources = uniqueStrings(events.map((event) => event.source).filter(Boolean));
-  const eventTypes = uniqueStrings(events.map((event) => event.eventType).filter(Boolean));
-  const players = uniqueStrings(events.map((event) => event.playerName).filter(Boolean));
-
-  const firstPoint = points.length ? points[0] : null;
-  const lastPoint = points.length ? points[points.length - 1] : null;
-
-  const peakPoint = points.length
-    ? points.reduce((best, point) =>
-        Number(point.value || 0) > Number(best.value || 0) ? point : best
-      )
-    : null;
-
-  const valleyPoint = points.length
-    ? points.reduce((best, point) =>
-        Number(point.value || 0) < Number(best.value || 0) ? point : best
-      )
-    : null;
-
-  return {
-    counts: {
-      events: events.length,
-      points: points.length,
-      inflectionPoints: inflectionPoints.length,
-      positiveEvents,
-      negativeEvents,
-      neutralEvents,
-      highSeverityEvents,
-      mediumSeverityEvents,
-      lowSeverityEvents
-    },
-    coverage: {
-      sources,
-      sourceCount: sources.length,
-      eventTypes,
-      eventTypeCount: eventTypes.length,
-      players,
-      playerCount: players.length
-    },
-    shape: {
-      firstPointDate: firstPoint ? firstPoint.date : null,
-      lastPointDate: lastPoint ? lastPoint.date : null,
-      firstPointValue: firstPoint ? Number(firstPoint.value || 0) : null,
-      lastPointValue: lastPoint ? Number(lastPoint.value || 0) : null,
-      peakDate: peakPoint ? peakPoint.date : null,
-      peakValue: peakPoint ? Number(peakPoint.value || 0) : null,
-      valleyDate: valleyPoint ? valleyPoint.date : null,
-      valleyValue: valleyPoint ? Number(valleyPoint.value || 0) : null
-    }
-  };
-}
-
-async function loadCachedOrFresh(namespace, keyPayload, loader) {
-  const cacheKey = makeCacheKey(namespace, keyPayload);
-  const cached = await cache.get(namespace, cacheKey);
-
-  if (cached) {
     return {
-      data: cached,
-      cached: true,
-      cacheKey
+      date: bucket.date,
+      value: Number(running.toFixed(2)),
+      delta: Number(Number(bucket.delta || 0).toFixed(2)),
+      eventCount: bucket.eventCount
     };
+  });
+}
+
+function detectInflectionPoints(points) {
+  const list = safeArray(points);
+  if (list.length < 3) return [];
+
+  const inflections = [];
+
+  for (let i = 1; i < list.length - 1; i += 1) {
+    const prev = Number(list[i - 1].value || 0);
+    const curr = Number(list[i].value || 0);
+    const next = Number(list[i + 1].value || 0);
+
+    if (curr > prev && curr > next) {
+      inflections.push({
+        date: list[i].date,
+        type: "peak",
+        value: curr
+      });
+    } else if (curr < prev && curr < next) {
+      inflections.push({
+        date: list[i].date,
+        type: "valley",
+        value: curr
+      });
+    }
   }
 
-  const fresh = await loader();
+  return inflections;
+}
 
-  await cache.set(namespace, fresh, CACHE_TTL_SECONDS, cacheKey);
+function buildSummary(points, events) {
+  const netImpact = safeArray(points).length
+    ? Number(points[points.length - 1].value || 0)
+    : 0;
+
+  const positiveEvents = safeArray(events).filter((event) => event.impact > 0).length;
+  const negativeEvents = safeArray(events).filter((event) => event.impact < 0).length;
+  const neutralEvents = safeArray(events).filter((event) => event.impact === 0).length;
 
   return {
-    data: fresh,
-    cached: false,
-    cacheKey
+    netImpact,
+    trend: inferTrend(netImpact),
+    positiveEvents,
+    negativeEvents,
+    neutralEvents
   };
 }
 
-function failIfServiceError(res, payload) {
-  if (payload && payload.error) {
-    res.status(500).json({
-      success: false,
-      error: payload.error
-    });
-    return true;
-  }
+function applyClientFilters(events, filters) {
+  const minAbsImpact = Number(filters.minAbsImpact || 0);
+  const severity = asString(filters.severity).toLowerCase();
+  const source = asString(filters.source).toLowerCase();
 
-  return false;
+  return safeArray(events).filter((event) => {
+    if (Math.abs(event.impact) < minAbsImpact) return false;
+    if (severity && event.severity !== severity) return false;
+    if (source && event.source.toLowerCase() !== source) return false;
+    return true;
+  });
 }
 
-router.get("/points", async (req, res) => {
+async function getTimelineData(input = {}) {
+  const filters = safeObject(input);
+  const season = normalizeSeason(filters.season);
+
   try {
-    const filters = buildBaseFilters(req.query);
-    const options = buildProjectionOptions(req.query);
+    const fetched = await fetchTimelineRows(filters);
+    let events = normalizeEvents(fetched.rows);
+    events = applyClientFilters(events, filters);
 
-    const { data, cached } = await loadCachedOrFresh(
-      "TIMELINE_POINTS",
-      {
-        route: "points",
-        filters
-      },
-      async () => {
-        const timelineData = await timeline.getTimelineData(filters);
-        return projectTimelineData(timelineData, options);
-      }
-    );
-
-    if (failIfServiceError(res, data)) {
-      return;
+    if (!events.length) {
+      return buildEmptyTimeline(season, "NO_REAL_TIMELINE_DATA", fetched.filters);
     }
 
-    return res.json({
-      ...data,
-      _cached: cached
-    });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    const points = buildRunningSeries(aggregatePointsByDay(events));
+    const inflectionPoints = detectInflectionPoints(points);
+    const summary = buildSummary(points, events);
+
+    return {
+      season,
+      filters: fetched.filters,
+      points,
+      events,
+      inflectionPoints,
+      summary,
+      eventCount: events.length,
+      pointCount: points.length,
+      synthetic: false,
+      dataUnavailable: false,
+      reason: null
+    };
+  } catch (error) {
+    return {
+      ...buildEmptyTimeline(season, "TIMELINE_QUERY_FAILED", {
+        season,
+        team: asString(filters.team).toUpperCase() || null,
+        playerId:
+          filters.playerId !== undefined && filters.playerId !== null
+            ? String(filters.playerId)
+            : null,
+        startDate: toIsoDay(filters.startDate),
+        endDate: toIsoDay(filters.endDate),
+        eventTypes: safeArray(filters.eventTypes).map(normalizeEventType).filter(Boolean)
+      }),
+      error: error.message
+    };
   }
-});
+}
 
-router.get("/inflections", async (req, res) => {
-  try {
-    const filters = buildBaseFilters(req.query);
-
-    const { data, cached } = await loadCachedOrFresh(
-      "TIMELINE_INFLECTIONS",
-      {
-        route: "inflections",
-        filters
-      },
-      async () => {
-        const inflectionData = await timeline.getInflectionPoints(filters);
-        return projectInflectionData(inflectionData);
-      }
-    );
-
-    if (failIfServiceError(res, data)) {
-      return;
+async function getInflectionPoints(input = {}) {
+  const data = await getTimelineData(input);
+  return {
+    season: data.season,
+    filters: data.filters,
+    inflectionPoints: data.inflectionPoints,
+    dataUnavailable: data.dataUnavailable,
+    reason: data.reason,
+    summary: {
+      netImpact: data.summary.netImpact,
+      trend: data.summary.trend
     }
+  };
+}
 
-    return res.json({
-      ...data,
-      _cached: cached
-    });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      error: err.message
-    });
-  }
-});
+async function getTimelineEvents(input = {}) {
+  const data = await getTimelineData(input);
+  return {
+    season: data.season,
+    filters: data.filters,
+    events: data.events,
+    eventCount: data.eventCount,
+    dataUnavailable: data.dataUnavailable,
+    reason: data.reason
+  };
+}
 
-router.get("/events", async (req, res) => {
-  try {
-    const filters = buildBaseFilters(req.query);
-    const limit = normalizeLimit(req.query.limit);
-
-    const { data, cached } = await loadCachedOrFresh(
-      "TIMELINE_EVENTS",
-      {
-        route: "events",
-        filters,
-        limit
-      },
-      async () => {
-        const eventsData = await timeline.getTimelineEvents(filters);
-        return projectEventsData(eventsData, limit);
-      }
-    );
-
-    if (failIfServiceError(res, data)) {
-      return;
-    }
-
-    return res.json({
-      ...data,
-      _cached: cached
-    });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      error: err.message
-    });
-  }
-});
-
-router.get("/overview", async (req, res) => {
-  try {
-    const filters = buildBaseFilters(req.query);
-
-    const { data, cached } = await loadCachedOrFresh(
-      "TIMELINE_OVERVIEW",
-      {
-        route: "overview",
-        filters
-      },
-      async () => {
-        const timelineData = await timeline.getTimelineData(filters);
-        return {
-          season: timelineData.season,
-          filters: timelineData.filters || {},
-          summary: timelineData.summary || {
-            netImpact: 0,
-            trend: "flat",
-            positiveEvents: 0,
-            negativeEvents: 0,
-            neutralEvents: 0
-          },
-          metrics: buildMetrics(timelineData),
-          dataUnavailable: Boolean(timelineData.dataUnavailable),
-          reason: timelineData.reason || null,
-          synthetic: Boolean(timelineData.synthetic),
-          eventCount: Number(timelineData.eventCount || 0),
-          pointCount: Number(timelineData.pointCount || 0)
-        };
-      }
-    );
-
-    if (failIfServiceError(res, data)) {
-      return;
-    }
-
-    return res.json({
-      ...data,
-      _cached: cached
-    });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      error: err.message
-    });
-  }
-});
-
-router.get("/range", async (req, res) => {
-  try {
-    const filters = buildBaseFilters(req.query);
-
-    const { data, cached } = await loadCachedOrFresh(
-      "TIMELINE_RANGE",
-      {
-        route: "range",
-        filters
-      },
-      async () => {
-        const timelineData = await timeline.getTimelineData(filters);
-        const points = Array.isArray(timelineData.points) ? timelineData.points : [];
-        const firstPoint = points.length ? points[0] : null;
-        const lastPoint = points.length ? points[points.length - 1] : null;
-
-        return {
-          season: timelineData.season,
-          filters: timelineData.filters || {},
-          startDate: firstPoint ? firstPoint.date : null,
-          endDate: lastPoint ? lastPoint.date : null,
-          pointCount: points.length,
-          eventCount: Number(timelineData.eventCount || 0),
-          dataUnavailable: Boolean(timelineData.dataUnavailable),
-          reason: timelineData.reason || null
-        };
-      }
-    );
-
-    if (failIfServiceError(res, data)) {
-      return;
-    }
-
-    return res.json({
-      ...data,
-      _cached: cached
-    });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      error: err.message
-    });
-  }
-});
-
-module.exports = router;
+module.exports = {
+  getTimelineData,
+  getInflectionPoints,
+  getTimelineEvents,
+  normalizeRawRow,
+  normalizeEvents,
+  aggregatePointsByDay,
+  buildRunningSeries,
+  detectInflectionPoints,
+  buildSummary
+};
