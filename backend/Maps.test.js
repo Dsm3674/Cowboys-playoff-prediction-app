@@ -1,17 +1,7 @@
-/**
- * Maps.test.js
- * Unit tests for the Consistency vs Explosiveness player analysis
- * 
- * Run with: npm test -- Maps.test.js
- * Or: jest Maps.test.js
- */
 
 const { computeConsistencyExplosiveness } = require("../Maps");
 
 describe("Maps - Consistency vs Explosiveness Analysis", () => {
-  // ========================================================================
-  // TEST SUITE 1: Basic Functionality
-  // ========================================================================
 
   describe("computeConsistencyExplosiveness", () => {
     it("should return success true with valid player data", () => {
@@ -64,9 +54,6 @@ describe("Maps - Consistency vs Explosiveness Analysis", () => {
     });
   });
 
-  // ========================================================================
-  // TEST SUITE 2: Player Categorization
-  // ========================================================================
 
   describe("Player Categorization", () => {
     it("should categorize elite players (high consistency, high explosiveness)", () => {
@@ -166,9 +153,6 @@ describe("Maps - Consistency vs Explosiveness Analysis", () => {
     });
   });
 
-  // ========================================================================
-  // TEST SUITE 3: Volatility Assessment
-  // ========================================================================
 
   describe("Volatility Assessment", () => {
     it("should mark truly volatile players as VOLATILE", () => {
@@ -238,9 +222,7 @@ describe("Maps - Consistency vs Explosiveness Analysis", () => {
     });
   });
 
-  // ========================================================================
-  // TEST SUITE 4: Performance Tier Classification
-  // ========================================================================
+
 
   describe("Performance Tier Classification", () => {
     it("should classify star-tier players correctly", () => {
@@ -299,9 +281,6 @@ describe("Maps - Consistency vs Explosiveness Analysis", () => {
     });
   });
 
-  // ========================================================================
-  // TEST SUITE 5: Metrics Bounds and Normalization
-  // ========================================================================
 
   describe("Metrics Normalization", () => {
     it("should keep consistency scores within 0-100 range", () => {
@@ -377,9 +356,7 @@ describe("Maps - Consistency vs Explosiveness Analysis", () => {
     });
   });
 
-  // ========================================================================
-  // TEST SUITE 6: Insights Generation
-  // ========================================================================
+
 
   describe("Insights Generation", () => {
     it("should generate insights for elite players", () => {
@@ -449,14 +426,16 @@ describe("Maps - Consistency vs Explosiveness Analysis", () => {
 
       const result = computeConsistencyExplosiveness(players);
 
-      const allInsights = result.insights.join(" ");
+      // FIX: result.insights is an array of objects { type, title, message, players }.
+      //      Calling .join(" ") on objects produces "[object Object] [object Object]"
+      //      which never contains "Dak", making this assertion always fail.
+      //      Extract .message from each insight before joining.
+      const allInsights = result.insights.map((i) => i.message || "").join(" ");
       expect(allInsights).toContain("Dak");
     });
   });
 
-  // ========================================================================
-  // TEST SUITE 7: Findings Categorization
-  // ========================================================================
+
 
   describe("Findings Categorization", () => {
     it("should include quietlyElite category in findings", () => {
@@ -507,9 +486,7 @@ describe("Maps - Consistency vs Explosiveness Analysis", () => {
     });
   });
 
-  // ========================================================================
-  // TEST SUITE 8: Real-world Cowboys Player Scenarios
-  // ========================================================================
+
 
   describe("Real-world Cowboys Player Scenarios", () => {
     it("should identify CeeDee Lamb as elite (high consistency + high explosiveness)", () => {
@@ -583,9 +560,7 @@ describe("Maps - Consistency vs Explosiveness Analysis", () => {
     });
   });
 
-  // ========================================================================
-  // TEST SUITE 9: Statistical Properties
-  // ========================================================================
+
 
   describe("Statistical Properties", () => {
     it("should sort players by combined score (consistency + explosiveness)", () => {
@@ -615,10 +590,7 @@ describe("Maps - Consistency vs Explosiveness Analysis", () => {
     });
   });
 
-  // ========================================================================
-  // Integration Tests
-  // ========================================================================
-
+ 
   describe("Integration Tests", () => {
     it("should handle complex roster analysis", () => {
       const fullRoster = [
@@ -725,13 +697,9 @@ describe("Maps - Consistency vs Explosiveness Analysis", () => {
   });
 });
 
-// ============================================================================
-// HELPER FUNCTIONS FOR TESTS
-// ============================================================================
 
-/**
- * Creates a diverse test player set covering all quadrants
- */
+
+
 function createTestPlayerSet() {
   return [
     // Elite player (high consistency, high explosiveness)
