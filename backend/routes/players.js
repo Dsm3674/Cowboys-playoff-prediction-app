@@ -84,7 +84,7 @@ const ROSTER_MAP =[
 
 
 async function fetchRealCowboysDeepStats(year) {
-  const fetch = (await import("node-fetch")).default;
+  const fetch = global.fetch;
 
   let games = await espn.fetchCowboysGamesSeasonToDate(year);
   let completedGames = games.filter(g => g.completed && g.id);
@@ -327,7 +327,7 @@ function normalizeLimit(value, fallback = 50, max = 500) {
 
 function asString(value) { return value === undefined || value === null ? "" : String(value).trim(); }
 function normalizeQuery(value) { return asString(value).toLowerCase(); }
-function safeArray(value) { return Array.isArray(value) ? value :[]; }
+function safeArray(value) { return Array.isArray(value) ? value : []; }
 
 router.get("/maps", async (req, res) => {
   try {
