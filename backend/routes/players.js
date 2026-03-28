@@ -1,556 +1,327 @@
+"use strict";
+
 const express = require("express");
 const router = express.Router();
-const Team = require("../teams");
-const Season = require("../seasons");
 const pool = require("../databases");
 const cache = require("../cache");
-const { computeConsistencyExplosiveness } = require("../Maps");
-const { computeClutchIndex } = require("../clutch");
+const { getTimelineEvents } = require("../timeline");
 
-router.get("/radar", async (req, res) => {
-  try {
-    const cowboys = await Team.findByName("Dallas Cowboys");
-    if (!cowboys) {
-      return res.status(404).json({ error: "Cowboys team not found" });
-    }
-
-    const currentSeason = await Season.getCurrentSeason(cowboys.team_id);
-    if (!currentSeason) {
-      return res.status(404).json({ error: "No current season data" });
-    }
-
-    // Try to pull players from DB; if table/columns differ, fall back to static
-    let players = [];
-    try {
-      const result = await pool.query(
-        "SELECT * FROM players WHERE season_id = $1 ORDER BY performance_rating DESC LIMIT 20",
-        [currentSeason.season_id]
-      );
-      players = result.rows;
-    } catch (err) {
-      console.warn(
-        "Player radar: players table query failed, falling back to static data:",
-        err.message
-      );
-      players = [];
-    }
-
-    const findByName = (name) =>
-      players.find((p) =>
-        (p.player_name || "").toLowerCase().includes(name.toLowerCase())
-      );
-
-    // 🔵 Dak Prescott
-    const dak = findByName("prescott") || {
-      player_name: "Dak Prescott",
-      position: "QB",
-      performance_rating: 90,
-    };
-
-    // 🟠 CeeDee Lamb
-    const ceedee = findByName("lamb") || {
-      player_name: "CeeDee Lamb",
-      position: "WR",
-      performance_rating: 92,
-    };
-
-    // 🔵 Daron Bland (instead of Micah)
-    const bland = findByName("bland") || {
-      player_name: "Daron Bland",
-      position: "CB",
-      performance_rating: 88,
-    };
-
-    const buildMetrics = (p) => {
-      const base = Number(p.performance_rating) || 85;
-      const name = (p.player_name || "").toLowerCase();
-      const pos = (p.position || "").toUpperCase();
-
-      // You can tweak these heuristics later if you connect real model outputs
-      const offense =
-        pos === "QB" || name.includes("prescott")
-          ? Math.min(99, base + 4)
-          : pos === "WR" || name.includes("lamb")
-          ? Math.min(99, base + 3)
-          : Math.max(70, base - 4);
-
-      const explosiveness =
-        pos === "WR" || name.includes("lamb")
-          ? Math.min(99, base + 6)
-          : Math.max(70, base - 2);
-
-      const consistency = Math.max(70, base - 1);
-      const clutch = Math.min(99, base + 2);
-
-      // For Bland, treat "durability" as ball-hawk / availability vibe
-      const durability =
-        name.includes("bland") || pos === "CB"
-          ? Math.min(99, base + 3)
-          : Math.max(65, base - 5);
-
-      return { offense, explosiveness, consistency, clutch, durability };
-    };
-
-    const labels = [
-      "Offense",
-      "Explosiveness",
-      "Consistency",
-      "Clutch",
-      "Durability",
-    ];
-
-    const response = {
-      labels,
-      players: [
-        {
-          id: "dak",
-          name: dak.player_name,
-          position: dak.position || "QB",
-          metrics: buildMetrics(dak),
-          role: "Offensive Engine",
-        },
-        {
-          id: "ceedee",
-          name: ceedee.player_name,
-          position: ceedee.position || "WR",
-          metrics: buildMetrics(ceedee),
-          role: "Explosive Playmaker",
-        },
-        {
-          id: "bland",
-          name: bland.player_name,
-          position: bland.position || "CB",
-          metrics: buildMetrics(bland),
-          role: "Turnover Machine",
-        },
-      ],
-    };
-
-    res.json(response);
-  } catch (error) {
-    console.error("Error building player radar:", error);
-    res
-      .status(500)
-      .json({ error: "Failed to build player radar", message: error.message });
+const REAL_COWBOYS_PLAYERS = [
+  {
+    player_id: "dak_prescott",
+    player_name: "Dak Prescott",
+    first_name: "Dak",
+    last_name: "Prescott",
+    position: "QB",
+    jersey_number: 4,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "offense",
+    starter: true,
+    searchable: ["dak", "prescott", "dak prescott", "qb"]
+  },
+  {
+    player_id: "ceedee_lamb",
+    player_name: "CeeDee Lamb",
+    first_name: "CeeDee",
+    last_name: "Lamb",
+    position: "WR",
+    jersey_number: 88,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "offense",
+    starter: true,
+    searchable: ["ceedee", "lamb", "cee dee", "ceedee lamb", "wr"]
+  },
+  {
+    player_id: "micah_parsons",
+    player_name: "Micah Parsons",
+    first_name: "Micah",
+    last_name: "Parsons",
+    position: "LB",
+    jersey_number: 11,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "defense",
+    starter: true,
+    searchable: ["micah", "parsons", "micah parsons", "lb", "edge"]
+  },
+  {
+    player_id: "brandin_cooks",
+    player_name: "Brandin Cooks",
+    first_name: "Brandin",
+    last_name: "Cooks",
+    position: "WR",
+    jersey_number: 3,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "offense",
+    starter: true,
+    searchable: ["brandin", "cooks", "brandin cooks", "wr"]
+  },
+  {
+    player_id: "ezekiel_elliott",
+    player_name: "Ezekiel Elliott",
+    first_name: "Ezekiel",
+    last_name: "Elliott",
+    position: "RB",
+    jersey_number: 15,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "offense",
+    starter: false,
+    searchable: ["ezekiel", "elliott", "zeke", "ezekiel elliott", "rb"]
+  },
+  {
+    player_id: "daron_bland",
+    player_name: "Daron Bland",
+    first_name: "Daron",
+    last_name: "Bland",
+    position: "CB",
+    jersey_number: 26,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "defense",
+    starter: true,
+    searchable: ["daron", "bland", "daron bland", "cb"]
+  },
+  {
+    player_id: "trevon_diggs",
+    player_name: "Trevon Diggs",
+    first_name: "Trevon",
+    last_name: "Diggs",
+    position: "CB",
+    jersey_number: 7,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "defense",
+    starter: true,
+    searchable: ["trevon", "diggs", "trevon diggs", "cb"]
+  },
+  {
+    player_id: "demarcus_lawrence",
+    player_name: "DeMarcus Lawrence",
+    first_name: "DeMarcus",
+    last_name: "Lawrence",
+    position: "DE",
+    jersey_number: 90,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "defense",
+    starter: true,
+    searchable: ["demarcus", "lawrence", "tank", "tank lawrence", "de"]
+  },
+  {
+    player_id: "jake_ferguson",
+    player_name: "Jake Ferguson",
+    first_name: "Jake",
+    last_name: "Ferguson",
+    position: "TE",
+    jersey_number: 87,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "offense",
+    starter: true,
+    searchable: ["jake", "ferguson", "jake ferguson", "te"]
+  },
+  {
+    player_id: "tyler_smith",
+    player_name: "Tyler Smith",
+    first_name: "Tyler",
+    last_name: "Smith",
+    position: "OL",
+    jersey_number: 73,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "offense",
+    starter: true,
+    searchable: ["tyler", "smith", "tyler smith", "guard", "tackle", "ol"]
+  },
+  {
+    player_id: "terence_steele",
+    player_name: "Terence Steele",
+    first_name: "Terence",
+    last_name: "Steele",
+    position: "OT",
+    jersey_number: 78,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "offense",
+    starter: true,
+    searchable: ["terence", "steele", "terence steele", "ot"]
+  },
+  {
+    player_id: "dauron_payne_placeholder",
+    player_name: "Brandon Aubrey",
+    first_name: "Brandon",
+    last_name: "Aubrey",
+    position: "K",
+    jersey_number: 17,
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    side: "special_teams",
+    starter: true,
+    searchable: ["brandon", "aubrey", "brandon aubrey", "kicker", "k"]
   }
-});
+];
 
+function normalizeSeason(value, fallback = new Date().getFullYear()) {
+  const year = Number(value);
+  return Number.isInteger(year) && year >= 1900 && year <= 3000 ? year : fallback;
+}
 
-router.get("/maps", async (req, res) => {
-  try {
-    const cowboys = await Team.findByName("Dallas Cowboys");
-    if (!cowboys) {
-      return res.status(404).json({ error: "Cowboys team not found" });
-    }
+function normalizeLimit(value, fallback = 50, max = 500) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, max);
+}
 
-    const currentSeason = await Season.getCurrentSeason(cowboys.team_id);
-    if (!currentSeason) {
-      return res.status(404).json({ error: "No current season data" });
-    }
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
 
-    // Fetch player data
-    let players = [];
-    try {
-      const result = await pool.query(
-        "SELECT * FROM players WHERE season_id = $1 ORDER BY performance_rating DESC LIMIT 20",
-        [currentSeason.season_id]
-      );
-      players = result.rows;
-    } catch (err) {
-      console.warn(
-        "Player maps: players table query failed, falling back to static data:",
-        err.message
-      );
-      players = [];
-    }
+function asString(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
 
-    const findByName = (name) =>
-      players.find((p) =>
-        (p.player_name || "").toLowerCase().includes(name.toLowerCase())
-      );
+function normalizeQuery(value) {
+  return asString(value).toLowerCase();
+}
 
-    // Build player roster
-    const dak = findByName("prescott") || {
-      player_name: "Dak Prescott",
-      position: "QB",
-      performance_rating: 90,
-    };
+function scoreCowboysFallbackPlayer(player, query) {
+  if (!query) return 0;
 
-    const ceedee = findByName("lamb") || {
-      player_name: "CeeDee Lamb",
-      position: "WR",
-      performance_rating: 92,
-    };
+  const exactName = normalizeQuery(player.player_name);
+  if (exactName === query) return 100;
 
-    const bland = findByName("bland") || {
-      player_name: "Daron Bland",
-      position: "CB",
-      performance_rating: 88,
-    };
+  const exactFirst = normalizeQuery(player.first_name);
+  const exactLast = normalizeQuery(player.last_name);
+  if (exactFirst === query || exactLast === query) return 90;
 
-    const micah = findByName("parsons") || {
-      player_name: "Micah Parsons",
-      position: "EDGE",
-      performance_rating: 95,
-    };
-
-    const ezekiel = findByName("elliott") || {
-      player_name: "Ezekiel Elliott",
-      position: "RB",
-      performance_rating: 78,
-    };
-
-    const brandin = findByName("cooks") || {
-      player_name: "Brandin Cooks",
-      position: "WR",
-      performance_rating: 82,
-    };
-
-    const buildMetrics = (p) => {
-      const base = Number(p.performance_rating) || 85;
-      const name = (p.player_name || "").toLowerCase();
-      const pos = (p.position || "").toUpperCase();
-
-      const offense =
-        pos === "QB" || name.includes("prescott")
-          ? Math.min(99, base + 4)
-          : pos === "WR" || name.includes("lamb") || name.includes("cooks")
-          ? Math.min(99, base + 3)
-          : pos === "RB" || name.includes("elliott")
-          ? Math.min(99, base + 1)
-          : Math.max(70, base - 4);
-
-      const explosiveness =
-        pos === "WR" || name.includes("lamb")
-          ? Math.min(99, base + 6)
-          : pos === "EDGE" || name.includes("parsons")
-          ? Math.min(99, base + 5)
-          : pos === "RB" || name.includes("elliott")
-          ? Math.min(99, base + 2)
-          : Math.max(70, base - 2);
-
-      const consistency =
-        pos === "EDGE" || name.includes("parsons")
-          ? Math.min(99, base + 4)
-          : pos === "QB" || name.includes("prescott")
-          ? Math.min(99, base + 2)
-          : Math.max(60, base - 3);
-
-      const clutch = Math.min(99, base + 2);
-
-      const durability =
-        name.includes("bland") || pos === "CB"
-          ? Math.min(99, base + 3)
-          : pos === "EDGE" || name.includes("parsons")
-          ? Math.min(99, base + 2)
-          : Math.max(65, base - 5);
-
-      return { offense, explosiveness, consistency, clutch, durability };
-    };
-
-    const playerList = [
-      {
-        id: "dak",
-        name: dak.player_name,
-        position: dak.position || "QB",
-        metrics: buildMetrics(dak),
-        role: "Offensive Engine",
-      },
-      {
-        id: "ceedee",
-        name: ceedee.player_name,
-        position: ceedee.position || "WR",
-        metrics: buildMetrics(ceedee),
-        role: "Explosive Playmaker",
-      },
-      {
-        id: "bland",
-        name: bland.player_name,
-        position: bland.position || "CB",
-        metrics: buildMetrics(bland),
-        role: "Turnover Machine",
-      },
-      {
-        id: "micah",
-        name: micah.player_name,
-        position: micah.position || "EDGE",
-        metrics: buildMetrics(micah),
-        role: "Defensive Anchor",
-      },
-      {
-        id: "zeke",
-        name: ezekiel.player_name,
-        position: ezekiel.position || "RB",
-        metrics: buildMetrics(ezekiel),
-        role: "Volume Back",
-      },
-      {
-        id: "brandin",
-        name: brandin.player_name,
-        position: brandin.position || "WR",
-        metrics: buildMetrics(brandin),
-        role: "Slot Receiver",
-      },
-    ];
-
-    // Compute consistency vs explosiveness analysis
-    const mapData = computeConsistencyExplosiveness(playerList);
-
-    res.json(mapData);
-  } catch (error) {
-    console.error("Error building player maps:", error);
-    res
-      .status(500)
-      .json({ error: "Failed to build player maps", message: error.message });
+  if (safeArray(player.searchable).some((term) => normalizeQuery(term) === query)) {
+    return 85;
   }
-});
 
+  if (exactName.startsWith(query)) return 75;
+  if (exactFirst.startsWith(query) || exactLast.startsWith(query)) return 70;
 
-router.get("/clutch", async (req, res) => {
-  try {
-    // Check cache first - keyed by season (defaults to 2025)
-    const season = req.query.season || 2025;
-    const cacheKey = `season_${season}`;
+  if (exactName.includes(query)) return 60;
 
-    const cached = cache.get("CLUTCH_ANALYSIS", cacheKey);
-    if (cached) {
-      return res.json({ ...cached, _cached: true, _cacheAge: Date.now() - cached._cacheTime });
-    }
-
-    const cowboys = await Team.findByName("Dallas Cowboys");
-    if (!cowboys) {
-      return res.status(404).json({ error: "Cowboys team not found" });
-    }
-
-    const currentSeason = await Season.getCurrentSeason(cowboys.team_id);
-    if (!currentSeason) {
-      return res.status(404).json({ error: "No current season data" });
-    }
-
-    // Fetch player data
-    let players = [];
-    try {
-      const result = await pool.query(
-        "SELECT * FROM players WHERE season_id = $1 ORDER BY performance_rating DESC LIMIT 20",
-        [currentSeason.season_id]
-      );
-      players = result.rows;
-    } catch (err) {
-      console.warn(
-        "Player clutch: players table query failed, falling back to static data:",
-        err.message
-      );
-      players = [];
-    }
-
-    const findByName = (name) =>
-      players.find((p) =>
-        (p.player_name || "").toLowerCase().includes(name.toLowerCase())
-      );
-
-    // Build player roster with realistic clutch stats
-    const dak = findByName("prescott") || {
-      player_name: "Dak Prescott",
-      position: "QB",
-      performance_rating: 90,
-    };
-
-    const ceedee = findByName("lamb") || {
-      player_name: "CeeDee Lamb",
-      position: "WR",
-      performance_rating: 92,
-    };
-
-    const bland = findByName("bland") || {
-      player_name: "Daron Bland",
-      position: "CB",
-      performance_rating: 88,
-    };
-
-    const micah = findByName("parsons") || {
-      player_name: "Micah Parsons",
-      position: "EDGE",
-      performance_rating: 95,
-    };
-
-    const ezekiel = findByName("elliott") || {
-      player_name: "Ezekiel Elliott",
-      position: "RB",
-      performance_rating: 78,
-    };
-
-    const brandin = findByName("cooks") || {
-      player_name: "Brandin Cooks",
-      position: "WR",
-      performance_rating: 82,
-    };
-
-    // Build clutch stats for each player
-    const buildClutchStats = (p) => {
-      const base = Number(p.performance_rating) || 85;
-      const name = (p.player_name || "").toLowerCase();
-      const pos = (p.position || "").toUpperCase();
-
-      return {
-        stats: {
-          fourthQStats: {
-            efficiency: Math.min(99, (base + 8) / 100),
-          },
-          regularStats: {
-            efficiency: Math.min(99, base / 100),
-          },
-          thirdDownStats: {
-            completions: Math.floor(base / 10),
-            attempts: Math.floor(base / 8),
-            success: Math.floor(base / 12),
-          },
-          fourthDownStats: {
-            completions: Math.floor(base / 50),
-            attempts: Math.floor(base / 30),
-            success: Math.floor(base / 60),
-          },
-          redZoneStats: {
-            attempts: Math.floor(base / 20),
-            touchdowns: Math.floor(base / 25),
-            fieldGoals: Math.floor(base / 45),
-          },
-          closeGameStats: {
-            closeGames: Math.floor(base / 25),
-            wins: Math.floor(base / 30),
-            avgPointsInCloseGames: base * 0.8,
-          },
-          twoMinStats: {
-            drives: Math.floor(base / 40),
-            scoreOnDrive: Math.floor(base / 50),
-            heroMoments: Math.floor(base / 60),
-          },
-          gameWinningStats: {
-            gwDrives: Math.floor(base / 50),
-            gwSuccesses: Math.floor(base / 70),
-            gwAttempts: Math.floor(base / 40),
-          },
-          pressureStats: {
-            pressurePlays: Math.floor(base / 8),
-            successUnderPressure: Math.floor(base / 12),
-            avgYardsWithPressure: base / 20,
-          },
-          clutchTurnovers: pos === "QB" ? Math.floor(base / 100) : 0,
-          clutchPlays: Math.floor(base / 5),
-          consistency: base,
-        },
-      };
-    };
-
-    const playerList = [
-      {
-        id: "dak",
-        name: dak.player_name,
-        position: dak.position || "QB",
-        role: "Offensive Engine",
-        ...buildClutchStats(dak),
-      },
-      {
-        id: "ceedee",
-        name: ceedee.player_name,
-        position: ceedee.position || "WR",
-        role: "Explosive Playmaker",
-        ...buildClutchStats(ceedee),
-      },
-      {
-        id: "bland",
-        name: bland.player_name,
-        position: bland.position || "CB",
-        role: "Turnover Machine",
-        ...buildClutchStats(bland),
-      },
-      {
-        id: "micah",
-        name: micah.player_name,
-        position: micah.position || "EDGE",
-        role: "Defensive Anchor",
-        ...buildClutchStats(micah),
-      },
-      {
-        id: "zeke",
-        name: ezekiel.player_name,
-        position: ezekiel.position || "RB",
-        role: "Volume Back",
-        ...buildClutchStats(ezekiel),
-      },
-      {
-        id: "brandin",
-        name: brandin.player_name,
-        position: brandin.position || "WR",
-        role: "Slot Receiver",
-        ...buildClutchStats(brandin),
-      },
-    ];
-
-    // Compute clutch index analysis
-    const clutchData = computeClutchIndex(playerList, { season: parseInt(season) });
-
-    // Cache the result with timestamp
-    const responseData = { ...clutchData, _cacheTime: Date.now() };
-    await cache.set("CLUTCH_ANALYSIS", responseData, null, cacheKey);
-
-    res.json({ ...responseData, _cached: false });
-  } catch (error) {
-    console.error("Error building player clutch stats:", error);
-    res.status(500).json({
-      error: "Failed to build player clutch stats",
-      message: error.message,
-    });
+  if (safeArray(player.searchable).some((term) => normalizeQuery(term).includes(query))) {
+    return 55;
   }
-});
 
-// GET /api/players/search - Search players by name with autocomplete
+  return 0;
+}
+
+function searchRealCowboysPlayers(query, limit = 20) {
+  const normalized = normalizeQuery(query);
+
+  if (!normalized) {
+    return REAL_COWBOYS_PLAYERS.slice(0, limit);
+  }
+
+  return REAL_COWBOYS_PLAYERS
+    .map((player) => ({
+      ...player,
+      _score: scoreCowboysFallbackPlayer(player, normalized)
+    }))
+    .filter((player) => player._score > 0)
+    .sort((a, b) => {
+      if (b._score !== a._score) return b._score - a._score;
+      return a.player_name.localeCompare(b.player_name);
+    })
+    .slice(0, limit)
+    .map(({ _score, ...player }) => player);
+}
+
+function mapTimelineEventToPlayerEvent(event) {
+  return {
+    id: event.id,
+    player_id: event.playerId,
+    player_name: event.playerName,
+    event_type: event.eventType,
+    event_date: event.date,
+    description: event.description,
+    impact_score: event.impact,
+    severity: event.severity,
+    source: event.source,
+    title: event.title,
+    team: event.team,
+    confidence: event.confidence,
+    metadata: event.metadata
+  };
+}
+
+async function searchPlayersFromDatabase(query) {
+  const normalized = normalizeQuery(query);
+
+  if (!normalized) {
+    return [];
+  }
+
+  const dbResult = await pool.query(
+    `
+    SELECT DISTINCT
+      CAST(player_id AS TEXT) AS player_id,
+      player_name
+    FROM player_events
+    WHERE player_name ILIKE $1
+    ORDER BY player_name ASC
+    LIMIT 20
+    `,
+    [`%${query}%`]
+  );
+
+  return safeArray(dbResult.rows).map((row) => ({
+    player_id: row.player_id || normalizeQuery(row.player_name).replace(/\s+/g, "_"),
+    player_name: row.player_name,
+    first_name: asString(row.player_name).split(" ").slice(0, -1).join(" ") || row.player_name,
+    last_name: asString(row.player_name).split(" ").slice(-1).join(" "),
+    team: "DAL",
+    team_name: "Dallas Cowboys",
+    source: "database"
+  }));
+}
+
+// GET /api/players/search
 router.get("/search", async (req, res) => {
   try {
-    const query = req.query.name || "";
-    if (query.length < 2) {
+    const query = asString(req.query.name || req.query.q);
+    const limit = normalizeLimit(req.query.limit, 20, 50);
+
+    if (!query) {
       return res.json([]);
     }
 
-    // Cache key
-    const cacheKey = `search_${query.toLowerCase()}`;
+    const cacheKey = JSON.stringify({
+      q: normalizeQuery(query),
+      limit
+    });
+
     const cached = await cache.get("PLAYER_SEARCH", cacheKey);
     if (cached) {
       return res.json(cached);
     }
 
-    // Try DB first
     let results = [];
+
     try {
-      const queryText = `
-        SELECT DISTINCT player_name, position, performance_rating
-        FROM players 
-        WHERE LOWER(player_name) LIKE LOWER($1)
-        LIMIT 20
-      `;
-      const dbResult = await pool.query(queryText, [`${query}%`]);
-      results = dbResult.rows;
+      const dbPlayers = await searchPlayersFromDatabase(query);
+      results = dbPlayers.slice(0, limit);
     } catch (err) {
-      console.warn("Player search query failed:", err.message);
+      console.warn("Player search DB query failed, using Cowboys fallback:", err.message);
     }
 
-    // Fallback: static Cowboys roster
-    if (results.length === 0) {
-      const cowboys = [
-        { player_name: "Dak Prescott", position: "QB", performance_rating: 90 },
-        { player_name: "CeeDee Lamb", position: "WR", performance_rating: 92 },
-        { player_name: "Micah Parsons", position: "EDGE", performance_rating: 95 },
-        { player_name: "Daron Bland", position: "CB", performance_rating: 88 },
-        { player_name: "Ezekiel Elliott", position: "RB", performance_rating: 78 },
-        { player_name: "Brandin Cooks", position: "WR", performance_rating: 82 },
-      ];
-      results = cowboys.filter((p) =>
-        p.player_name.toLowerCase().includes(query.toLowerCase())
-      );
+    if (!results.length) {
+      results = searchRealCowboysPlayers(query, limit).map((player) => ({
+        ...player,
+        source: "fallback_cowboys_roster"
+      }));
     }
 
-    // Cache results
     await cache.set("PLAYER_SEARCH", results, null, cacheKey);
-
     res.json(results);
   } catch (error) {
     console.error("Player search error:", error);
@@ -558,86 +329,148 @@ router.get("/search", async (req, res) => {
   }
 });
 
-// POST /api/players/events - Create player event
+// POST /api/players/events
 router.post("/events", async (req, res) => {
   try {
     const {
+      player_id,
       player_name,
       event_type,
       event_date,
       description,
       impact_score,
-      season,
-    } = req.body;
+      season
+    } = req.body || {};
 
     if (!player_name || !event_type || !event_date) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    try {
-      const result = await pool.query(
-        `
-        INSERT INTO player_events (player_name, event_type, event_date, description, impact_score, season)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (player_name, event_date, event_type) DO UPDATE 
-        SET description = $4, impact_score = $5, updated_at = NOW()
-        RETURNING *;
-        `,
-        [player_name, event_type, event_date, description || null, impact_score || null, season || 2025]
-      );
+    const normalizedSeason = normalizeSeason(
+      season,
+      new Date(event_date).getFullYear() || new Date().getFullYear()
+    );
 
-      // Invalidate cache
-      await cache.clearNamespace("PLAYER_EVENTS");
-      await cache.clearNamespace("TIMELINE_POINTS");
+    const result = await pool.query(
+      `
+      INSERT INTO player_events (
+        player_id,
+        player_name,
+        event_type,
+        event_date,
+        description,
+        impact_score,
+        season
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (player_name, event_date, event_type)
+      DO UPDATE SET
+        player_id = EXCLUDED.player_id,
+        description = EXCLUDED.description,
+        impact_score = EXCLUDED.impact_score,
+        season = EXCLUDED.season,
+        updated_at = NOW()
+      RETURNING *
+      `,
+      [
+        player_id || null,
+        player_name,
+        event_type,
+        event_date,
+        description || null,
+        impact_score ?? null,
+        normalizedSeason
+      ]
+    );
 
-      res.json(result.rows[0]);
-    } catch (err) {
-      console.error("DB error creating event:", err);
-      res.status(500).json({ error: "Failed to create event" });
-    }
+    await cache.clearNamespace("PLAYER_EVENTS");
+    await cache.clearNamespace("PLAYER_SEARCH");
+    await cache.clearNamespace("TIMELINE_POINTS");
+    await cache.clearNamespace("TIMELINE_INFLECTIONS");
+
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error("Event creation error:", error);
     res.status(500).json({ error: "Server error", message: error.message });
   }
 });
 
-// GET /api/players/events - Fetch player events
+// GET /api/players/events
 router.get("/events", async (req, res) => {
   try {
-    const season = req.query.season || 2025;
-    const limit = Math.min(parseInt(req.query.limit) || 50, 500);
+    const season = normalizeSeason(req.query.season, 2025);
+    const limit = normalizeLimit(req.query.limit, 50, 500);
+    const playerId =
+      req.query.playerId !== undefined && req.query.playerId !== null
+        ? String(req.query.playerId)
+        : null;
+    const severity = asString(req.query.severity).toLowerCase();
+    const source = asString(req.query.source).toLowerCase();
+    const minAbsImpact =
+      req.query.minAbsImpact !== undefined ? Number(req.query.minAbsImpact) || 0 : 0;
 
-    // Cache key
-    const cacheKey = `season_${season}_limit_${limit}`;
+    const cacheKey = JSON.stringify({
+      season,
+      limit,
+      playerId,
+      severity,
+      source,
+      minAbsImpact
+    });
+
     const cached = await cache.get("PLAYER_EVENTS", cacheKey);
     if (cached) {
       return res.json({ ...cached, _cached: true });
     }
 
-    try {
-      const result = await pool.query(
-        `
-        SELECT * FROM player_events 
-        WHERE season = $1 
-        ORDER BY event_date DESC 
-        LIMIT $2;
-        `,
-        [season, limit]
-      );
+    const timelineData = await getTimelineEvents({
+      season,
+      playerId,
+      severity,
+      source,
+      minAbsImpact
+    });
 
-      const responseData = { events: result.rows, season, count: result.rows.length };
-      await cache.set("PLAYER_EVENTS", responseData, null, cacheKey);
+    const events = safeArray(timelineData.events)
+      .slice(0, limit)
+      .map(mapTimelineEventToPlayerEvent);
 
-      res.json({ ...responseData, _cached: false });
-    } catch (err) {
-      console.warn("DB query failed, returning empty events:", err.message);
-      const responseData = { events: [], season, count: 0 };
-      await cache.set("PLAYER_EVENTS", responseData, null, cacheKey);
-      res.json({ ...responseData, _cached: false });
-    }
+    const responseData = {
+      events,
+      season,
+      count: events.length,
+      dataUnavailable: Boolean(timelineData.dataUnavailable),
+      reason: timelineData.reason || null
+    };
+
+    await cache.set("PLAYER_EVENTS", responseData, 120, cacheKey);
+
+    res.json({ ...responseData, _cached: false });
   } catch (error) {
     console.error("Events fetch error:", error);
-    res.status(500).json({ error: "Failed to fetch events" });
+    res.status(500).json({ error: "Failed to fetch events", message: error.message });
+  }
+});
+
+// GET /api/players/roster
+router.get("/roster", async (req, res) => {
+  try {
+    const limit = normalizeLimit(req.query.limit, REAL_COWBOYS_PLAYERS.length, 100);
+    const q = asString(req.query.q || req.query.name);
+
+    const players = q
+      ? searchRealCowboysPlayers(q, limit)
+      : REAL_COWBOYS_PLAYERS.slice(0, limit);
+
+    res.json({
+      team: "DAL",
+      team_name: "Dallas Cowboys",
+      count: players.length,
+      players
+    });
+  } catch (error) {
+    console.error("Roster fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch roster", message: error.message });
   }
 });
 
