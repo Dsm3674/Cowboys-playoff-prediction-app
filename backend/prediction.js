@@ -83,7 +83,8 @@ async function generateEspnPrediction({
   chaos = 0,
 }) {
   const cowboysGames = await fetchCowboysGamesSeasonToDate(year);
-  const record = computeRecordFromGames(cowboysGames);
+  // Cowboys record is fine at default "DAL"
+  const record = computeRecordFromGames(cowboysGames, "DAL");
   const cowAvg = computeTeamAveragesFromGames("DAL", cowboysGames);
 
   const remaining = cowboysGames.filter((g) => !g.completed);
@@ -92,10 +93,13 @@ async function generateEspnPrediction({
 
   for (const g of remaining) {
     const oppAbbr =
-      g.homeTeamAbbr === "DAL" ? g.awayTeamAbbr : g.homeTeamAbbr;
+      (g.homeTeamAbbr || "").toUpperCase() === "DAL"
+        ? g.awayTeamAbbr
+        : g.homeTeamAbbr;
 
     const oppGames = await fetchTeamGamesSeasonToDate(oppAbbr, year);
-    const oppRecord = computeRecordFromGames(oppGames);
+   
+    const oppRecord = computeRecordFromGames(oppGames, oppAbbr);
     const oppAvg = computeTeamAveragesFromGames(oppAbbr, oppGames);
 
     const pBase = modelWinProb(modelType, {
@@ -103,7 +107,7 @@ async function generateEspnPrediction({
       oppWinPct: oppRecord.winPct || 0.5,
       teamPointDiff: cowAvg.pointDiffPerGame || 0,
       oppPointDiff: oppAvg.pointDiffPerGame || 0,
-      isHome: g.homeTeamAbbr === "DAL",
+      isHome: (g.homeTeamAbbr || "").toUpperCase() === "DAL",
       scenarioModifier,
     });
 
@@ -124,6 +128,4 @@ async function generateEspnPrediction({
 }
 
 module.exports = { generateEspnPrediction };
-
-
 
