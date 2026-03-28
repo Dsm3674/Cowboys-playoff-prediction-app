@@ -3,11 +3,17 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per window
+});
 
 
 const cowboysRoutes = require("./routes/cowboys");
@@ -38,12 +44,12 @@ const frontendPath = path.join(__dirname, "../frontend");
 app.use(express.static(frontendPath));
 
 
-app.get("/", (req, res) => {
+app.get("/", generalLimiter, (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
 
-app.get("*", (req, res) => {
+app.get("*", generalLimiter, (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
