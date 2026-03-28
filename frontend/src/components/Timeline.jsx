@@ -1,10 +1,8 @@
 function Timeline() {
   const canvasRef = React.useRef(null);
 
-  const DEFAULT_SEASON = 2025;
-
   const [events, setEvents] = React.useState([]);
-  const [season, setSeason] = React.useState(DEFAULT_SEASON);
+  const [season, setSeason] = React.useState(2025);
   const [timelineData, setTimelineData] = React.useState([]);
   const [inflectionPoints, setInflectionPoints] = React.useState([]);
   const [selectedEvent, setSelectedEvent] = React.useState(null);
@@ -16,65 +14,10 @@ function Timeline() {
   const canvasHeight = 400;
 
   const styles = {
-    controls: {
-      display: "flex",
-      alignItems: "center",
-      gap: "1rem",
-      marginBottom: "1.5rem",
-      flexWrap: "wrap",
-    },
-    inputWrap: {
-      display: "flex",
-      alignItems: "center",
-      gap: "0.75rem",
-    },
-    input: {
-      width: "160px",
-      padding: "0.9rem 1rem",
-      borderRadius: "14px",
-      border: "1px solid rgba(148,163,184,0.35)",
-      background: "#1e293b",
-      color: "#f8fafc",
-      fontSize: "1.1rem",
-      fontWeight: 700,
-      outline: "none",
-    },
-    button: {
-      padding: "0.9rem 1.2rem",
-      borderRadius: "14px",
-      border: "none",
-      background: "#2563eb",
-      color: "#ffffff",
-      fontWeight: 700,
-      cursor: loading ? "not-allowed" : "pointer",
-      opacity: loading ? 0.7 : 1,
-    },
     cardText: {
       color: "#94a3b8",
       fontSize: "0.95rem",
       lineHeight: 1.6,
-    },
-    warningText: {
-      color: "#fbbf24",
-      fontSize: "0.9rem",
-      marginTop: "0.75rem",
-    },
-    errorText: {
-      color: "#fca5a5",
-      fontSize: "0.95rem",
-      marginTop: "0.75rem",
-    },
-    layout: {
-      display: "grid",
-      gridTemplateColumns: "minmax(0, 2fr) minmax(280px, 1fr)",
-      gap: "1.25rem",
-      marginTop: "1.5rem",
-    },
-    subCard: {
-      background: "rgba(15,23,42,0.75)",
-      border: "1px solid rgba(148,163,184,0.15)",
-      borderRadius: "18px",
-      padding: "1rem",
     },
     list: {
       listStyle: "none",
@@ -83,7 +26,7 @@ function Timeline() {
       display: "flex",
       flexDirection: "column",
       gap: "0.75rem",
-      maxHeight: "420px",
+      maxHeight: "320px",
       overflowY: "auto",
     },
     listItem: {
@@ -107,22 +50,6 @@ function Timeline() {
       lineHeight: 1.7,
       marginTop: "0.85rem",
       whiteSpace: "pre-wrap",
-    },
-    metaRow: {
-      display: "flex",
-      gap: "0.75rem",
-      flexWrap: "wrap",
-      marginTop: "0.75rem",
-      marginBottom: "0.75rem",
-    },
-    chip: {
-      background: "rgba(37,99,235,0.14)",
-      color: "#bfdbfe",
-      border: "1px solid rgba(96,165,250,0.22)",
-      padding: "0.35rem 0.65rem",
-      borderRadius: "999px",
-      fontSize: "0.78rem",
-      fontWeight: 700,
     },
   };
 
@@ -184,22 +111,21 @@ function Timeline() {
       setTimelineReason("");
       setSelectedEvent(null);
 
-      const [eventsResult, timelineResult] = await Promise.all([
-        fetchEvents(),
-        fetchTimeline(),
-      ]);
+      const results = await Promise.all([fetchEvents(), fetchTimeline()]);
+      const eventsResult = results[0];
+      const timelineResult = results[1];
 
       setEvents(eventsResult);
       setTimelineData(timelineResult.points);
       setInflectionPoints(timelineResult.inflectionPoints);
       setTimelineReason(
         timelineResult.dataUnavailable
-          ? timelineResult.reason || "No real timeline points available."
+          ? timelineResult.reason || "No timeline points available."
           : ""
       );
     } catch (err) {
       console.error("Unable to load timeline data:", err);
-      setError(err?.message || "Unable to load timeline data.");
+      setError(err && err.message ? err.message : "Unable to load timeline data.");
       setEvents([]);
       setTimelineData([]);
       setInflectionPoints([]);
@@ -218,11 +144,6 @@ function Timeline() {
     drawTimeline();
   }, [timelineData, inflectionPoints, events, error, timelineReason, season]);
 
-  function asNumber(value, fallback = 0) {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : fallback;
-  }
-
   function toDateMs(value) {
     if (!value) return null;
     const ms = new Date(value).getTime();
@@ -237,8 +158,7 @@ function Timeline() {
 
   function formatShortDate(value) {
     const ms = toDateMs(value);
-    if (ms === null) return "Unknown date";
-
+    if (ms === null) return "Unknown";
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
@@ -258,14 +178,14 @@ function Timeline() {
     ctx.font = "700 24px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(title, canvasWidth / 2, canvasHeight / 2 - 20);
+    ctx.fillText(title, canvasWidth / 2, canvasHeight / 2 - 18);
 
     ctx.fillStyle = "#94a3b8";
     ctx.font = "16px Arial";
     ctx.fillText(subtitle, canvasWidth / 2, canvasHeight / 2 + 16);
   }
 
-  function drawGrid(ctx, padding, minValue, maxValue, chartHeight) {
+  function drawGrid(ctx, padding, chartHeight) {
     ctx.strokeStyle = "rgba(148,163,184,0.12)";
     ctx.lineWidth = 1;
 
@@ -275,20 +195,6 @@ function Timeline() {
       ctx.moveTo(padding, y);
       ctx.lineTo(canvasWidth - padding, y);
       ctx.stroke();
-    }
-
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "12px Arial";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
-
-    const valueRange = Math.max(1, maxValue - minValue);
-
-    for (let i = 0; i < 5; i += 1) {
-      const ratio = i / 4;
-      const y = padding + chartHeight * ratio;
-      const value = maxValue - valueRange * ratio;
-      ctx.fillText(value.toFixed(1), padding - 10, y);
     }
   }
 
@@ -333,46 +239,47 @@ function Timeline() {
     );
   }
 
-  function getEventImpact(event) {
-    return (
-      event.impact_score ??
-      event.impact ??
-      event.value ??
-      null
-    );
-  }
-
-  function normalizeTimelinePoints(points) {
+  function normalizePoints(points) {
     return (Array.isArray(points) ? points : [])
-      .map((point, index) => ({
-        ...point,
-        _index: index,
-        _dateMs: toDateMs(point.date),
-        _value: asNumber(point.value, NaN),
-      }))
-      .filter((point) => point._dateMs !== null && Number.isFinite(point._value))
-      .sort((a, b) => a._dateMs - b._dateMs);
+      .map(function (point, index) {
+        const value = Number(point.value);
+        const ms = toDateMs(point.date);
+
+        return {
+          raw: point,
+          index: index,
+          value: Number.isFinite(value) ? value : 0,
+          date: point.date,
+          ms: ms,
+        };
+      })
+      .filter(function (point) {
+        return point.ms !== null;
+      })
+      .sort(function (a, b) {
+        return a.ms - b.ms;
+      });
   }
 
   function normalizeEvents(items) {
     return (Array.isArray(items) ? items : [])
-      .map((event, index) => ({
-        ...event,
-        _index: index,
-        _dateMs: toDateMs(getEventDate(event)),
-        _dayKey: toDayKey(getEventDate(event)),
-      }))
-      .filter((event) => event._dateMs !== null)
-      .sort((a, b) => a._dateMs - b._dateMs);
-  }
+      .map(function (event) {
+        const date = getEventDate(event);
+        const ms = toDateMs(date);
 
-  function normalizeInflections(items) {
-    return (Array.isArray(items) ? items : [])
-      .map((item) => ({
-        ...item,
-        _dayKey: toDayKey(item.date),
-      }))
-      .filter((item) => item._dayKey);
+        return {
+          raw: event,
+          date: date,
+          ms: ms,
+          dayKey: toDayKey(date),
+        };
+      })
+      .filter(function (event) {
+        return event.ms !== null;
+      })
+      .sort(function (a, b) {
+        return a.ms - b.ms;
+      });
   }
 
   function drawTimeline() {
@@ -387,15 +294,14 @@ function Timeline() {
       return;
     }
 
-    const points = normalizeTimelinePoints(timelineData);
-    const realEvents = normalizeEvents(events);
-    const realInflections = normalizeInflections(inflectionPoints);
+    const points = normalizePoints(timelineData);
+    const normalizedEvents = normalizeEvents(events);
 
     if (!points.length) {
       drawEmptyState(
         ctx,
         "No real timeline data",
-        timelineReason || "No real timeline points available for this season."
+        timelineReason || "No timeline points available for this season."
       );
       return;
     }
@@ -406,34 +312,54 @@ function Timeline() {
     const chartWidth = canvasWidth - padding * 2;
     const chartHeight = canvasHeight - padding * 2;
 
-    const values = points.map((p) => p._value);
-    const minValue = Math.min(...values, 0);
-    const maxValue = Math.max(...values, 0);
+    const values = points.map(function (point) {
+      return point.value;
+    });
 
-    const minTime = points[0]._dateMs;
-    const maxTime = points[points.length - 1]._dateMs;
-
+    const minValue = Math.min.apply(null, values.concat([0]));
+    const maxValue = Math.max.apply(null, values.concat([0]));
     const valueRange = Math.max(1, maxValue - minValue);
+
+    const minTime = points[0].ms;
+    const maxTime = points[points.length - 1].ms;
     const timeRange = Math.max(1, maxTime - minTime);
 
-    const getX = (ms) => padding + ((ms - minTime) / timeRange) * chartWidth;
-    const getY = (value) =>
-      padding + ((maxValue - value) / valueRange) * chartHeight;
+    function getX(ms) {
+      return padding + ((ms - minTime) / timeRange) * chartWidth;
+    }
 
-    drawGrid(ctx, padding, minValue, maxValue, chartHeight);
+    function getY(value) {
+      return padding + ((maxValue - value) / valueRange) * chartHeight;
+    }
+
+    drawGrid(ctx, padding, chartHeight);
     drawAxes(ctx, padding);
 
-    const coords = points.map((point) => ({
-      point,
-      x: getX(point._dateMs),
-      y: getY(point._value),
-    }));
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
 
-    const lineGradient = ctx.createLinearGradient(0, padding, 0, canvasHeight - padding);
-    lineGradient.addColorStop(0, "#60a5fa");
-    lineGradient.addColorStop(1, "#2563eb");
+    for (let i = 0; i < 5; i += 1) {
+      const ratio = i / 4;
+      const y = padding + chartHeight * ratio;
+      const labelValue = maxValue - valueRange * ratio;
+      ctx.fillText(labelValue.toFixed(1), padding - 10, y);
+    }
 
-    ctx.strokeStyle = lineGradient;
+    const coords = points.map(function (point) {
+      return {
+        point: point,
+        x: getX(point.ms),
+        y: getY(point.value),
+      };
+    });
+
+    const gradient = ctx.createLinearGradient(0, padding, 0, canvasHeight - padding);
+    gradient.addColorStop(0, "#60a5fa");
+    gradient.addColorStop(1, "#2563eb");
+
+    ctx.strokeStyle = gradient;
     ctx.lineWidth = 3.5;
     ctx.beginPath();
     ctx.moveTo(coords[0].x, coords[0].y);
@@ -441,19 +367,20 @@ function Timeline() {
     for (let i = 1; i < coords.length; i += 1) {
       ctx.lineTo(coords[i].x, coords[i].y);
     }
+
     ctx.stroke();
 
-    coords.forEach((item) => {
+    for (let i = 0; i < coords.length; i += 1) {
       ctx.beginPath();
       ctx.fillStyle = "#f8fafc";
-      ctx.arc(item.x, item.y, 5, 0, Math.PI * 2);
+      ctx.arc(coords[i].x, coords[i].y, 5, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.beginPath();
       ctx.fillStyle = "#3b82f6";
-      ctx.arc(item.x, item.y, 3, 0, Math.PI * 2);
+      ctx.arc(coords[i].x, coords[i].y, 3, 0, Math.PI * 2);
       ctx.fill();
-    });
+    }
 
     const tickCount = Math.min(6, points.length);
     ctx.fillStyle = "#94a3b8";
@@ -468,14 +395,18 @@ function Timeline() {
       ctx.fillText(formatShortDate(tickTime), x, canvasHeight - padding + 10);
     }
 
-    const pointByDay = new Map(points.map((point) => [toDayKey(point.date), point]));
+    const pointByDay = new Map();
+    for (let i = 0; i < points.length; i += 1) {
+      pointByDay.set(toDayKey(points[i].date), points[i]);
+    }
 
-    realInflections.forEach((inflection) => {
-      const matchedPoint = pointByDay.get(inflection._dayKey);
-      if (!matchedPoint) return;
+    for (let i = 0; i < inflectionPoints.length; i += 1) {
+      const inflection = inflectionPoints[i];
+      const matchedPoint = pointByDay.get(toDayKey(inflection.date));
+      if (!matchedPoint) continue;
 
-      const x = getX(matchedPoint._dateMs);
-      const y = getY(matchedPoint._value);
+      const x = getX(matchedPoint.ms);
+      const y = getY(matchedPoint.value);
 
       ctx.beginPath();
       ctx.fillStyle = "#f59e0b";
@@ -493,21 +424,19 @@ function Timeline() {
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.fillText(inflection.type || "inflection", x, y - 14);
-    });
+    }
 
     const eventCountsByDay = new Map();
-    realEvents.forEach((event) => {
-      eventCountsByDay.set(
-        event._dayKey,
-        (eventCountsByDay.get(event._dayKey) || 0) + 1
-      );
-    });
+    for (let i = 0; i < normalizedEvents.length; i += 1) {
+      const key = normalizedEvents[i].dayKey;
+      eventCountsByDay.set(key, (eventCountsByDay.get(key) || 0) + 1);
+    }
 
-    eventCountsByDay.forEach((count, dayKey) => {
+    eventCountsByDay.forEach(function (count, dayKey) {
       const matchedPoint = pointByDay.get(dayKey);
       if (!matchedPoint) return;
 
-      const x = getX(matchedPoint._dateMs);
+      const x = getX(matchedPoint.ms);
       const y = canvasHeight - padding + 18;
 
       ctx.beginPath();
@@ -528,21 +457,21 @@ function Timeline() {
     ctx.font = "700 18px Arial";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(`Season Timeline: ${season}`, padding, 18);
+    ctx.fillText("Season Timeline: " + season, padding, 18);
   }
 
   function renderEventList() {
     if (loading) {
-      return <div style={styles.cardText}>Loading real events...</div>;
+      return <div style={styles.cardText}>Loading events...</div>;
     }
 
     if (!events.length) {
-      return <div style={styles.cardText}>No real events found for this season.</div>;
+      return <div style={styles.cardText}>No events found for this season.</div>;
     }
 
     return (
       <ul style={styles.list}>
-        {events.map((event, index) => {
+        {events.map(function (event, index) {
           const title = getEventTitle(event);
           const date = getEventDate(event);
           const isSelected =
@@ -552,14 +481,16 @@ function Timeline() {
 
           return (
             <li
-              key={`${title}-${date}-${index}`}
+              key={title + "-" + date + "-" + index}
               style={{
                 ...styles.listItem,
                 background: isSelected ? "rgba(37,99,235,0.12)" : "transparent",
                 paddingLeft: isSelected ? "10px" : "0px",
                 borderRadius: isSelected ? "10px" : "0px",
               }}
-              onClick={() => setSelectedEvent(event)}
+              onClick={function () {
+                setSelectedEvent(event);
+              }}
             >
               <div style={{ color: "#f8fafc", fontWeight: 700 }}>{title}</div>
               <div style={styles.eventSub}>{formatShortDate(date)}</div>
@@ -572,32 +503,13 @@ function Timeline() {
 
   function renderSelectedEvent() {
     if (!selectedEvent) {
-      return (
-        <div style={styles.cardText}>
-          Select a real event to see more details.
-        </div>
-      );
+      return <div style={styles.cardText}>Select an event to see more details.</div>;
     }
-
-    const impact = getEventImpact(selectedEvent);
 
     return (
       <div>
         <div style={styles.eventDetailTitle}>{getEventTitle(selectedEvent)}</div>
         <div style={styles.eventSub}>{formatShortDate(getEventDate(selectedEvent))}</div>
-
-        <div style={styles.metaRow}>
-          {selectedEvent.player_name ? (
-            <span style={styles.chip}>{selectedEvent.player_name}</span>
-          ) : null}
-          {selectedEvent.event_type ? (
-            <span style={styles.chip}>{selectedEvent.event_type}</span>
-          ) : null}
-          {impact !== null ? (
-            <span style={styles.chip}>Impact: {impact}</span>
-          ) : null}
-        </div>
-
         <div style={styles.eventBody}>{getEventBody(selectedEvent)}</div>
       </div>
     );
@@ -611,51 +523,81 @@ function Timeline() {
           Explore season momentum, key inflection points, and player-related events.
         </p>
 
-        <div style={styles.controls}>
-          <div style={styles.inputWrap}>
-            <label style={{ color: "#cbd5e1", fontWeight: 700 }}>Season</label>
-            <input
-              type="number"
-              value={season}
-              onChange={(e) => setSeason(Number(e.target.value) || DEFAULT_SEASON)}
-              style={styles.input}
-            />
-          </div>
-
-          <button style={styles.button} onClick={loadData} disabled={loading}>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
+          <label style={{ color: "#94a3b8", fontWeight: 700 }}>Season</label>
+          <input
+            type="number"
+            value={season}
+            onChange={function (e) {
+              const nextSeason = Number(e.target.value);
+              setSeason(Number.isFinite(nextSeason) && nextSeason > 0 ? nextSeason : 2025);
+            }}
+            style={{
+              width: "160px",
+              padding: "0.9rem 1rem",
+              borderRadius: "14px",
+              border: "1px solid rgba(148,163,184,0.35)",
+              background: "#1e293b",
+              color: "#f8fafc",
+              fontSize: "1.1rem",
+              fontWeight: 700,
+              outline: "none",
+            }}
+          />
+          <button
+            onClick={loadData}
+            disabled={loading}
+            style={{
+              padding: "0.9rem 1.2rem",
+              borderRadius: "14px",
+              border: "none",
+              background: "#2563eb",
+              color: "#ffffff",
+              fontWeight: 700,
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
             {loading ? "Loading..." : "Reload"}
           </button>
         </div>
 
         {timelineReason ? (
-          <div style={styles.warningText}>{timelineReason}</div>
+          <div style={{ color: "#fbbf24", marginBottom: "0.75rem" }}>{timelineReason}</div>
         ) : null}
 
-        {error ? <div style={styles.errorText}>{error}</div> : null}
+        {error ? (
+          <div style={{ color: "#fca5a5", marginBottom: "0.75rem" }}>{error}</div>
+        ) : null}
 
-        <div style={{ marginTop: "1rem" }}>
-          <canvas
-            ref={canvasRef}
-            width={canvasWidth}
-            height={canvasHeight}
-            style={{
-              width: "100%",
-              maxWidth: `${canvasWidth}px`,
-              background: "#020817",
-              borderRadius: "18px",
-              border: "1px solid rgba(148,163,184,0.18)",
-              display: "block",
-            }}
-          />
-        </div>
+        <canvas
+          ref={canvasRef}
+          width={canvasWidth}
+          height={canvasHeight}
+          style={{
+            width: "100%",
+            maxWidth: canvasWidth + "px",
+            background: "#020817",
+            borderRadius: "18px",
+            border: "1px solid rgba(148,163,184,0.18)",
+            display: "block",
+          }}
+        />
 
-        <div style={styles.layout}>
-          <div style={styles.subCard}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+            gap: "1rem",
+            marginTop: "1rem",
+          }}
+        >
+          <div className="card" style={{ margin: 0 }}>
             <h3 style={{ marginTop: 0, color: "#f8fafc" }}>Events</h3>
             {renderEventList()}
           </div>
 
-          <div style={styles.subCard}>
+          <div className="card" style={{ margin: 0 }}>
             <h3 style={{ marginTop: 0, color: "#f8fafc" }}>Selected Event</h3>
             {renderSelectedEvent()}
           </div>
