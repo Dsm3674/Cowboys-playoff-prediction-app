@@ -122,8 +122,23 @@ async function fetchCowboysGamesSeasonToDate(year = getNFLSeasonYear()) {
   return fetchTeamGamesSeasonToDate("DAL", year);
 }
 
-/* ✅ compute record from games */
-function computeRecordFromGames(games) {
+// FIX: computeRecordFromGames() was hardcoded to always check "DAL" as the
+//      team abbreviation. This meant every call for a non-Cowboys opponent
+//      (Eagles, Chiefs, etc.) computed the Cowboys' result instead of the
+//      opponent's, producing completely wrong win/loss records.
+//
+//      This affected:
+//        - tsi.js: opponent SOS loop → all opponent records were Cowboys records
+//        - rivalAnalysis.js: every rival's winPct was wrong
+//        - seasonPath.js: opponent strength estimates were wrong
+//        - prediction.js: oppRecord was wrong for every game
+//
+//      Added teamAbbr parameter (defaults to "DAL" for backward compatibility).
+//      All callers in tsi.js, seasonPath.js, and prediction.js should now pass
+//      the correct team abbr; existing DAL-only callers continue to work unchanged.
+function computeRecordFromGames(games, teamAbbr = "DAL") {
+  const abbr = String(teamAbbr || "DAL").toUpperCase();
+
   let wins = 0;
   let losses = 0;
   let ties = 0;
@@ -136,11 +151,11 @@ function computeRecordFromGames(games) {
       return;
     }
 
-    const cowboysHome = g.homeTeamAbbr === "DAL";
-    const cowboysScore = cowboysHome ? g.homeScore : g.awayScore;
-    const oppScore = cowboysHome ? g.awayScore : g.homeScore;
+    const teamIsHome = (g.homeTeamAbbr || "").toUpperCase() === abbr;
+    const teamScore = teamIsHome ? g.homeScore : g.awayScore;
+    const oppScore  = teamIsHome ? g.awayScore : g.homeScore;
 
-    if (cowboysScore > oppScore) wins++;
+    if (teamScore > oppScore) wins++;
     else losses++;
   });
 
@@ -185,4 +200,3 @@ module.exports = {
   computeRecordFromGames,
   computeTeamAveragesFromGames,
 };
-
