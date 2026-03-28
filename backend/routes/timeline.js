@@ -1,7 +1,8 @@
 "use strict";
 
-const db = require("./databases");
-const espn = require("./services/espn");
+const db = require("../databases");
+const espn = require("./espn");
+const fetch = global.fetch;
 
 const MAX_EVENTS = 500;
 const DEFAULT_TEAM = "DAL";
