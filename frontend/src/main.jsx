@@ -77,9 +77,7 @@ function TeamSelector({ selectedTeam, onSelect }) {
   );
 }
 
-function Dashboard({ year, selectedTeam, onTeamChange }) {
-  const year = new Date().getFullYear();
-
+function Dashboard({ year = new Date().getFullYear(), selectedTeam, onTeamChange }) {
   const UserProfileCard = getGlobalComponent("UserProfileCard", "Profile");
   const RecordCard = getGlobalComponent("RecordCard", "Record");
   const TSICard = getGlobalComponent("TSICard", "TSI");
