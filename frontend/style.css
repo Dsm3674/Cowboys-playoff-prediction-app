@@ -1262,6 +1262,7 @@ body.retro .nav-link.active::before { background: #4080FF; }
     overflow: visible;
     border-right: none;
     border-bottom: 2px solid rgba(134,147,151,0.2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.16);
   }
 
   .sidebar::before { display: none; }
@@ -1284,6 +1285,7 @@ body.retro .nav-link.active::before { background: #4080FF; }
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     flex-wrap: nowrap;
+    gap: 0.2rem;
   }
 
   .sidebar__nav::-webkit-scrollbar { display: none; }
@@ -1295,6 +1297,7 @@ body.retro .nav-link.active::before { background: #4080FF; }
     font-size: 0.7rem;
     border-radius: 0;
     min-height: 54px;
+    min-width: 8rem;
   }
 
   .nav-link::before {
@@ -1318,11 +1321,22 @@ body.retro .nav-link.active::before { background: #4080FF; }
 
   .top-debug-strip { left: 0; top: 54px; }
   #scroll-progress { left: 0; top: calc(54px + 22px); }
-
   .content-area { padding: 1rem 0.85rem 1.5rem; }
+}
 
-  .hero-title { font-size: clamp(1.5rem, 8vw, 2.3rem); }
-  .hero-kicker { font-size: 0.72rem; }
+@media (max-width: 640px) {
+  .top-debug-strip { display: none; }
+  #scroll-progress { top: 54px; }
+  .sidebar__nav { padding: 0.25rem 0; gap: 0.15rem; }
+  .nav-link { min-width: 7.2rem; padding: 0 0.65rem; }
+  .sidebar__title { font-size: 0.66rem; }
+  .content-area { padding: 0.95rem 0.75rem 1.2rem; }
+}
+
+@media (max-width: 480px) {
+  .content-area { padding: 0.85rem 0.7rem 1.2rem; }
+  .hero-title { font-size: clamp(1.3rem, 9vw, 1.9rem); }
+  .nav-link { padding: 0 0.6rem; font-size: 0.64rem; }
 
   .page-header, .cowboys-banner, .card, .scoreboard-card { padding: 1rem; border-radius: 12px; }
 
