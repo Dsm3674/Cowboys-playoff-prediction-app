@@ -1,14 +1,14 @@
-function TSICard({ year }) {
+function TSICard({ year, team = "DAL" }) {
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     setLoading(true);
-    window.api.getTSI("DAL", year)
+    window.api.getTSI(team, year)
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [year]);
+  }, [year, team]);
 
   if (loading) return <div className="card">Loading TSI...</div>;
   if (!data) return null;
@@ -18,7 +18,7 @@ function TSICard({ year }) {
   return (
     <div className="card">
       <div className="eyebrow">Team Strength Index</div>
-      <h3 style={{ marginTop: 0 }}>Cowboys Power Rating</h3>
+      <h3 style={{ marginTop: 0 }}>{team} Power Rating</h3>
       
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
         <div style={{ 

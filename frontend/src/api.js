@@ -82,36 +82,38 @@
   }
 
   async function getCowboysRecord(year) {
-    return request("/api/cowboys/record", {
+    return request("/api/teams/DAL/record", {
       query: { year }
     });
   }
 
-  async function getRecord(year) {
-    return getCowboysRecord(year);
+  async function getRecord(year, team = "DAL") {
+    return request(`/api/teams/${team}/record`, {
+      query: { year }
+    });
   }
 
   async function getCowboysSchedule(year) {
-    return request("/api/cowboys/schedule", {
+    return request("/api/teams/DAL/schedule", {
       query: { year }
     });
   }
 
-  async function getSchedule(year, team) {
-    return request("/api/cowboys/schedule", {
-      query: { year, team }
+  async function getSchedule(year, team = "DAL") {
+    return request(`/api/teams/${team}/schedule`, {
+      query: { year }
     });
   }
 
   async function getTSI(team, year) {
-    return request("/api/analytics/tsi", {
-      query: { team, year }
+    return request(`/api/teams/${team}/tsi`, {
+      query: { year }
     });
   }
 
   async function getPaths(team, year, k = 25, chaos = 0) {
-    return request("/api/analytics/paths", {
-      query: { team, year, k, chaos }
+    return request(`/api/teams/${team}/paths`, {
+      query: { year, k, chaos }
     });
   }
 
@@ -120,8 +122,8 @@
   }
 
   async function getMustWin(team, year, chaos = 0) {
-    return request("/api/analytics/mustwin", {
-      query: { team, year, chaos }
+    return request(`/api/teams/${team}/mustwin`, {
+      query: { year, chaos }
     });
   }
 
@@ -140,21 +142,65 @@
     return getWinProb(payload);
   }
 
-  async function getRivalImpact(year, chaos = 0, iterations = 1000) {
+  async function getRivalImpact(team = "DAL", year, chaos = 0, iterations = 1000) {
+    const query = { team, year, chaos, iterations };
+
     return tryRequest([
       {
         path: "/api/analytics/rivalimpact",
-        options: {
-          query: { year, chaos, iterations }
-        }
+        options: { query }
       },
       {
         path: "/api/analytics/rivalimpact",
-        options: {
-          query: { year }
-        }
+        options: { query: { team, year } }
       }
     ]);
+  }
+
+  async function getTeams() {
+    return request("/api/analytics/teams");
+  }
+
+  async function getStandings(year) {
+    return request("/api/analytics/standings", {
+      query: { year }
+    });
+  }
+
+  async function getDivisionPower(year) {
+    return request("/api/analytics/divisions", {
+      query: { year }
+    });
+  }
+
+  async function getLeagueForecast(year) {
+    return request("/api/analytics/forecast", {
+      query: { year }
+    });
+  }
+
+  async function getPlayoffPulse(year) {
+    return request("/api/analytics/playoff", {
+      query: { year }
+    });
+  }
+
+  async function getScheduleStrength(year) {
+    return request("/api/analytics/schedule-strength", {
+      query: { year }
+    });
+  }
+
+  async function getMatchup(team1 = "DAL", team2 = "PHI", year) {
+    return request("/api/analytics/matchup", {
+      query: { team1, team2, year }
+    });
+  }
+
+  async function getTeamComparison(team1 = "DAL", team2 = "PHI", year) {
+    return request("/api/analytics/compare", {
+      query: { team1, team2, year }
+    });
   }
 
   async function getPlayerMaps() {
@@ -250,6 +296,14 @@
     getWinProb,
     getWinProbability,
     getRivalImpact,
+    getTeams,
+    getStandings,
+    getDivisionPower,
+    getLeagueForecast,
+    getPlayoffPulse,
+    getScheduleStrength,
+    getMatchup,
+    getTeamComparison,
     getPlayerMaps,
     getClutchIndex,
     getPlayerEvents,

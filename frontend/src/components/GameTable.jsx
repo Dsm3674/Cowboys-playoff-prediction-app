@@ -1,4 +1,4 @@
-function GameTable({ year }) {
+function GameTable({ year, team = "DAL" }) {
   const [games, setGames] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
@@ -8,7 +8,7 @@ function GameTable({ year }) {
     setError(null);
 
     window.api
-      .getCowboysSchedule(year)
+      .getSchedule(year, team)
       .then((data) => {
         setGames(data.games || []);
       })
@@ -16,7 +16,7 @@ function GameTable({ year }) {
         setError(err.message);
       })
       .finally(() => setLoading(false));
-  }, [year]);
+  }, [year, team]);
 
   if (loading) return <div className="card"><p className="text-muted">Loading schedule...</p></div>;
   if (error) return <div className="card"><p style={{ color: "var(--error)" }}>Error: {error}</p></div>;
@@ -24,7 +24,7 @@ function GameTable({ year }) {
 
   return (
     <div className="card">
-      <h3>Schedule</h3>
+      <h3>{team} Schedule</h3>
 
       <table>
         <thead>

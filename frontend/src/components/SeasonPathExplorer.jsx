@@ -1,17 +1,17 @@
 // frontend/src/components/SeasonPathExplorer.jsx
 
-function SeasonPathExplorer() {
-  const [year] = React.useState(new Date().getFullYear());
+function SeasonPathExplorer({ year, team = "DAL" }) {
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     // k=15 paths, chaos=0
-    window.api.getPaths("DAL", year, 15, 0)
+    setLoading(true);
+    window.api.getPaths(team, year, 15, 0)
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [year]);
+  }, [year, team]);
 
   if (loading) return <div className="card">Calculating Monte Carlo Paths...</div>;
   if (!data) return <div className="card">No path data available.</div>;
@@ -23,8 +23,8 @@ function SeasonPathExplorer() {
   return (
     <div className="content-area">
       <div className="card">
-        <h2 style={{marginTop:0}}>Season Path Explorer</h2>
-        <p>Visualizing the {paths.length} most likely remaining season outcomes based on current win probabilities.</p>
+        <h2 style={{marginTop:0}}>{team} Season Path Explorer</h2>
+        <p>Visualizing the {paths.length} most likely remaining season outcomes for {team} based on current win probabilities.</p>
 
         <div style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
           <table style={{ minWidth: '600px', fontSize: '0.85rem' }}>

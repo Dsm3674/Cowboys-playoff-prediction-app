@@ -1,4 +1,4 @@
-function RecordCard({ year }) {
+function RecordCard({ year, team = "DAL" }) {
   const [record, setRecord] = React.useState({
     wins: 0,
     losses: 0,
@@ -12,18 +12,18 @@ function RecordCard({ year }) {
     setError(null);
 
     window.api
-      .getCowboysRecord(year)
+      .getRecord(year, team)
       .then((data) => setRecord(data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [year]);
+  }, [year, team]);
 
   if (loading) return <div className="card"><p className="text-muted">Loading record...</p></div>;
   if (error) return <div className="card"><p style={{ color: "var(--error)" }}>Error: {error}</p></div>;
 
   return (
     <div className="card">
-      <h3>Dallas Cowboys Record {year}</h3>
+      <h3>{team} Record {year}</h3>
 
       <div className="stat-box primary">
         <p className="stat-value" style={{ margin: "1rem 0" }}>

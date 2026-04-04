@@ -3,9 +3,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://opensource.org/)
 
-A full-stack web application that uses advanced analytics to predict the Dallas Cowboys' chances of making the playoffs, winning their division, conference, and the Super Bowl. Built with React, Node.js/Express, and PostgreSQL.
+A full-stack web application that uses advanced analytics to predict any NFL team's chances of making the playoffs, winning their division, conference, and the Super Bowl. Built with React, Node.js/Express, and PostgreSQL.
 
-**This is an open source project released under the MIT License. Contributions, forks, and stars are welcome! All you have to do is just be a Cowboys fan, just kidding its a joke**
+**This is an open source project released under the MIT License. Contributions, forks, and stars are welcome!**
 
 ## Features
 

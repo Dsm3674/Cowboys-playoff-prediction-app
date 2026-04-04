@@ -4,6 +4,51 @@ function getNFLSeasonYear() {
   return month < 2 ? now.getFullYear() - 1 : now.getFullYear();
 }
 
+const NFL_TEAM_CATALOG = [
+  { abbreviation: "ARI", displayName: "Arizona Cardinals", conference: "NFC", division: "NFC West" },
+  { abbreviation: "ATL", displayName: "Atlanta Falcons", conference: "NFC", division: "NFC South" },
+  { abbreviation: "BAL", displayName: "Baltimore Ravens", conference: "AFC", division: "AFC North" },
+  { abbreviation: "BUF", displayName: "Buffalo Bills", conference: "AFC", division: "AFC East" },
+  { abbreviation: "CAR", displayName: "Carolina Panthers", conference: "NFC", division: "NFC South" },
+  { abbreviation: "CHI", displayName: "Chicago Bears", conference: "NFC", division: "NFC North" },
+  { abbreviation: "CIN", displayName: "Cincinnati Bengals", conference: "AFC", division: "AFC North" },
+  { abbreviation: "CLE", displayName: "Cleveland Browns", conference: "AFC", division: "AFC North" },
+  { abbreviation: "DAL", displayName: "Dallas Cowboys", conference: "NFC", division: "NFC East" },
+  { abbreviation: "DEN", displayName: "Denver Broncos", conference: "AFC", division: "AFC West" },
+  { abbreviation: "DET", displayName: "Detroit Lions", conference: "NFC", division: "NFC North" },
+  { abbreviation: "GB", displayName: "Green Bay Packers", conference: "NFC", division: "NFC North" },
+  { abbreviation: "HOU", displayName: "Houston Texans", conference: "AFC", division: "AFC South" },
+  { abbreviation: "IND", displayName: "Indianapolis Colts", conference: "AFC", division: "AFC South" },
+  { abbreviation: "JAX", displayName: "Jacksonville Jaguars", conference: "AFC", division: "AFC South" },
+  { abbreviation: "KC", displayName: "Kansas City Chiefs", conference: "AFC", division: "AFC West" },
+  { abbreviation: "LV", displayName: "Las Vegas Raiders", conference: "AFC", division: "AFC West" },
+  { abbreviation: "LAC", displayName: "Los Angeles Chargers", conference: "AFC", division: "AFC West" },
+  { abbreviation: "LAR", displayName: "Los Angeles Rams", conference: "NFC", division: "NFC West" },
+  { abbreviation: "MIA", displayName: "Miami Dolphins", conference: "AFC", division: "AFC East" },
+  { abbreviation: "MIN", displayName: "Minnesota Vikings", conference: "NFC", division: "NFC North" },
+  { abbreviation: "NE", displayName: "New England Patriots", conference: "AFC", division: "AFC East" },
+  { abbreviation: "NO", displayName: "New Orleans Saints", conference: "NFC", division: "NFC South" },
+  { abbreviation: "NYG", displayName: "New York Giants", conference: "NFC", division: "NFC East" },
+  { abbreviation: "NYJ", displayName: "New York Jets", conference: "AFC", division: "AFC East" },
+  { abbreviation: "PHI", displayName: "Philadelphia Eagles", conference: "NFC", division: "NFC East" },
+  { abbreviation: "PIT", displayName: "Pittsburgh Steelers", conference: "AFC", division: "AFC North" },
+  { abbreviation: "SEA", displayName: "Seattle Seahawks", conference: "NFC", division: "NFC West" },
+  { abbreviation: "SF", displayName: "San Francisco 49ers", conference: "NFC", division: "NFC West" },
+  { abbreviation: "TB", displayName: "Tampa Bay Buccaneers", conference: "NFC", division: "NFC South" },
+  { abbreviation: "TEN", displayName: "Tennessee Titans", conference: "AFC", division: "AFC South" },
+  { abbreviation: "WAS", displayName: "Washington Commanders", conference: "NFC", division: "NFC East" }
+];
+
+function normalizeTeamAbbr(teamAbbr, fallback = "DAL") {
+  const raw = String(teamAbbr || "").trim().toUpperCase();
+  return raw || fallback;
+}
+
+function getNFLCatalogItem(teamAbbr) {
+  const abbr = normalizeTeamAbbr(teamAbbr);
+  return NFL_TEAM_CATALOG.find((item) => item.abbreviation === abbr) || null;
+}
+
 let _teamMapCache = null;
 let _teamMapCacheTs = 0;
 
@@ -43,12 +88,37 @@ async function getNflTeamIdMap() {
     const t = tWrap.team || tWrap;
     const abbr = (t.abbreviation || "").toUpperCase();
     const id = t.id;
-    if (abbr && id) map[abbr] = String(id);
+    const name = t.displayName || t.location || t.name || abbr;
+    if (abbr && id) map[abbr] = { id: String(id), name };
   });
 
   _teamMapCache = map;
   _teamMapCacheTs = now;
-  return map;
+  return _teamMapCache;
+}
+
+async function getNFLTeamList() {
+  const map = await getNflTeamIdMap();
+  const result = Object.keys(map)
+    .sort()
+    .map((abbr) => {
+      const metadata = getNFLCatalogItem(abbr);
+      return {
+        code: abbr,
+        name: map[abbr]?.name || metadata?.displayName || abbr,
+        conference: metadata?.conference || null,
+        division: metadata?.division || null
+      };
+    });
+
+  if (result.length > 0) return result;
+
+  return NFL_TEAM_CATALOG.map((item) => ({
+    code: item.abbreviation,
+    name: item.displayName,
+    conference: item.conference,
+    division: item.division
+  }));
 }
 
 function parseEspnScheduleEvents(events =[]) {
@@ -97,7 +167,7 @@ async function fetchTeamGamesSeasonToDate(teamAbbr, year = getNFLSeasonYear()) {
     const fetch = (await import("node-fetch")).default;
     const map = await getNflTeamIdMap();
     const abbr = String(teamAbbr || "").toUpperCase();
-    const teamId = map[abbr];
+    const teamId = map[abbr]?.id;
 
     // fallback: old style teams/dal (works for DAL, sometimes others)
     if (!teamId) {
@@ -186,4 +256,8 @@ module.exports = {
   fetchCowboysGamesSeasonToDate,
   computeRecordFromGames,
   computeTeamAveragesFromGames,
+  getNFLTeamList,
+  getNFLTeamCatalog: () => NFL_TEAM_CATALOG,
+  getNFLTeamMetadata: getNFLCatalogItem,
+  normalizeTeamAbbr,
 };

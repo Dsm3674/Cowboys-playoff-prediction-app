@@ -1,14 +1,14 @@
-function MustWinCard({ year }) {
+function MustWinCard({ year, team = "DAL" }) {
   const [games, setGames] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     setLoading(true);
-    window.api.getMustWin("DAL", year, 0)
+    window.api.getMustWin(team, year, 0)
       .then(res => setGames(res.games || []))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [year]);
+  }, [year, team]);
 
   if (loading) return null;
   if (!games.length) return null;
@@ -18,9 +18,9 @@ function MustWinCard({ year }) {
 
   return (
     <div className="card" style={{ borderLeft: '4px solid #d20a0a' }}>
-      <h3 style={{ marginTop: 0, color: '#d20a0a' }}>High Leverage Games</h3>
+      <h3 style={{ marginTop: 0, color: '#d20a0a' }}>{team} High Leverage Games</h3>
       <p style={{ fontSize: '0.8rem', color: '#555' }}>
-        These matchups have the biggest impact on playoff probability.
+        These matchups have the biggest impact on playoff probability for {team}.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>

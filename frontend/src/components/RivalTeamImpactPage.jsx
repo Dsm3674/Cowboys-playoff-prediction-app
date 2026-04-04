@@ -1,21 +1,21 @@
-function RivalTeamImpactPage({ year = 2025 }) {
+function RivalTeamImpactPage({ year = 2025, selectedTeam = "DAL" }) {
   const [loading, setLoading] = React.useState(false);
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState("");
   const [chaos, setChaos] = React.useState(0);
   const [iterations, setIterations] = React.useState(1000);
-  const [selectedTeam, setSelectedTeam] = React.useState(null);
+  const [selectedRival, setSelectedRival] = React.useState(null);
   const [sortBy, setSortBy] = React.useState("impactScore");
 
   React.useEffect(() => {
     loadRivalImpactData();
-  }, [year]);
+  }, [year, selectedTeam, chaos, iterations]);
 
   async function loadRivalImpactData() {
     try {
       setLoading(true);
       setError("");
-      const result = await window.api.getRivalImpact(year, chaos, iterations);
+      const result = await window.api.getRivalImpact(selectedTeam, year, chaos, iterations);
       setData(result);
     } catch (err) {
       setError(err.message || "Failed to load rival impact analysis.");
@@ -30,7 +30,7 @@ function RivalTeamImpactPage({ year = 2025 }) {
   }
 
   const impacts = Array.isArray(data?.rivalImpacts) ? data.rivalImpacts : [];
-  const cowboys = data?.cowboys || {};
+  const subject = data?.team || {};
   const rankedGames = Array.isArray(data?.rankedGames) ? data.rankedGames : [];
   const summary = data?.summary || {};
 
@@ -41,8 +41,8 @@ function RivalTeamImpactPage({ year = 2025 }) {
     return String(a.team || "").localeCompare(String(b.team || ""));
   });
 
-  const selectedTeamData = selectedTeam
-    ? impacts.find((team) => team.team === selectedTeam)
+  const selectedTeamData = selectedRival
+    ? impacts.find((team) => team.team === selectedRival)
     : null;
 
   return (
@@ -59,7 +59,12 @@ function RivalTeamImpactPage({ year = 2025 }) {
           Rival Team Impact Analysis
         </h1>
         <p style={{ margin: 0, color: "#64748b", fontSize: "1rem" }}>
-          Analyze how rival outcomes affect Cowboys playoff odds.
+          Analyze how rival outcomes affect {selectedTeam} playoff odds.
+          {selectedTeam !== "DAL" ? (
+            <span style={{ display: "block", marginTop: "0.5rem", color: "#475569" }}>
+              Rival impact analysis is now generic and will evaluate the selected team as the primary subject.
+            </span>
+          ) : null}
         </p>
       </div>
 
@@ -171,14 +176,14 @@ function RivalTeamImpactPage({ year = 2025 }) {
         }}
       >
         <div style={metricCardStyle}>
-          <div style={metricLabelStyle}>Cowboys TSI</div>
-          <div style={metricValueStyle}>{formatValue(cowboys.tsi, 1)}</div>
+          <div style={metricLabelStyle}>{selectedTeam} TSI</div>
+          <div style={metricValueStyle}>{formatValue(subject.tsi, 1)}</div>
         </div>
 
         <div style={metricCardStyle}>
           <div style={metricLabelStyle}>Playoff Probability</div>
           <div style={metricValueStyle}>
-            {formatValue(cowboys.playoffProbability ?? cowboys.baselinePlayoffProbability, 1)}%
+            {formatValue(subject.playoffProbability ?? subject.baselinePlayoffProbability, 1)}%
           </div>
         </div>
 
@@ -259,10 +264,10 @@ function RivalTeamImpactPage({ year = 2025 }) {
                 {sortedImpacts.map((team) => (
                   <tr
                     key={team.team}
-                    onClick={() => setSelectedTeam(team.team)}
+                    onClick={() => setSelectedRival(team.team)}
                     style={{
                       cursor: "pointer",
-                      background: selectedTeam === team.team ? "#e0f2fe" : "transparent"
+                      background: selectedRival === team.team ? "#e0f2fe" : "transparent"
                     }}
                   >
                     <td style={tdStyle}>

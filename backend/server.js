@@ -16,9 +16,10 @@ const generalLimiter = rateLimit({
 });
 
 
+const teamsRoutes = require("./routes/teams");
 const cowboysRoutes = require("./routes/cowboys");
+app.use("/api/teams", teamsRoutes);
 app.use("/api/cowboys", cowboysRoutes);
-
 
 const predictionRoutes = require("./superbowlPath");
 app.use("/api/prediction", predictionRoutes);

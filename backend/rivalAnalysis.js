@@ -1,22 +1,43 @@
 "use strict";
 
 const { computeTSI } = require("./tsi");
+const { getNFLTeamCatalog, getNFLTeamMetadata } = require("./services/espn");
 
-const RIVAL_TEAMS = [
-  { code: "PHI", name: "Eagles", tier: "direct_rival", conference: "NFC", division: "NFC East" },
-  { code: "WAS", name: "Commanders", tier: "direct_rival", conference: "NFC", division: "NFC East" },
-  { code: "NYG", name: "Giants", tier: "direct_rival", conference: "NFC", division: "NFC East" },
-  { code: "SF", name: "49ers", tier: "threat", conference: "NFC", division: "NFC West" },
-  { code: "TB", name: "Buccaneers", tier: "threat", conference: "NFC", division: "NFC South" },
-  { code: "NO", name: "Saints", tier: "threat", conference: "NFC", division: "NFC South" },
-  { code: "ATL", name: "Falcons", tier: "threat", conference: "NFC", division: "NFC South" },
-  { code: "LAR", name: "Rams", tier: "threat", conference: "NFC", division: "NFC West" },
-  { code: "SEA", name: "Seahawks", tier: "threat", conference: "NFC", division: "NFC West" },
-  { code: "KC", name: "Chiefs", tier: "cross_conference", conference: "AFC", division: "AFC West" },
-  { code: "BUF", name: "Bills", tier: "cross_conference", conference: "AFC", division: "AFC East" },
-  { code: "MIA", name: "Dolphins", tier: "cross_conference", conference: "AFC", division: "AFC East" },
-  { code: "BAL", name: "Ravens", tier: "cross_conference", conference: "AFC", division: "AFC North" }
-];
+function normalizeTeamCode(code) {
+  return String(code || "DAL").trim().toUpperCase();
+}
+
+function deriveTeamTier(subject, rival) {
+  if (rival.conference === subject.conference) {
+    if (rival.division === subject.division) return "direct_rival";
+    return "threat";
+  }
+  return "cross_conference";
+}
+
+function resolveTeamConfig(code) {
+  const normalized = normalizeTeamCode(code);
+  const metadata = getNFLTeamMetadata(normalized);
+  return {
+    code: normalized,
+    name: metadata?.displayName || normalized,
+    conference: metadata?.conference || "NFC",
+    division: metadata?.division || null
+  };
+}
+
+function buildCompetitionTeams(subject) {
+  const catalog = getNFLTeamCatalog();
+  return catalog
+    .filter((team) => team.abbreviation !== subject.code)
+    .map((team) => ({
+      code: team.abbreviation,
+      name: team.displayName,
+      conference: team.conference,
+      division: team.division,
+      tier: deriveTeamTier(subject, team)
+    }));
+}
 
 function asNumber(value, fallback = 0) {
   const n = Number(value);
@@ -88,14 +109,14 @@ function compareThreats(a, b) {
   return b.winProbability - a.winProbability;
 }
 
-function buildCowboysSnapshot(cowboys) {
-  const winPct = getWinPct(cowboys);
-  const wins = getWins(cowboys);
-  const losses = getLosses(cowboys);
+function buildTeamSnapshot(team) {
+  const winPct = getWinPct(team);
+  const wins = getWins(team);
+  const losses = getLosses(team);
   const baselinePlayoffProbability = round(
     clamp(
       winPct * 100 +
-        (cowboys.tsi - 50) * 0.45 +
+        (team.tsi - 50) * 0.45 +
         (wins - losses) * 1.25,
       5,
       97
@@ -104,54 +125,58 @@ function buildCowboysSnapshot(cowboys) {
   );
 
   return {
-    tsi: round(cowboys.tsi, 1),
+    code: team.code,
+    name: team.name,
+    conference: team.conference,
+    division: team.division,
+    tsi: round(team.tsi, 1),
     baselinePlayoffProbability,
-    components: cowboys.components,
-    record: cowboys.meta?.record || {}
+    components: team.components,
+    record: team.meta?.record || {}
   };
 }
 
-function buildCompetitionContext(cowboys, rivals) {
-  const nfcRivals = rivals.filter((team) => team.conference === "NFC");
-  const nfcWithCowboys = [...nfcRivals, cowboys].sort((a, b) => {
+function buildCompetitionContext(subject, rivals) {
+  const conferenceRivals = rivals.filter((team) => team.conference === subject.conference);
+  const conferenceWithSubject = [...conferenceRivals, subject].sort((a, b) => {
     const winPctDelta = getWinPct(b) - getWinPct(a);
     if (winPctDelta !== 0) return winPctDelta;
     return b.tsi - a.tsi;
   });
 
-  const nfcRank = nfcWithCowboys.findIndex((team) => team.code === "DAL") + 1;
-  const strongerNfcTeams = nfcRivals.filter(
+  const conferenceRank = conferenceWithSubject.findIndex((team) => team.code === subject.code) + 1;
+  const strongerConferenceTeams = conferenceRivals.filter(
     (team) =>
-      getWinPct(team) > getWinPct(cowboys) ||
-      (getWinPct(team) === getWinPct(cowboys) && team.tsi > cowboys.tsi)
+      getWinPct(team) > getWinPct(subject) ||
+      (getWinPct(team) === getWinPct(subject) && team.tsi > subject.tsi)
   );
 
-  const divisionLeadersAhead = nfcRivals.filter(
+  const divisionLeadersAhead = conferenceRivals.filter(
     (team) =>
-      team.division === "NFC East" &&
-      (getWinPct(team) > getWinPct(cowboys) ||
-        (getWinPct(team) === getWinPct(cowboys) && team.tsi > cowboys.tsi))
+      team.division === subject.division &&
+      (getWinPct(team) > getWinPct(subject) ||
+        (getWinPct(team) === getWinPct(subject) && team.tsi > subject.tsi))
   );
 
   return {
-    nfcRank,
-    strongerNfcTeamCount: strongerNfcTeams.length,
+    conferenceRank,
+    strongerConferenceTeamCount: strongerConferenceTeams.length,
     divisionLeadersAhead: divisionLeadersAhead.length
   };
 }
 
-function calculateRivalImpact(rival, cowboys, context) {
+function calculateRivalImpact(rival, subject, context) {
   const rivalWinPct = getWinPct(rival);
-  const cowboysWinPct = getWinPct(cowboys);
+  const subjectWinPct = getWinPct(subject);
   const rivalWins = getWins(rival);
-  const cowboysWins = getWins(cowboys);
+  const subjectWins = getWins(subject);
 
-  const winPctGap = rivalWinPct - cowboysWinPct;
-  const winGap = rivalWins - cowboysWins;
-  const tsiGap = rival.tsi - cowboys.tsi;
+  const winPctGap = rivalWinPct - subjectWinPct;
+  const winGap = rivalWins - subjectWins;
+  const tsiGap = rival.tsi - subject.tsi;
 
-  const sameConference = rival.conference === "NFC";
-  const sameDivision = rival.division === "NFC East";
+  const sameConference = rival.conference === subject.conference;
+  const sameDivision = rival.division === subject.division;
 
   const conferenceWeight = sameConference ? 1.0 : 0.45;
   const divisionWeight = sameDivision ? 1.25 : 1.0;
@@ -182,7 +207,7 @@ function calculateRivalImpact(rival, cowboys, context) {
   const winProbability = round(clamp(rivalWinPct * 100, 0, 100), 1);
 
   const recordPressure = round(
-    clamp((rivalWins - cowboysWins) * 2.5 + Math.max(0, winPctGap) * 40, 0, 25),
+    clamp((rivalWins - subjectWins) * 2.5 + Math.max(0, winPctGap) * 40, 0, 25),
     2
   );
 
@@ -205,7 +230,7 @@ function calculateRivalImpact(rival, cowboys, context) {
 
   const bestCaseScenario = round(
     clamp(
-      cowboys.baselinePlayoffProbability + playoffImpactPercentage,
+      subject.baselinePlayoffProbability + playoffImpactPercentage,
       0,
       100
     ),
@@ -214,7 +239,7 @@ function calculateRivalImpact(rival, cowboys, context) {
 
   const worstCaseScenario = round(
     clamp(
-      cowboys.baselinePlayoffProbability - playoffImpactPercentage,
+      subject.baselinePlayoffProbability - playoffImpactPercentage,
       0,
       100
     ),
@@ -247,7 +272,7 @@ function calculateRivalImpact(rival, cowboys, context) {
       tsiPressure,
       divisionalPressure,
       conferencePressure,
-      nfcRankOfCowboys: context.nfcRank
+      conferenceRank: context.conferenceRank
     }
   };
 }
@@ -256,12 +281,12 @@ function rankGamesByImpact(rivalImpacts) {
   return [...rivalImpacts].sort(compareThreats);
 }
 
-function buildSummary(cowboys, rivalImpacts, context) {
+function buildSummary(subject, rivalImpacts, context) {
   const directRivals = rivalImpacts.filter((team) => team.tier === "direct_rival");
-  const nfcThreats = rivalImpacts.filter((team) => team.conference === "NFC");
+  const conferenceThreats = rivalImpacts.filter((team) => team.conference === subject.conference);
   const highestImpact = rivalImpacts[0] || null;
   const topDirect = [...directRivals].sort(compareThreats)[0] || null;
-  const topConferenceThreat = [...nfcThreats].sort(compareThreats)[0] || null;
+  const topConferenceThreat = [...conferenceThreats].sort(compareThreats)[0] || null;
 
   const aggregatePressure = round(
     rivalImpacts.reduce((sum, team) => sum + team.impactScore, 0),
@@ -270,8 +295,8 @@ function buildSummary(cowboys, rivalImpacts, context) {
 
   return {
     aggregatePressure,
-    nfcRank: context.nfcRank,
-    strongerNfcTeamCount: context.strongerNfcTeamCount,
+    conferenceRank: context.conferenceRank,
+    strongerConferenceTeamCount: context.strongerConferenceTeamCount,
     divisionLeadersAhead: context.divisionLeadersAhead,
     highestImpactTeam: highestImpact
       ? {
@@ -295,9 +320,9 @@ function buildSummary(cowboys, rivalImpacts, context) {
         }
       : null,
     narrative:
-      highestImpact && highestImpact.conference === "NFC"
-        ? `${highestImpact.teamName} currently creates the most playoff pressure on Dallas based on real TSI and record context.`
-        : "No single NFC rival is currently separating strongly from Dallas in the available data."
+      highestImpact
+        ? `${highestImpact.teamName} currently creates the most playoff pressure on ${subject.name} based on real TSI and record context.`
+        : `No single ${subject.conference} rival is currently separating strongly from ${subject.name} in the available data.`
   };
 }
 
@@ -313,28 +338,32 @@ async function fetchTeamData(teamConfig, year) {
 async function computeRivalImpact(options = {}) {
   const year = Number(options.year) || undefined;
 
-  const cowboys = await computeTSI({
-    teamAbbr: "DAL",
+  const normalizedTeamCode = normalizeTeamCode(options.teamAbbr);
+  const teamConfig = resolveTeamConfig(normalizedTeamCode);
+
+  const subjectData = await computeTSI({
+    teamAbbr: normalizedTeamCode,
     year
   });
 
-  if (!cowboys) {
-    throw new Error("Unable to load Cowboys data for rival impact analysis.");
+  if (!subjectData) {
+    throw new Error(`Unable to load data for ${normalizedTeamCode} rival impact analysis.`);
   }
 
-  const normalizedCowboys = normalizeTeamResult(
+  const normalizedSubject = normalizeTeamResult(
     {
-      code: "DAL",
-      name: "Cowboys",
+      code: subjectData.team || normalizedTeamCode,
+      name: teamConfig.name,
       tier: "self",
-      conference: "NFC",
-      division: "NFC East"
+      conference: teamConfig.conference,
+      division: teamConfig.division
     },
-    cowboys
+    subjectData
   );
 
+  const rivalTeams = buildCompetitionTeams(normalizedSubject);
   const settled = await Promise.allSettled(
-    RIVAL_TEAMS.map((team) => fetchTeamData(team, year))
+    rivalTeams.map((team) => fetchTeamData(team, year))
   );
 
   const rivals = [];
@@ -342,7 +371,7 @@ async function computeRivalImpact(options = {}) {
 
   for (let i = 0; i < settled.length; i += 1) {
     const outcome = settled[i];
-    const team = RIVAL_TEAMS[i];
+    const team = rivalTeams[i];
 
     if (outcome.status === "fulfilled") {
       rivals.push(outcome.value);
@@ -355,31 +384,31 @@ async function computeRivalImpact(options = {}) {
     }
   }
 
-  const context = buildCompetitionContext(normalizedCowboys, rivals);
-  const cowboysSnapshot = buildCowboysSnapshot(normalizedCowboys);
+  const context = buildCompetitionContext(normalizedSubject, rivals);
+  const subjectSnapshot = buildTeamSnapshot(normalizedSubject);
 
   const rivalImpacts = rivals
     .map((rival) => calculateRivalImpact(
       rival,
-      { ...normalizedCowboys, baselinePlayoffProbability: cowboysSnapshot.baselinePlayoffProbability },
+      { ...normalizedSubject, baselinePlayoffProbability: subjectSnapshot.baselinePlayoffProbability },
       context
     ))
     .sort(compareThreats);
 
   const rankedGames = rankGamesByImpact(rivalImpacts);
-  const summary = buildSummary(cowboysSnapshot, rivalImpacts, context);
+  const summary = buildSummary(subjectSnapshot, rivalImpacts, context);
 
   return {
     success: true,
     deterministic: true,
     timestamp: new Date().toISOString(),
-    year: normalizedCowboys.year,
+    year: normalizedSubject.year,
     parameters: {
       chaos: 0,
       iterations: 0,
       removedSyntheticVariance: true
     },
-    cowboys: cowboysSnapshot,
+    team: subjectSnapshot,
     rivalImpacts,
     rankedGames,
     summary,
