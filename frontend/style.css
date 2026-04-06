@@ -407,11 +407,18 @@ img, canvas, svg, video { max-width: 100%; height: auto; }
   position: fixed;
   top: 0;
   left: var(--sidebar-w);
-  height: 3px;
+  height: 2px;
   width: 0;
-  background: linear-gradient(90deg, var(--dak-navy), var(--dak-silver-lt));
+  background: linear-gradient(90deg, var(--dak-navy) 0%, var(--dak-silver) 50%, var(--dak-white) 100%);
   z-index: 301;
-  transition: width 60ms linear;
+  transition: width 60ms linear, opacity 250ms ease;
+  box-shadow: 0 0 10px rgba(134,147,151,0.5);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#scroll-progress.visible {
+  opacity: 1;
 }
 
 /* ============================================================
@@ -1230,7 +1237,7 @@ tbody tr:hover { background: rgba(0,53,148,0.04); }
   letter-spacing: 0.08em;
 }
 
-#scroll-progress { height: 2px; }
+
 
 #debug-panel {
   background: rgba(0,30,98,0.92) !important;
@@ -1395,14 +1402,12 @@ body.retro .nav-link.active::before { background: #4080FF; }
     margin-top: 54px;
   }
 
-  .top-debug-strip { left: 0; top: 54px; }
-  #scroll-progress { left: 0; top: calc(54px + 22px); }
+  #scroll-progress { left: 0; top: 0; }
   .content-area { padding: 1rem 0.85rem 1.5rem; }
 }
 
 @media (max-width: 640px) {
-  .top-debug-strip { display: none; }
-  #scroll-progress { top: 54px; }
+  #scroll-progress { top: 0; }
   .sidebar__nav { padding: 0.25rem 0; gap: 0.15rem; }
   .nav-link { min-width: 7.2rem; padding: 0 0.65rem; }
   .sidebar__title { font-size: 0.66rem; }
@@ -1561,7 +1566,7 @@ body.retro .nav-link.active::before { background: #4080FF; }
 
 /* Print */
 @media print {
-  .sidebar, .top-debug-strip, #scroll-progress { display: none !important; }
+  .sidebar, #scroll-progress { display: none !important; }
   .main-stage { margin-left: 0 !important; margin-top: 0 !important; }
   .card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
   .hero-title { color: var(--dak-navy); print-color-adjust: exact; -webkit-print-color-adjust: exact; }

@@ -218,11 +218,16 @@ function useAppRouter() {
       const category = CATEGORY_MAP[page] || 'System';
       const catEl = document.getElementById("active-category");
       const pageEl = document.getElementById("active-page");
+      const barEl = document.getElementById("scroll-progress");
       
       if (catEl) catEl.textContent = category;
       if (pageEl) {
         const rawTitle = page.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
         pageEl.textContent = rawTitle;
+      }
+
+      if (barEl) {
+        barEl.classList.toggle("visible", page === "dashboard");
       }
 
       document.querySelectorAll(".nav-link").forEach((el) => {

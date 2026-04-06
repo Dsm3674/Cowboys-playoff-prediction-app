@@ -178,27 +178,10 @@
         clearInterval(waitForRoot);
       }, 3000);
 
-      var lastTime = performance.now();
-      var frameCount = 0;
-
-      function countFPS() {
-        var now = performance.now();
-        frameCount++;
-        if (now > lastTime + 1000) {
-          var el = document.getElementById("fps-indicator");
-          if (el) el.textContent = "FPS: " + frameCount;
-          frameCount = 0;
-          lastTime = now;
-        }
-        requestAnimationFrame(countFPS);
-      }
-
-      requestAnimationFrame(countFPS);
-
       function setNetworkStatus(online) {
         var el = document.getElementById("network-status");
         if (!el) return;
-        el.textContent = "Network: " + (online ? "online" : "offline");
+        el.textContent = (online ? "Online" : "Offline");
         el.style.color = online ? "" : "#ff6b6b";
       }
 
