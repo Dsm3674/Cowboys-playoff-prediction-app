@@ -35,56 +35,69 @@ function PlayoffGauge({ teamCode = "DAL", year = new Date().getFullYear() }) {
   useEffect(() => {
     if (loading || probability === null || !canvasRef.current) return;
 
-    if (chartRef.current) {
-      chartRef.current.destroy();
+    function renderChart() {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+
+      const ctx = canvasRef.current.getContext("2d");
+      const style = getComputedStyle(document.body);
+
+      // Read current themed colors
+      const PRIMARY = style.getPropertyValue('--dak-navy').trim() || "#002244";
+      const SECONDARY = style.getPropertyValue('--dak-silver').trim() || "#869397";
+      const ACCENT = style.getPropertyValue('--accent').trim() || PRIMARY;
+      const GAUGE_FILL = style.getPropertyValue('--gauge-fill').trim() || "rgba(255,255,255,0.08)";
+
+      let accentColor = ACCENT;
+      if (probability < 30) accentColor = SECONDARY;
+
+      chartRef.current = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          datasets: [
+            {
+              data: [probability, 100 - probability],
+              backgroundColor: [accentColor, GAUGE_FILL],
+              borderWidth: 0,
+              circumference: 180,
+              rotation: 270,
+              cutout: "82%",
+              borderRadius: 10,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false },
+          },
+          animation: {
+            duration: 1200,
+            easing: "easeOutQuart",
+          },
+        },
+      });
     }
 
-    const ctx = canvasRef.current.getContext("2d");
-    
-    // Official Cowboys Colors
-    const NAVY = "#002244";
-    const SILVER = "#869397";
-    const SILVER_LT = "#B0B7BC";
-    const GREEN = "#10b981";
-    const YELLOW = "#f59e0b";
-    const RED = "#ef4444";
+    renderChart();
 
-    let accentColor = SILVER;
-    if (probability >= 80) accentColor = NAVY;
-    else if (probability >= 50) accentColor = SILVER;
-    else if (probability >= 30) accentColor = SILVER_LT;
-
-    chartRef.current = new Chart(ctx, {
-      type: "doughnut",
-      data: {
-        datasets: [
-          {
-            data: [probability, 100 - probability],
-            backgroundColor: [accentColor, "rgba(255,255,255,0.08)"],
-            borderWidth: 0,
-            circumference: 180,
-            rotation: 270,
-            cutout: "82%",
-            borderRadius: 10,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { enabled: false },
-        },
-        animation: {
-          duration: 1600,
-          easing: "easeOutQuart",
-        },
-      },
+    // Re-render chart if theme (body class) changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((m) => {
+        if (m.attributeName === "class") {
+          renderChart();
+        }
+      });
     });
+
+    observer.observe(document.body, { attributes: true });
 
     return () => {
       if (chartRef.current) chartRef.current.destroy();
+      observer.disconnect();
     };
   }, [probability, loading]);
 

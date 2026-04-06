@@ -14,18 +14,18 @@
   --dak-field:     #1a2e1a;
   --dak-grass:     #243c24;
 
-  /* Semantic aliases */
-  --cowboys-blue:  var(--dak-navy);
-  --accent:        var(--dak-navy);
-  --accent-2:      var(--dak-gold);
-
-  /* Surfaces */
+  /* Surfaces & Themes */
   --bg:            #F0F2F5;
   --card:          #FFFFFF;
   --card-2:        #F5F7FA;
   --border:        #D0D5DD;
   --fg:            #0A1628;
   --muted:         #6B7280;
+  
+  --header-bg:     rgba(255, 255, 255, 0.8);
+  --sidebar-bg:    linear-gradient(175deg, #000B3A 0%, var(--dak-royal) 40%, #001048 100%);
+  --banner-bg:     linear-gradient(135deg, var(--dak-navy) 0%, #001a33 100%);
+  --gauge-fill:    rgba(0,0,0,0.08);
 
   /* Shadows with navy tint */
   --shadow:        0 12px 32px rgba(0,53,148,0.10);
@@ -36,9 +36,6 @@
   --font-display:  'Oswald', 'Impact', sans-serif;
   --font-body:     'Roboto Condensed', 'Arial Narrow', sans-serif;
   --font-ui:       'Inter', system-ui, sans-serif;
-
-  /* Star motif */
-  --star-size:     40px;
 
   /* Sidebar dimensions */
   --sidebar-w:     240px;
@@ -77,8 +74,8 @@ img, canvas, svg, video { max-width: 100%; height: auto; }
   left: 0;
   width: var(--sidebar-w);
   height: 100vh;
-  background: linear-gradient(175deg, #000B3A 0%, var(--dak-royal) 40%, #001048 100%);
-  border-right: 1px solid rgba(134,147,151,0.20);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
   box-shadow: 4px 0 24px rgba(0,0,0,0.45);
   overflow-y: auto;
   overflow-x: hidden;
@@ -188,7 +185,7 @@ img, canvas, svg, video { max-width: 100%; height: auto; }
   position: sticky;
   top: 0;
   height: 64px;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--header-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
@@ -220,7 +217,7 @@ img, canvas, svg, video { max-width: 100%; height: auto; }
 }
 
 .header-breadcrumb #active-page {
-  color: var(--dak-navy);
+  color: var(--accent);
 }
 
 .header-actions {
@@ -409,7 +406,7 @@ img, canvas, svg, video { max-width: 100%; height: auto; }
   left: var(--sidebar-w);
   height: 2px;
   width: 0;
-  background: linear-gradient(90deg, var(--dak-navy) 0%, var(--dak-silver) 50%, var(--dak-white) 100%);
+  background: linear-gradient(90deg, var(--accent) 0%, var(--dak-silver) 50%, var(--dak-white) 100%);
   z-index: 301;
   transition: width 60ms linear, opacity 250ms ease;
   box-shadow: 0 0 10px rgba(134,147,151,0.5);
@@ -519,7 +516,7 @@ img, canvas, svg, video { max-width: 100%; height: auto; }
   overflow: hidden;
   border-radius: 16px;
   padding: 3.5rem 2.5rem;
-  background: linear-gradient(135deg, var(--dak-navy) 0%, #001a33 100%);
+  background: var(--banner-bg);
   color: #fff;
   margin-bottom: 2rem;
   border: 1px solid rgba(134,147,151,0.2);
@@ -1250,15 +1247,20 @@ tbody tr:hover { background: rgba(0,53,148,0.04); }
 
 
 body.dark {
-  --bg:        #03061A;
-  --fg:        #E8ECF0;
-  --muted:     #8F9DB0;
-  --card:      #070D2A;
-  --card-2:    #0B1335;
-  --border:    rgba(134,147,151,0.18);
-  --shadow:    0 14px 36px rgba(0,0,0,0.7);
-  --shadow-soft: 0 6px 20px rgba(0,0,0,0.5);
-  --accent:    #4D88FF;
+  --bg:            #03061A;
+  --fg:            #E8ECF0;
+  --muted:         #8F9DB0;
+  --card:          #070D2A;
+  --card-2:        #0B1335;
+  --border:        rgba(134,147,151,0.18);
+  --shadow:        0 14px 36px rgba(0,0,0,0.7);
+  --shadow-soft:   0 6px 20px rgba(0,0,0,0.5);
+  --accent:        #4D88FF;
+  
+  --header-bg:     rgba(7, 13, 42, 0.85);
+  --sidebar-bg:    linear-gradient(180deg, #020412 0%, #070D2A 100%);
+  --banner-bg:     linear-gradient(135deg, #0b1335 0%, #03061a 100%);
+  --gauge-fill:    rgba(255,255,255,0.05);
 }
 
 body.dark .card::before { background: linear-gradient(180deg, rgba(77,136,255,0.5), transparent); }
@@ -1277,9 +1279,14 @@ body.retro {
   --fg:     #C8D8E8;
   --card:   #050D1A;
   --card-2: #081420;
-  --border: rgba(0,53,148,0.3);
+  --border: rgba(0,96,255,0.3);
   --accent: #0060FF;
   --muted:  #4060A0;
+  
+  --header-bg:     rgba(5, 13, 26, 0.9);
+  --sidebar-bg:    linear-gradient(180deg, #000000 0%, #050D1A 100%);
+  --banner-bg:     linear-gradient(135deg, #000000 0%, #0a1420 100%);
+  --gauge-fill:    rgba(0,128,255,0.1);
 }
 
 body.retro h1, body.retro h2, body.retro h3, body.retro h4 {
@@ -1479,8 +1486,8 @@ body.retro .nav-link.active::before { background: #4080FF; }
   justify-content: space-between !important;
   gap: 2rem !important;
   padding: 2.5rem 3rem !important;
-  background: linear-gradient(135deg, var(--dak-navy) 0%, #001021 100%) !important;
-  border: 1px solid rgba(134,147,151,0.15) !important;
+  background: var(--banner-bg) !important;
+  border: 1px solid var(--border) !important;
 }
 
 .banner-content {
