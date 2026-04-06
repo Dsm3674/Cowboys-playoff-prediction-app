@@ -1,4 +1,29 @@
-const { useEffect, useMemo, useState } = React;
+const { useEffect, useMemo, useState, useCallback } = React;
+
+const CATEGORY_MAP = {
+  dashboard: 'Intelligence',
+  analytics: 'Intelligence',
+  insights: 'Intelligence',
+  history: 'Intelligence',
+  simulator: 'Strategy',
+  matchup: 'Strategy',
+  paths: 'Strategy',
+  quantum: 'Strategy',
+  'team-profile': 'Scouting',
+  compare: 'Scouting',
+  'schedule-strength': 'Scouting',
+  rival: 'Scouting',
+  standings: 'League',
+  playoff: 'League',
+  division: 'League',
+  conference: 'League',
+  forecast: 'League',
+  liveprob: 'Real-Time',
+  clutch: 'Real-Time',
+  timeline: 'Real-Time',
+  profile: 'System',
+  events: 'System'
+};
 
 function PlaceholderCard({ title, text }) {
   return (
@@ -57,15 +82,11 @@ const NFL_TEAMS = [
 
 function TeamSelector({ selectedTeam, onSelect }) {
   return (
-    <div style={{ marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "1rem" }}>
-      <label style={{ fontWeight: 700, color: "#0f172a" }} htmlFor="team-select">
-        Select team
-      </label>
+    <div className="team-selector-compact">
       <select
         id="team-select"
         value={selectedTeam}
         onChange={(e) => onSelect(e.target.value)}
-        style={{ padding: "0.75rem 1rem", borderRadius: "10px", border: "1px solid #cbd5e1", background: "#fff", minWidth: "220px" }}
       >
         {NFL_TEAMS.map((team) => (
           <option key={team.code} value={team.code}>
@@ -84,21 +105,24 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam, onTeamChange
   const MustWinCard = getGlobalComponent("MustWinCard", "Must Win");
   const LiveWinProbTool = getGlobalComponent("LiveWinProbTool", "Win Probability");
   const GameTable = getGlobalComponent("GameTable", "Schedule");
+  const PlayoffGauge = getGlobalComponent("PlayoffGauge", "Playoff Gauge");
 
   const teamInfo = NFL_TEAMS.find((team) => team.code === selectedTeam) || { name: selectedTeam };
 
   return (
-    <div style={{ padding: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem", alignItems: "flex-end" }}>
-        <div>
+    <div style={{ padding: "1.5rem" }}>
+      <div className="cowboys-banner war-room-banner">
+        <div className="banner-content">
           <h1 className="hero-title">
-            {teamInfo.name} <span>Analytics</span>
+            {teamInfo.name} <span>War Room</span>
           </h1>
-          <div className="hero-kicker">
-            Live analytics for the {teamInfo.name}.
-          </div>
+          <p className="hero-kicker">
+            High-fidelity predictive analytics for the {teamInfo.name} season.
+          </p>
         </div>
-        <TeamSelector selectedTeam={selectedTeam} onSelect={onTeamChange} />
+        <div className="banner-gauge">
+          <PlayoffGauge teamCode={selectedTeam} year={year} />
+        </div>
       </div>
 
       <div className="grid-layout">
@@ -110,10 +134,11 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam, onTeamChange
         </div>
 
         <div>
-          <div className="card">
+          <div className="card cowboys-card">
+            <div className="eyebrow">Tactical Overview</div>
             <h3>Playoff Outlook</h3>
             <p className="text-small text-muted">
-              Live team metrics plus what-if analysis.
+              Live team metrics plus what-if analysis. Integrated with LoneStar projection engine.
             </p>
           </div>
 
@@ -190,8 +215,15 @@ function useAppRouter() {
 
   useEffect(() => {
     function updateIndicators(page) {
-      const routeEl = document.getElementById("route-indicator");
-      if (routeEl) routeEl.textContent = `Route: ${page}`;
+      const category = CATEGORY_MAP[page] || 'System';
+      const catEl = document.getElementById("active-category");
+      const pageEl = document.getElementById("active-page");
+      
+      if (catEl) catEl.textContent = category;
+      if (pageEl) {
+        const rawTitle = page.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+        pageEl.textContent = rawTitle;
+      }
 
       document.querySelectorAll(".nav-link").forEach((el) => {
         el.classList.toggle("active", el.dataset.page === page);
@@ -219,7 +251,10 @@ function useAppRouter() {
     window.setPage = navigate;
 
     document.querySelectorAll(".nav-link").forEach((el) => {
-      el.onclick = () => navigate(el.dataset.page);
+      el.onclick = () => {
+        navigate(el.dataset.page);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
     });
 
     updateIndicators(currentPage);
@@ -423,6 +458,10 @@ function App() {
 
   return (
     <div className="content-area fade-in">
+      {ReactDOM.createPortal(
+        <TeamSelector selectedTeam={selectedTeam} onSelect={setSelectedTeam} />,
+        document.getElementById("team-nav-anchor")
+      )}
       {renderPage()}
 
       <footer className="site-footer">

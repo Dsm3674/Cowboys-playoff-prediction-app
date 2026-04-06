@@ -42,35 +42,76 @@
 
   <div class="shell">
     <aside class="sidebar">
-      <div class="sidebar__title">LoneStar Analytics</div>
+      <div class="sidebar__logo">
+        <div class="star-icon">★</div>
+        <div class="sidebar__title">LoneStar<br/><span>Analytics</span></div>
+      </div>
 
       <nav class="sidebar__nav" aria-label="Main navigation">
-        <button class="nav-link active" data-page="dashboard">Dashboard</button>
-        <button class="nav-link" data-page="simulator">AI Story Simulator</button>
-        <button class="nav-link" data-page="quantum">Quantum Engine</button>
-        <button class="nav-link" data-page="analytics">Analytics</button>
-        <button class="nav-link" data-page="rival">Rival Impact</button>
-        <button class="nav-link" data-page="clutch">Clutch Index</button>
-        <button class="nav-link" data-page="timeline">Timeline</button>
-        <button class="nav-link" data-page="paths">Season Paths</button>
-        <button class="nav-link" data-page="standings">Standings</button>
-        <button class="nav-link" data-page="compare">Team Comparison</button>
-        <button class="nav-link" data-page="division">Division Power</button>
-        <button class="nav-link" data-page="forecast">League Forecast</button>
-        <button class="nav-link" data-page="playoff">Playoff Pulse</button>
-        <button class="nav-link" data-page="matchup">Matchup Simulator</button>
-        <button class="nav-link" data-page="schedule-strength">Schedule Strength</button>
-        <button class="nav-link" data-page="team-profile">Team Profile</button>
-        <button class="nav-link" data-page="conference">Conference Race</button>
-        <button class="nav-link" data-page="insights">League Insights</button>
-        <button class="nav-link" data-page="liveprob">Live Win Prob</button>
-        <button class="nav-link" data-page="events">Events Admin</button>
-        <button class="nav-link" data-page="profile">Profile</button>
-        <button class="nav-link" data-page="history">History</button>
+        <div class="nav-group">
+          <div class="nav-header">Intelligence</div>
+          <button class="nav-link active" data-page="dashboard">Dashboard</button>
+          <button class="nav-link" data-page="analytics">Analytics</button>
+          <button class="nav-link" data-page="insights">League Insights</button>
+          <button class="nav-link" data-page="history">History</button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-header">Strategy</div>
+          <button class="nav-link" data-page="simulator">AI Story Simulator</button>
+          <button class="nav-link" data-page="matchup">Matchup Simulator</button>
+          <button class="nav-link" data-page="paths">Season Paths</button>
+          <button class="nav-link" data-page="quantum">Quantum Engine</button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-header">Scouting</div>
+          <button class="nav-link" data-page="team-profile">Team Profile</button>
+          <button class="nav-link" data-page="compare">Team Comparison</button>
+          <button class="nav-link" data-page="schedule-strength">Schedule Strength</button>
+          <button class="nav-link" data-page="rival">Rival Impact</button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-header">League</div>
+          <button class="nav-link" data-page="standings">Standings</button>
+          <button class="nav-link" data-page="playoff">Playoff Pulse</button>
+          <button class="nav-link" data-page="division">Division Power</button>
+          <button class="nav-link" data-page="conference">Conference Race</button>
+          <button class="nav-link" data-page="forecast">League Forecast</button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-header">Real-Time</div>
+          <button class="nav-link" data-page="liveprob">Live Win Prob</button>
+          <button class="nav-link" data-page="clutch">Clutch Index</button>
+          <button class="nav-link" data-page="timeline">Timeline</button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-header">System</div>
+          <button class="nav-link" data-page="profile">Profile</button>
+          <button class="nav-link" data-page="events">Events Admin</button>
+        </div>
       </nav>
     </aside>
 
     <main class="main-stage">
+      <header class="dashboard-header">
+        <div class="header-breadcrumb">
+          <span id="active-category">Intelligence</span>
+          <span class="chevron">/</span>
+          <span id="active-page">Dashboard</span>
+        </div>
+        
+        <div class="header-actions">
+          <div class="team-selector-compact" id="team-nav-anchor"></div>
+          <div class="system-status">
+            <span class="status-indicator"></span>
+            <span id="network-status">Online</span>
+          </div>
+        </div>
+      </header>
       <div id="root"></div>
     </main>
   </div>
@@ -99,6 +140,7 @@
   <script type="text/babel" src="./src/components/ConferenceRacePage.jsx"></script>
   <script type="text/babel" src="./src/components/LeagueInsightsPage.jsx"></script>
   <script type="text/babel" src="./src/components/SeasonPathExplorer.jsx"></script>
+  <script type="text/babel" src="./src/components/PlayoffGauge.jsx"></script>
   <script type="text/babel" src="./src/components/HistoryPage.jsx"></script>
   <script type="text/babel" src="./src/components/AIStorySimulator.jsx"></script>
   <script type="text/babel" src="./src/components/QuantumEngineIntegrated.jsx"></script>
