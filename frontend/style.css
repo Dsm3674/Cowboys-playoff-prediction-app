@@ -196,6 +196,27 @@ img, canvas, svg, video { max-width: 100%; height: auto; }
   padding: 0 2rem;
 }
 
+.team-selector-compact #team-select {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+body.retro .team-selector-compact #team-select {
+  background: #000;
+  border-color: var(--accent);
+  color: var(--accent);
+  text-shadow: 0 0 8px rgba(0,96,255,0.4);
+}
+
 .header-breadcrumb {
   display: flex;
   align-items: center;
