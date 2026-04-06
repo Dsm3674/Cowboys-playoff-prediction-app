@@ -143,7 +143,7 @@ function EventsAdmin() {
 
         <div className="admin-content-grid" style={{display: 'grid', gridTemplateColumns: 'minmax(300px, 400px) 1fr', gap: '2rem'}}>
           {/* FORM SECTION */}
-          <div className="admin-form-panel">
+          <div className="admin-form-panel reveal-up stagger-1">
             <h3>Create New Event</h3>
             {error && <div className="alert alert-error" style={{marginBottom: '1rem', padding: '0.8rem', borderRadius: '8px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.85rem'}}>{error}</div>}
             {success && <div className="alert alert-success" style={{marginBottom: '1rem', padding: '0.8rem', borderRadius: '8px', background: '#f0fdf4', color: '#15803d', fontSize: '0.85rem'}}>{success}</div>}
@@ -168,9 +168,7 @@ function EventsAdmin() {
                       maxHeight: '200px', overflowY: 'auto'
                     }}>
                       {suggestions.map((p, idx) => (
-                        <li key={idx} onClick={() => selectPlayer(p)} className="suggestion-item" style={{
-                          padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.88rem', borderBottom: '1px solid #f0f0f0'
-                        }}>
+                        <li key={idx} onClick={() => selectPlayer(p)} className="suggestion-item">
                           {p.player_name || p}
                         </li>
                       ))}
@@ -199,15 +197,20 @@ function EventsAdmin() {
               </div>
 
               <div className="admin-form-actions">
-                <button type="submit" className="btn-primary" disabled={loading} style={{width: '100%'}}>
-                  {loading ? "Creating..." : "Injest Event"}
+                <button 
+                  type="submit" 
+                  className={`btn-primary ${loading ? 'btn-shimmer' : ''}`} 
+                  disabled={loading} 
+                  style={{width: '100%', position: 'relative', overflow: 'hidden'}}
+                >
+                  {loading ? "Injecting Data..." : "Injest Event"}
                 </button>
               </div>
             </form>
           </div>
           
           {/* RECENT EVENTS LIST */}
-          <div className="admin-table-panel">
+          <div className="admin-table-panel reveal-up stagger-2">
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
@@ -227,7 +230,11 @@ function EventsAdmin() {
                     </tr>
                   ) : (
                     events.map((ev, i) => (
-                      <tr key={i}>
+                      <tr 
+                        key={i} 
+                        className="reveal-up" 
+                        style={{animationDelay: `${i * 50}ms`}}
+                      >
                         <td style={{fontWeight: '600'}}>{ev.player_name}</td>
                         <td>
                           <span className={`event-type-badge ${ev.event_type}`}>

@@ -80,23 +80,7 @@ const NFL_TEAMS = [
   { code: "WAS", name: "Washington Commanders" }
 ];
 
-function TeamSelector({ selectedTeam, onSelect }) {
-  return (
-    <div className="team-selector-compact">
-      <select
-        id="team-select"
-        value={selectedTeam}
-        onChange={(e) => onSelect(e.target.value)}
-      >
-        {NFL_TEAMS.map((team) => (
-          <option key={team.code} value={team.code}>
-            {team.code} — {team.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
+
 
 function Dashboard({ year = new Date().getFullYear(), selectedTeam, onTeamChange }) {
   const UserProfileCard = getGlobalComponent("UserProfileCard", "Profile");
@@ -126,14 +110,14 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam, onTeamChange
       </div>
 
       <div className="grid-layout">
-        <div>
+        <div className="reveal-up stagger-1">
           <UserProfileCard team={selectedTeam} />
           <RecordCard year={year} team={selectedTeam} />
           <TSICard year={year} team={selectedTeam} />
           <MustWinCard year={year} team={selectedTeam} />
         </div>
 
-        <div>
+        <div className="reveal-up stagger-2">
           <div className="card cowboys-card">
             <div className="eyebrow">Tactical Overview</div>
             <h3>Playoff Outlook</h3>
@@ -142,11 +126,11 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam, onTeamChange
             </p>
           </div>
 
-          <div style={{ marginTop: "2rem" }}>
+          <div style={{ marginTop: "2rem" }} className="reveal-up stagger-3">
             <LiveWinProbTool />
           </div>
 
-          <div style={{ marginTop: "2rem" }}>
+          <div style={{ marginTop: "2rem" }} className="reveal-up stagger-4">
             <GameTable year={year} team={selectedTeam} />
           </div>
         </div>
@@ -462,12 +446,14 @@ function App() {
   }
 
   return (
-    <div className="content-area fade-in">
-      {ReactDOM.createPortal(
-        <TeamSelector selectedTeam={selectedTeam} onSelect={setSelectedTeam} />,
-        document.getElementById("team-nav-anchor")
-      )}
-      {renderPage()}
+    <div className="content-area">
+      <div 
+        key={currentPage} 
+        className="reveal-up"
+        style={{ minHeight: '100vh' }}
+      >
+        {renderPage()}
+      </div>
 
       <footer className="site-footer">
         <div className="site-footer__bottom">
