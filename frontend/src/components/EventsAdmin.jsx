@@ -1,6 +1,6 @@
 // frontend/src/components/EventsAdmin.jsx
 
-const { useState, useEffect, useCallback, useRef } = React;
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
 function EventsAdmin() {
   const [playerQuery, setPlayerQuery] = useState("");
@@ -56,7 +56,7 @@ function EventsAdmin() {
   const fetchRecentEvents = useCallback(async () => {
     try {
       const response = await fetch(
-        `${window.BASE_URL}/api/players/events?season=${season}&limit=10`
+        `${window.BASE_URL}/api/players/events?season=${season}&limit=20`
       );
       if (!response.ok) throw new Error("Failed");
       const data = await response.json();
@@ -101,31 +101,76 @@ function EventsAdmin() {
     }
   };
 
+  // Derived Stats
+  const stats = useMemo(() => {
+     return {
+        total: events.length,
+        highImpact: events.filter(e => e.impact_score >= 8).length,
+        lastAdded: events[0]?.player_name || "N/A"
+     };
+  }, [events]);
+
   return (
     <div className="events-admin-page">
       <div className="events-admin-container">
-        <h1>Events Admin</h1>
-        <div className="admin-content">
-          <div className="form-section">
-            <h2>Create Event</h2>
-            {error && <div className="alert alert-error">{error}</div>}
-            {success && <div className="alert alert-success">{success}</div>}
+        {/* PAGE HEADER */}
+        <header className="events-admin-header">
+          <div className="header-text">
+            <h1>Events Intelligence Admin</h1>
+            <p>Inject real-time player data, injuries, and performance shifts into the simulation engine.</p>
+          </div>
+        </header>
+
+        {/* STATS ROW */}
+        <div className="admin-stats">
+          <div className="admin-stat-card">
+            <div className="admin-stat-label">Recent Submissions</div>
+            <div className="admin-stat-value">{stats.total}</div>
+          </div>
+          <div className="admin-stat-card">
+            <div className="admin-stat-label">High Impact (8+)</div>
+            <div className="admin-stat-value">{stats.highImpact}</div>
+          </div>
+          <div className="admin-stat-card">
+            <div className="admin-stat-label">Last Player Logged</div>
+            <div className="admin-stat-value" style={{fontSize: '1.2rem', marginTop: '0.5rem'}}>{stats.lastAdded}</div>
+          </div>
+          <div className="admin-stat-card">
+            <div className="admin-stat-label">System Mode</div>
+            <div className="admin-stat-value">ACTIVE</div>
+          </div>
+        </div>
+
+        <div className="admin-content-grid" style={{display: 'grid', gridTemplateColumns: 'minmax(300px, 400px) 1fr', gap: '2rem'}}>
+          {/* FORM SECTION */}
+          <div className="admin-form-panel">
+            <h3>Create New Event</h3>
+            {error && <div className="alert alert-error" style={{marginBottom: '1rem', padding: '0.8rem', borderRadius: '8px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.85rem'}}>{error}</div>}
+            {success && <div className="alert alert-success" style={{marginBottom: '1rem', padding: '0.8rem', borderRadius: '8px', background: '#f0fdf4', color: '#15803d', fontSize: '0.85rem'}}>{success}</div>}
             
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
+            <form onSubmit={handleSubmit} className="admin-form-grid" style={{display: 'flex', flexDirection: 'column', gap: '1.25rem'}}>
+              <div className="admin-form-field">
                 <label>Player Name *</label>
-                <div className="search-input-wrapper" ref={suggestionsRef}>
+                <div className="search-input-wrapper" style={{position: 'relative'}} ref={suggestionsRef}>
                   <input
                     type="text"
                     value={playerQuery}
                     onChange={(e) => handlePlayerInput(e.target.value)}
                     className="form-input"
                     placeholder="Search player..."
+                    style={{width: '100%'}}
                   />
                   {suggestions.length > 0 && (
-                    <ul className="suggestions-dropdown">
+                    <ul className="suggestions-dropdown" style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, 
+                      zIndex: 100, background: '#fff', border: '1px solid #D0D5DD', 
+                      borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      maxHeight: '200px', overflowY: 'auto'
+                    }}>
                       {suggestions.map((p, idx) => (
-                        <li key={idx} onClick={() => selectPlayer(p)} className="suggestion-item">
+                        <li key={idx} onClick={() => selectPlayer(p)} className="suggestion-item" style={{
+                          padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.88rem', borderBottom: '1px solid #f0f0f0'
+                        }}>
                           {p.player_name || p}
                         </li>
                       ))}
@@ -134,38 +179,74 @@ function EventsAdmin() {
                 </div>
               </div>
 
-              <div className="form-group">
+              <div className="admin-form-field">
                 <label>Event Type</label>
                 <select value={eventType} onChange={(e) => setEventType(e.target.value)} className="form-select">
-                  {eventTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                  {eventTypeOptions.map(t => <option key={t} value={t}>{t.replace('_', ' ').toUpperCase()}</option>)}
                 </select>
               </div>
 
-              <div className="form-group">
-                 <label>Date</label>
+              <div className="admin-form-field">
+                 <label>Event Date</label>
                  <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="form-input" />
               </div>
 
-              <div className="form-group">
-                 <label>Impact (1-10): {impactScore}</label>
-                 <input type="range" min="1" max="10" value={impactScore} onChange={(e) => setImpactScore(Number(e.target.value))} className="form-range" />
+              <div className="admin-form-field">
+                 <label style={{display: 'flex', justifyContent: 'space-between'}}>
+                    Impact Score <span>{impactScore}/10</span>
+                 </label>
+                 <input type="range" min="1" max="10" value={impactScore} onChange={(e) => setImpactScore(Number(e.target.value))} className="form-range" style={{cursor: 'pointer'}} />
               </div>
 
-              <button type="submit" className="submit-button" disabled={loading}>
-                {loading ? "Creating..." : "Create Event"}
-              </button>
+              <div className="admin-form-actions">
+                <button type="submit" className="btn-primary" disabled={loading} style={{width: '100%'}}>
+                  {loading ? "Creating..." : "Injest Event"}
+                </button>
+              </div>
             </form>
           </div>
           
-          <div className="events-list-section">
-            <h2>Recent Events</h2>
-            <ul className="events-list">
-               {events.map((ev, i) => (
-                 <li key={i} className="event-item">
-                    <strong>{ev.player_name}</strong> - {ev.event_type} ({ev.impact_score})
-                 </li>
-               ))}
-            </ul>
+          {/* RECENT EVENTS LIST */}
+          <div className="admin-table-panel">
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Impact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {events.length === 0 ? (
+                    <tr>
+                       <td colSpan="4" style={{textAlign: 'center', padding: '3rem', color: '#6B7280'}}>
+                          No recent events found.
+                       </td>
+                    </tr>
+                  ) : (
+                    events.map((ev, i) => (
+                      <tr key={i}>
+                        <td style={{fontWeight: '600'}}>{ev.player_name}</td>
+                        <td>
+                          <span className={`event-type-badge ${ev.event_type}`}>
+                            {ev.event_type.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td>{new Date(ev.event_date).toLocaleDateString()}</td>
+                        <td>
+                          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                            <span className={`impact-dot ${ev.impact_score >= 8 ? 'critical' : ev.impact_score >= 5 ? 'medium' : 'low'}`}></span>
+                            {ev.impact_score}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

@@ -71,6 +71,12 @@
   border-radius: 12px;
   padding: 1rem 1.1rem;
   box-shadow: 0 2px 8px rgba(0,53,148,0.06);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
+}
+
+.admin-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 20px rgba(0,53,148,0.1);
 }
 
 .admin-stat-card:nth-child(2) { border-top-color: var(--dak-silver, #869397); }
@@ -177,6 +183,12 @@
 .admin-table tbody tr {
   border-bottom: 1px solid var(--card-2, #F5F7FA);
   transition: background 140ms;
+  animation: tableRowFadeIn 0.4s ease forwards;
+}
+
+@keyframes tableRowFadeIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .admin-table tbody tr:hover { background: rgba(0,53,148,0.03); }
@@ -203,11 +215,12 @@
   white-space: nowrap;
 }
 
-.event-type-badge.injury     { background: rgba(176,16,16,0.10); color: #b01010; }
-.event-type-badge.upgrade    { background: rgba(0,53,148,0.10);  color: var(--dak-navy, #003594); }
-.event-type-badge.win        { background: rgba(0,53,148,0.08);  color: var(--dak-navy, #003594); }
-.event-type-badge.loss       { background: rgba(134,147,151,0.12); color: var(--dak-silver, #869397); }
-.event-type-badge.transaction { background: rgba(192,160,64,0.15); color: #7A620A; }
+.event-type-badge.injury     { background: rgba(176,16,16,0.10); color: #b01010; border: 1px solid rgba(176,16,16,0.15); }
+.event-type-badge.upgrade    { background: rgba(0,53,148,0.10);  color: var(--dak-navy, #003594); border: 1px solid rgba(0,53,148,0.15); }
+.event-type-badge.win        { background: rgba(0,53,148,0.08);  color: var(--dak-navy, #003594); border: 1px solid rgba(0,53,148,0.15); }
+.event-type-badge.loss       { background: rgba(134,147,151,0.12); color: var(--dak-silver, #869397); border: 1px solid rgba(134,147,151,0.15); }
+.event-type-badge.performance_peak { background: rgba(192,160,64,0.15); color: #7A620A; border: 1px solid rgba(192,160,64,0.2); }
+.event-type-badge.trade, .event-type-badge.signing { background: rgba(0,53,148,0.06);  color: var(--dak-navy, #003594); border: 1px solid rgba(0,53,148,0.1); }
 .event-type-badge.default    { background: rgba(0,53,148,0.06);  color: var(--dak-silver, #869397); }
 
 /* Impact severity indicators */
@@ -284,6 +297,46 @@
 .admin-form-field textarea:focus {
   border-color: var(--dak-navy, #003594);
   box-shadow: 0 0 0 3px rgba(0,53,148,0.12);
+  background: #fff;
+}
+
+/* Range Input Refinement */
+.form-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--border, #D0D5DD);
+  border-radius: 5px;
+  outline: none;
+  margin: 1rem 0;
+}
+
+.form-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--dak-navy, #003594);
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.15s ease;
+}
+
+.form-range::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.form-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--dak-navy, #003594);
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
 .admin-form-actions {
