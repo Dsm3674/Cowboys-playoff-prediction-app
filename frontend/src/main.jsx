@@ -231,11 +231,24 @@ function useAppRouter() {
       }
 
       updateIndicators(normalized);
+      
+      // Auto-close menu on mobile after navigation
+      document.querySelector('.shell')?.classList.remove('menu-open');
     }
 
     function handleHashChange() {
       navigate(window.location.hash, { skipHashUpdate: true });
     }
+
+    // Toggle menu logic
+    const menuToggle = document.getElementById('menu-toggle');
+    const shell = document.querySelector('.shell');
+    
+    function toggleMenu() {
+      shell?.classList.toggle('menu-open');
+    }
+
+    if (menuToggle) menuToggle.onclick = toggleMenu;
 
     window.setPage = navigate;
 

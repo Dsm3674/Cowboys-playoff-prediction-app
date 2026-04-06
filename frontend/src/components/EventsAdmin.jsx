@@ -141,14 +141,14 @@ function EventsAdmin() {
           </div>
         </div>
 
-        <div className="admin-content-grid" style={{display: 'grid', gridTemplateColumns: 'minmax(300px, 400px) 1fr', gap: '2rem'}}>
+        <div className="admin-content-grid">
           {/* FORM SECTION */}
           <div className="admin-form-panel reveal-up stagger-1">
             <h3>Create New Event</h3>
             {error && <div className="alert alert-error" style={{marginBottom: '1rem', padding: '0.8rem', borderRadius: '8px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.85rem'}}>{error}</div>}
             {success && <div className="alert alert-success" style={{marginBottom: '1rem', padding: '0.8rem', borderRadius: '8px', background: '#f0fdf4', color: '#15803d', fontSize: '0.85rem'}}>{success}</div>}
             
-            <form onSubmit={handleSubmit} className="admin-form-grid" style={{display: 'flex', flexDirection: 'column', gap: '1.25rem'}}>
+            <form onSubmit={handleSubmit} className="admin-form-grid">
               <div className="admin-form-field">
                 <label>Player Name *</label>
                 <div className="search-input-wrapper" style={{position: 'relative'}} ref={suggestionsRef}>

@@ -396,10 +396,82 @@
   color: #fff;
 }
 
-/* ── Responsive ────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .events-admin-container { padding: 1rem 0.85rem; }
-  .admin-table-wrap { border-radius: 8px; }
-  .admin-controls { flex-direction: column; }
-  .admin-controls > * { width: 100%; }
+/* ── Content Grid ────────────────────────────────────────── */
+.admin-content-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) 1fr;
+  gap: 2rem;
+  align-items: start;
 }
+
+.admin-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .admin-content-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .events-admin-container { padding: 1rem 0; }
+  .admin-table-wrap { border: none; background: transparent; box-shadow: none; overflow: visible; }
+  
+  /* Transform table to card list */
+  .admin-table thead { display: none; }
+  .admin-table, .admin-table tbody, .admin-table tr, .admin-table td { display: block; width: 100%; }
+  
+  .admin-table tr {
+    background: #fff;
+    border: 1px solid var(--border, #D0D5DD);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  
+  .admin-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    text-align: right;
+  }
+  
+  .admin-table td:last-child { border-bottom: none; }
+  
+  .admin-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    color: var(--dak-silver, #869397);
+    margin-right: 1.5rem;
+    text-align: left;
+  }
+
+  /* Manual labels since JSX doesn't have data-label yet */
+  .admin-table td:nth-of-type(1)::before { content: "Player"; }
+  .admin-table td:nth-of-type(2)::before { content: "Type"; }
+  .admin-table td:nth-of-type(3)::before { content: "Date"; }
+  .admin-table td:nth-of-type(4)::before { content: "Impact"; }
+
+  .events-admin-header { padding: 1.5rem; border-radius: 0; }
+  .admin-stats { padding: 0 1rem; }
+  .admin-form-panel { margin: 0 1rem; border-radius: 12px; }
+  .admin-table-panel { padding: 0 1rem; }
+}
+
+@media (max-width: 480px) {
+  .admin-stats { grid-template-columns: 1fr; }
+  .admin-stat-card { padding: 0.85rem; }
+  .admin-stat-value { font-size: 1.6rem; }
+}
+
