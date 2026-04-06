@@ -5,6 +5,7 @@ const CATEGORY_MAP = {
   analytics: 'Intelligence',
   insights: 'Intelligence',
   history: 'Intelligence',
+  profile: 'Intelligence',
   simulator: 'Strategy',
   matchup: 'Strategy',
   paths: 'Strategy',
@@ -13,16 +14,15 @@ const CATEGORY_MAP = {
   compare: 'Scouting',
   'schedule-strength': 'Scouting',
   rival: 'Scouting',
-  standings: 'League',
-  playoff: 'League',
-  division: 'League',
-  conference: 'League',
-  forecast: 'League',
-  liveprob: 'Real-Time',
-  clutch: 'Real-Time',
-  timeline: 'Real-Time',
-  profile: 'System',
-  events: 'System'
+  standings: 'League HQ',
+  playoff: 'League HQ',
+  division: 'League HQ',
+  conference: 'League HQ',
+  forecast: 'League HQ',
+  liveprob: 'League HQ',
+  clutch: 'League HQ',
+  timeline: 'League HQ',
+  events: 'League HQ'
 };
 
 function PlaceholderCard({ title, text }) {

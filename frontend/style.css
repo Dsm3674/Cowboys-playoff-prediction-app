@@ -278,47 +278,77 @@ body.retro .team-selector-compact #team-select {
   align-items: center;
   width: 100%;
   padding: 0.72rem 1.4rem;
+  padding-left: 1.8rem;
   font-family: var(--font-display);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(192,198,203,0.72);
+  color: rgba(192,198,203,0.65);
   cursor: pointer;
   background: transparent;
   border: none;
   text-align: left;
-  transition: color 140ms, background 140ms, padding-left 140ms;
+  transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-height: 44px;
+  min-height: 40px;
+  margin-bottom: 2px;
+}
+
+/* Tab marker */
+.nav-link::after {
+  content: "▸";
+  position: absolute;
+  left: 0.8rem;
+  opacity: 0.3;
+  font-size: 0.6rem;
+  transition: all 180ms ease;
 }
 
 .nav-link::before {
   content: "";
   position: absolute;
-  left: 0; top: 15%; bottom: 15%;
+  left: 0; 
+  top: 0; bottom: 0;
   width: 3px;
   background: var(--dak-silver-lt);
-  border-radius: 0 2px 2px 0;
+  border-radius: 0 4px 4px 0;
   opacity: 0;
-  transition: opacity 200ms, top 200ms, bottom 200ms;
+  transform: scaleY(0.4);
+  transition: opacity 220ms ease, transform 220ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 /* ── NAVIGATION HOVER ───────────────────────────────────────── */
 .nav-link:hover {
   color: #fff;
-  background: rgba(255,255,255,0.06);
-  padding-left: 1.65rem;
+  background: rgba(255,255,255,0.04);
+  padding-left: 2rem;
+}
+
+.nav-link:hover::after {
+  opacity: 0.8;
+  left: 1.1rem;
 }
 
 .nav-link.active {
   color: #ffffff;
-  background: linear-gradient(90deg, rgba(134,147,151,0.15) 0%, transparent 100%);
-  padding-left: 1.65rem;
+  background: linear-gradient(90deg, rgba(255,255,255,0.08) 0%, transparent 100%);
+  padding-left: 2rem;
   font-weight: 700;
-  border-left: 3px solid var(--dak-silver-lt);
+  text-shadow: 0 0 15px rgba(255,255,255,0.2);
+}
+
+.nav-link.active::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.nav-link.active::after {
+  opacity: 1;
+  left: 1.1rem;
+  color: var(--dak-silver-lt);
 }
 
 /* Yard Line Separator */
