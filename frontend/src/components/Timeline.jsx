@@ -15,7 +15,7 @@ function Timeline() {
 
   const styles = {
     cardText: {
-      color: "#94a3b8",
+      color: "#000000",
       fontSize: "0.95rem",
       lineHeight: 1.6,
     },
@@ -35,18 +35,18 @@ function Timeline() {
       paddingBottom: "0.75rem",
     },
     eventSub: {
-      color: "#94a3b8",
+      color: "#000000",
       fontSize: "0.85rem",
       marginTop: "0.25rem",
     },
     eventDetailTitle: {
-      color: "#f8fafc",
+      color: "#000000",
       fontWeight: 800,
       fontSize: "1.05rem",
       marginBottom: "0.4rem",
     },
     eventBody: {
-      color: "#cbd5e1",
+      color: "#000000",
       lineHeight: 1.7,
       marginTop: "0.85rem",
       whiteSpace: "pre-wrap",
@@ -492,7 +492,7 @@ function Timeline() {
                 setSelectedEvent(event);
               }}
             >
-              <div style={{ color: "#f8fafc", fontWeight: 700 }}>{title}</div>
+              <div style={{ color: "#000000", fontWeight: 700 }}>{title}</div>
               <div style={styles.eventSub}>{formatShortDate(date)}</div>
             </li>
           );
@@ -518,13 +518,13 @@ function Timeline() {
   return (
     <div className="content-area">
       <div className="card">
-        <h2 style={{ marginTop: 0, color: "#f8fafc" }}>Timeline</h2>
+        <h2 style={{ marginTop: 0, color: "#000000" }}>Timeline</h2>
         <p style={styles.cardText}>
           Explore season momentum, key inflection points, and player-related events.
         </p>
 
         <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
-          <label style={{ color: "#94a3b8", fontWeight: 700 }}>Season</label>
+          <label style={{ color: "#000000", fontWeight: 700 }}>Season</label>
           <input
             type="number"
             value={season}
@@ -593,12 +593,12 @@ function Timeline() {
           }}
         >
           <div className="card" style={{ margin: 0 }}>
-            <h3 style={{ marginTop: 0, color: "#f8fafc" }}>Events</h3>
+            <h3 style={{ marginTop: 0, color: "#000000" }}>Events</h3>
             {renderEventList()}
           </div>
 
           <div className="card" style={{ margin: 0 }}>
-            <h3 style={{ marginTop: 0, color: "#f8fafc" }}>Selected Event</h3>
+            <h3 style={{ marginTop: 0, color: "#000000" }}>Selected Event</h3>
             {renderSelectedEvent()}
           </div>
         </div>
