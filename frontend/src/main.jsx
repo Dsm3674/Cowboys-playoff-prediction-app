@@ -1,35 +1,65 @@
-const { useEffect, useMemo, useState, useCallback } = React;
+const { useEffect, useMemo, useState } = React;
 
 const CATEGORY_MAP = {
-  dashboard: 'Intelligence',
-  analytics: 'Intelligence',
-  insights: 'Intelligence',
-  history: 'Intelligence',
-  profile: 'Intelligence',
-  simulator: 'Strategy',
-  matchup: 'Strategy',
-  paths: 'Strategy',
-  quantum: 'Strategy',
-  'team-profile': 'Scouting',
-  compare: 'Scouting',
-  'schedule-strength': 'Scouting',
-  rival: 'Scouting',
-  standings: 'League HQ',
-  playoff: 'League HQ',
-  division: 'League HQ',
-  conference: 'League HQ',
-  forecast: 'League HQ',
-  liveprob: 'League HQ',
-  clutch: 'League HQ',
-  timeline: 'League HQ',
-  events: 'League HQ'
+  dashboard: "Intelligence",
+  analytics: "Intelligence",
+  insights: "Intelligence",
+  history: "Intelligence",
+  profile: "Intelligence",
+  simulator: "Strategy",
+  matchup: "Strategy",
+  paths: "Strategy",
+  quantum: "Strategy",
+  "team-profile": "Scouting",
+  compare: "Scouting",
+  "schedule-strength": "Scouting",
+  rival: "Scouting",
+  standings: "League HQ",
+  playoff: "League HQ",
+  division: "League HQ",
+  conference: "League HQ",
+  forecast: "League HQ",
+  liveprob: "League HQ",
+  clutch: "League HQ",
+  timeline: "League HQ",
+  events: "League HQ"
+};
+
+const PAGE_LABELS = {
+  dashboard: "Dashboard",
+  simulator: "AI Story Simulator",
+  quantum: "Quantum Engine",
+  analytics: "Analytics",
+  rival: "Rival Impact",
+  clutch: "Clutch Index",
+  timeline: "Timeline",
+  paths: "Season Paths",
+  liveprob: "Live Win Probability",
+  standings: "Standings",
+  compare: "Team Comparison",
+  division: "Division Power",
+  forecast: "League Forecast",
+  playoff: "Playoff Pulse",
+  matchup: "Matchup Simulator",
+  "schedule-strength": "Schedule Strength",
+  "team-profile": "Team Profile",
+  conference: "Conference Race",
+  insights: "League Insights",
+  events: "Events Admin",
+  profile: "Profile",
+  history: "History"
 };
 
 function PlaceholderCard({ title, text }) {
   return (
-    <div className="card">
-      <h3>{title}</h3>
-      <p className="text-small text-muted">{text}</p>
+    <div className="intel-page">
+      <section className="intel-hero">
+        <div className="intel-hero__copy">
+          <div className="intel-kicker">Unavailable</div>
+          <h1 className="intel-title">{title}</h1>
+          <p className="intel-subtitle">{text}</p>
+        </div>
+      </section>
     </div>
   );
 }
@@ -80,9 +110,47 @@ const NFL_TEAMS = [
   { code: "WAS", name: "Washington Commanders" }
 ];
 
+function AppTopBar({ currentPage, selectedTeam, onTeamChange, compact, onToggleCompact }) {
+  const pageLabel = PAGE_LABELS[currentPage] || "Dashboard";
+  const category = CATEGORY_MAP[currentPage] || "System";
 
+  return (
+    <div className="intel-topbar">
+      <div className="intel-topbar__left">
+        <span className="intel-live-dot" />
+        <span className="intel-topbar__label">Live</span>
+        <span className="intel-chip">{category}</span>
+        <span className="intel-chip intel-chip--muted">{pageLabel}</span>
+      </div>
 
-function Dashboard({ year = new Date().getFullYear(), selectedTeam, onTeamChange }) {
+      <div className="intel-topbar__right">
+        <select
+          className="intel-select"
+          value={selectedTeam}
+          onChange={(e) => onTeamChange(e.target.value)}
+          style={{ minWidth: "180px" }}
+        >
+          {NFL_TEAMS.map((team) => (
+            <option key={team.code} value={team.code}>
+              {team.code} · {team.name}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          className="intel-button"
+          onClick={onToggleCompact}
+          title="Toggle compact density"
+        >
+          {compact ? "Comfortable" : "Compact"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
   const UserProfileCard = getGlobalComponent("UserProfileCard", "Profile");
   const RecordCard = getGlobalComponent("RecordCard", "Record");
   const TSICard = getGlobalComponent("TSICard", "TSI");
@@ -91,50 +159,43 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam, onTeamChange
   const GameTable = getGlobalComponent("GameTable", "Schedule");
   const PlayoffGauge = getGlobalComponent("PlayoffGauge", "Playoff Gauge");
 
-  const teamInfo = NFL_TEAMS.find((team) => team.code === selectedTeam) || { name: selectedTeam };
+  const teamInfo =
+    NFL_TEAMS.find((team) => team.code === selectedTeam) || { name: selectedTeam };
 
   return (
-    <div style={{ padding: "1.5rem" }}>
-      <div className="cowboys-banner war-room-banner">
-        <div className="banner-content">
-          <h1 className="hero-title">
-            {teamInfo.name} <span>War Room</span>
-          </h1>
-          <p className="hero-kicker">
+    <div className="intel-page">
+      <section className="intel-hero">
+        <div className="intel-hero__copy">
+          <div className="intel-kicker">War Room</div>
+          <h1 className="intel-title">{teamInfo.name}</h1>
+          <p className="intel-subtitle">
             High-fidelity predictive analytics for the {teamInfo.name} season.
           </p>
+          <p className="intel-note">
+            Unified command center for record, TSI, schedule pressure, and live win-state tools.
+          </p>
         </div>
-        <div className="banner-gauge">
-          <PlayoffGauge teamCode={selectedTeam} year={year} />
-        </div>
-      </div>
 
-      <div className="grid-layout">
-        <div className="reveal-up stagger-1">
+        <div className="intel-hero__meta">
+          <div className="intel-chip">Season {year}</div>
+          <div className="intel-chip intel-chip--muted">{selectedTeam}</div>
+        </div>
+      </section>
+
+      <section className="intel-grid intel-grid--main">
+        <div className="intel-stack">
           <UserProfileCard team={selectedTeam} />
           <RecordCard year={year} team={selectedTeam} />
           <TSICard year={year} team={selectedTeam} />
           <MustWinCard year={year} team={selectedTeam} />
         </div>
 
-        <div className="reveal-up stagger-2">
-          <div className="card cowboys-card">
-            <div className="eyebrow">Tactical Overview</div>
-            <h3>Playoff Outlook</h3>
-            <p className="text-small text-muted">
-              Live team metrics plus what-if analysis. Integrated with LoneStar projection engine.
-            </p>
-          </div>
-
-          <div style={{ marginTop: "2rem" }} className="reveal-up stagger-3">
-            <LiveWinProbTool />
-          </div>
-
-          <div style={{ marginTop: "2rem" }} className="reveal-up stagger-4">
-            <GameTable year={year} team={selectedTeam} />
-          </div>
+        <div className="intel-stack">
+          <PlayoffGauge teamCode={selectedTeam} year={year} />
+          <LiveWinProbTool />
+          <GameTable year={year} team={selectedTeam} />
         </div>
-      </div>
+      </section>
     </div>
   );
 }
@@ -144,16 +205,21 @@ function AnalyticsPage() {
   const Maps = getGlobalComponent("Maps", "Maps");
 
   return (
-    <div style={{ padding: "24px" }}>
-      <h1 className="hero-title">Advanced Analytics</h1>
-      <div className="grid-layout">
-        <div>
-          <PlayerRadar />
+    <div className="intel-page">
+      <section className="intel-hero">
+        <div className="intel-hero__copy">
+          <div className="intel-kicker">Advanced Analytics</div>
+          <h1 className="intel-title">Player Intelligence</h1>
+          <p className="intel-subtitle">
+            Explore radar and map-based views of player-level performance and role profile.
+          </p>
         </div>
-        <div>
-          <Maps />
-        </div>
-      </div>
+      </section>
+
+      <section className="intel-grid intel-grid--main">
+        <PlayerRadar />
+        <Maps />
+      </section>
     </div>
   );
 }
@@ -199,20 +265,14 @@ function useAppRouter() {
 
   useEffect(() => {
     function updateIndicators(page) {
-      const category = CATEGORY_MAP[page] || 'System';
+      const category = CATEGORY_MAP[page] || "System";
       const catEl = document.getElementById("active-category");
       const pageEl = document.getElementById("active-page");
       const barEl = document.getElementById("scroll-progress");
-      
-      if (catEl) catEl.textContent = category;
-      if (pageEl) {
-        const rawTitle = page.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
-        pageEl.textContent = rawTitle;
-      }
 
-      if (barEl) {
-        barEl.classList.toggle("visible", page === "dashboard");
-      }
+      if (catEl) catEl.textContent = category;
+      if (pageEl) pageEl.textContent = PAGE_LABELS[page] || "Dashboard";
+      if (barEl) barEl.classList.toggle("visible", page === "dashboard");
 
       document.querySelectorAll(".nav-link").forEach((el) => {
         el.classList.toggle("active", el.dataset.page === page);
@@ -231,21 +291,18 @@ function useAppRouter() {
       }
 
       updateIndicators(normalized);
-      
-      // Auto-close menu on mobile after navigation
-      document.querySelector('.shell')?.classList.remove('menu-open');
+      document.querySelector(".shell")?.classList.remove("menu-open");
     }
 
     function handleHashChange() {
       navigate(window.location.hash, { skipHashUpdate: true });
     }
 
-    // Toggle menu logic
-    const menuToggle = document.getElementById('menu-toggle');
-    const shell = document.querySelector('.shell');
-    
+    const menuToggle = document.getElementById("menu-toggle");
+    const shell = document.querySelector(".shell");
+
     function toggleMenu() {
-      shell?.classList.toggle('menu-open');
+      shell?.classList.toggle("menu-open");
     }
 
     if (menuToggle) menuToggle.onclick = toggleMenu;
@@ -255,7 +312,7 @@ function useAppRouter() {
     document.querySelectorAll(".nav-link").forEach((el) => {
       el.onclick = () => {
         navigate(el.dataset.page);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: "smooth" });
       };
     });
 
@@ -283,6 +340,11 @@ function useAppRouter() {
 function App() {
   const currentPage = useAppRouter();
   const [selectedTeam, setSelectedTeam] = useState("DAL");
+  const [compact, setCompact] = useState(true);
+
+  useEffect(() => {
+    document.body.classList.toggle("intel-compact", compact);
+  }, [compact]);
 
   const AIStorySimulator = getGlobalComponent("AIStorySimulator", "Simulator");
   const QuantumEngineIntegrated = getGlobalComponent("QuantumEngineIntegrated", "Quantum Engine");
@@ -306,165 +368,95 @@ function App() {
   const HistoryPage = getGlobalComponent("HistoryPage", "History");
 
   function renderPage() {
+    const year = new Date().getFullYear();
+
     switch (currentPage) {
       case "dashboard":
-        return <Dashboard year={new Date().getFullYear()} selectedTeam={selectedTeam} onTeamChange={setSelectedTeam} />;
+        return <Dashboard year={year} selectedTeam={selectedTeam} />;
 
       case "simulator":
-        return (
-          <div style={{ padding: "24px" }}>
-            <AIStorySimulator />
-          </div>
-        );
+        return <AIStorySimulator />;
 
       case "quantum":
-        return (
-          <div style={{ padding: "24px" }}>
-            <QuantumEngineIntegrated />
-          </div>
-        );
+        return <QuantumEngineIntegrated />;
 
       case "analytics":
         return <AnalyticsPage />;
 
       case "rival":
-        return (
-          <div style={{ padding: "24px" }}>
-            <RivalTeamImpactPage year={new Date().getFullYear()} selectedTeam={selectedTeam} />
-          </div>
-        );
+        return <RivalTeamImpactPage year={year} selectedTeam={selectedTeam} />;
 
       case "clutch":
-        return (
-          <div style={{ padding: "24px" }}>
-            <ClutchIndex />
-          </div>
-        );
+        return <ClutchIndex />;
 
       case "timeline":
-        return (
-          <div style={{ padding: "24px" }}>
-            <Timeline />
-          </div>
-        );
+        return <Timeline />;
 
       case "paths":
-        return (
-          <div style={{ padding: "24px" }}>
-            <SeasonPathExplorer year={new Date().getFullYear()} team={selectedTeam} />
-          </div>
-        );
+        return <SeasonPathExplorer year={year} team={selectedTeam} />;
 
       case "standings":
-        return (
-          <div style={{ padding: "24px" }}>
-            <StandingsPage year={new Date().getFullYear()} />
-          </div>
-        );
+        return <StandingsPage year={year} />;
 
       case "compare":
-        return (
-          <div style={{ padding: "24px" }}>
-            <TeamComparisonPage year={new Date().getFullYear()} selectedTeam={selectedTeam} />
-          </div>
-        );
+        return <TeamComparisonPage year={year} selectedTeam={selectedTeam} />;
 
       case "division":
-        return (
-          <div style={{ padding: "24px" }}>
-            <DivisionPowerPage year={new Date().getFullYear()} />
-          </div>
-        );
+        return <DivisionPowerPage year={year} />;
 
       case "forecast":
-        return (
-          <div style={{ padding: "24px" }}>
-            <LeagueForecastPage year={new Date().getFullYear()} />
-          </div>
-        );
+        return <LeagueForecastPage year={year} />;
 
       case "playoff":
-        return (
-          <div style={{ padding: "24px" }}>
-            <PlayoffPulsePage year={new Date().getFullYear()} />
-          </div>
-        );
+        return <PlayoffPulsePage year={year} />;
 
       case "matchup":
-        return (
-          <div style={{ padding: "24px" }}>
-            <MatchupSimulatorPage year={new Date().getFullYear()} selectedTeam={selectedTeam} />
-          </div>
-        );
+        return <MatchupSimulatorPage year={year} selectedTeam={selectedTeam} />;
 
       case "schedule-strength":
-        return (
-          <div style={{ padding: "24px" }}>
-            <ScheduleStrengthPage year={new Date().getFullYear()} />
-          </div>
-        );
+        return <ScheduleStrengthPage year={year} />;
 
       case "team-profile":
-        return (
-          <div style={{ padding: "24px" }}>
-            <DetailedTeamProfilePage year={new Date().getFullYear()} selectedTeam={selectedTeam} />
-          </div>
-        );
+        return <DetailedTeamProfilePage year={year} selectedTeam={selectedTeam} />;
 
       case "conference":
-        return (
-          <div style={{ padding: "24px" }}>
-            <ConferenceRacePage year={new Date().getFullYear()} />
-          </div>
-        );
+        return <ConferenceRacePage year={year} />;
 
       case "insights":
-        return (
-          <div style={{ padding: "24px" }}>
-            <LeagueInsightsPage year={new Date().getFullYear()} />
-          </div>
-        );
+        return <LeagueInsightsPage year={year} />;
 
       case "liveprob":
-        return (
-          <div style={{ padding: "24px" }}>
-            <LiveWinProbTool />
-          </div>
-        );
+        return <LiveWinProbTool />;
 
       case "events":
-        return (
-          <div style={{ padding: "24px" }}>
-            <EventsAdmin />
-          </div>
-        );
+        return <EventsAdmin />;
 
       case "profile":
         return (
-          <div style={{ padding: "24px" }}>
-            <UserProfileCard />
+          <div className="intel-page">
+            <UserProfileCard team={selectedTeam} />
           </div>
         );
 
       case "history":
-        return (
-          <div style={{ padding: "24px" }}>
-            <HistoryPage />
-          </div>
-        );
+        return <HistoryPage />;
 
       default:
-        return <Dashboard />;
+        return <Dashboard year={year} selectedTeam={selectedTeam} />;
     }
   }
 
   return (
-    <div className="content-area">
-      <div 
-        key={currentPage} 
-        className="reveal-up"
-        style={{ minHeight: '100vh' }}
-      >
+    <>
+      <AppTopBar
+        currentPage={currentPage}
+        selectedTeam={selectedTeam}
+        onTeamChange={setSelectedTeam}
+        compact={compact}
+        onToggleCompact={() => setCompact((value) => !value)}
+      />
+
+      <div key={currentPage} className="reveal-up" style={{ minHeight: "100vh" }}>
         {renderPage()}
       </div>
 
@@ -473,7 +465,7 @@ function App() {
           <span>&copy; {new Date().getFullYear()} LoneStar Analytics</span>
         </div>
       </footer>
-    </div>
+    </>
   );
 }
 
