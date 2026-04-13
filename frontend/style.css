@@ -2007,3 +2007,100 @@ td strong {
   0% { left: -40%; }
   100% { left: 100%; }
 }
+
+/* ===== radar / timeline stability patch ===== */
+.radar-shell {
+  position: relative;
+  width: 100%;
+  min-height: 360px;
+  height: 420px;
+}
+
+.radar-shell canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.timeline-events {
+  display: grid;
+  gap: 0.75rem;
+  max-height: 560px;
+  overflow: auto;
+}
+
+.intel-feed-item {
+  width: 100%;
+  text-align: left;
+}
+
+.intel-banner {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(150, 174, 198, 0.14);
+}
+
+.intel-banner--warning {
+  background: rgba(245, 184, 61, 0.1);
+  color: #fff1cc;
+  border-color: rgba(245, 184, 61, 0.2);
+}
+
+.intel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(150, 174, 198, 0.1);
+  color: var(--fg-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.intel-chip--muted {
+  color: var(--fg-dim);
+}
+
+.intel-kicker {
+  color: var(--accent);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 800;
+  margin-bottom: 0.45rem;
+}
+
+.intel-title {
+  margin: 0;
+  color: var(--fg-strong);
+  font-size: clamp(1.9rem, 2.6vw, 3rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  font-weight: 900;
+}
+
+.intel-subtitle {
+  margin: 0.75rem 0 0;
+  color: var(--fg-soft);
+  line-height: 1.6;
+}
+
+.intel-control-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px);
+  gap: 1rem;
+}
+
+@media (max-width: 760px) {
+  .radar-shell {
+    min-height: 300px;
+    height: 340px;
+  }
+
+  .intel-control-grid {
+    grid-template-columns: 1fr;
+  }
+}
