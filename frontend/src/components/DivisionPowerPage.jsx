@@ -1,4 +1,4 @@
-const { useEffect, useState } = React;
+const { useEffect, useMemo, useState } = React;
 
 function DivisionPowerPage({ year = new Date().getFullYear() }) {
   const [divisions, setDivisions] = useState([]);
@@ -6,113 +6,250 @@ function DivisionPowerPage({ year = new Date().getFullYear() }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError("");
 
     window.api
       .getDivisionPower(year)
       .then((data) => {
+        if (cancelled) return;
         if (!data || !Array.isArray(data.divisions)) {
           throw new Error("Missing division power metrics.");
         }
         setDivisions(data.divisions);
       })
       .catch((err) => {
-        setError(err?.message || "Unable to load division strength metrics.");
+        if (!cancelled) {
+          setError(err?.message || "Unable to load division strength metrics.");
+        }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [year]);
+
+  const headline = useMemo(() => {
+    if (!divisions.length) {
+      return {
+        label: "Division Power",
+        title: "Division strength metrics will appear here once the league feed loads.",
+        note: "Use this page to compare average TSI, win percentage, and point differential across every division.",
+      };
+    }
+
+    const strongest = [...divisions].sort(
+      (a, b) => (b.averageTSI || 0) - (a.averageTSI || 0)
+    )[0];
+
+    return {
+      label: "Division Power",
+      title: `${strongest.division} in the ${strongest.conference} currently leads the division power board.`,
+      note: `Average TSI sits at ${strongest.averageTSI}, with ${(
+        (strongest.averageWinPct || 0) * 100
+      ).toFixed(1)}% average win rate and ${strongest.averagePointDiff} point differential per game.`,
+    };
+  }, [divisions]);
+
+  const summaryStats = useMemo(() => {
+    if (!divisions.length) {
+      return [
+        { label: "Divisions", value: "--", tone: "neutral" },
+        { label: "Top Division", value: "--", tone: "accent" },
+        { label: "Top Leader", value: "--", tone: "success" },
+        { label: "Avg TSI", value: "--", tone: "neutral" },
+      ];
+    }
+
+    const strongest = [...divisions].sort(
+      (a, b) => (b.averageTSI || 0) - (a.averageTSI || 0)
+    )[0];
+
+    const averageTSI = (
+      divisions.reduce((sum, division) => sum + (Number(division.averageTSI) || 0), 0) /
+      divisions.length
+    ).toFixed(1);
+
+    return [
+      {
+        label: "Divisions",
+        value: divisions.length,
+        tone: "neutral",
+      },
+      {
+        label: "Top Division",
+        value: strongest?.division || "--",
+        tone: "accent",
+      },
+      {
+        label: "Top Leader",
+        value: strongest?.leader?.code || "--",
+        tone: "success",
+      },
+      {
+        label: "League Avg TSI",
+        value: averageTSI,
+        tone: "neutral",
+      },
+    ];
+  }, [divisions]);
 
   if (loading) {
     return (
-      <div className="card">
-        <h2>Division Power Rankings</h2>
-        <p className="text-muted">Loading division strength metrics for {year}...</p>
+      <div className="intel-page">
+        <section className="intel-hero">
+          <div className="intel-hero__copy">
+            <div className="intel-kicker">Division Power</div>
+            <h1 className="intel-title">Loading division intelligence...</h1>
+            <p className="intel-subtitle">
+              Pulling division strength, average TSI, and point differential metrics for {year}.
+            </p>
+          </div>
+        </section>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="card">
-        <h2>Division Power Rankings</h2>
-        <p className="text-danger">{error}</p>
+      <div className="intel-page">
+        <section className="intel-hero">
+          <div className="intel-hero__copy">
+            <div className="intel-kicker">Division Power</div>
+            <h1 className="intel-title">Division board unavailable</h1>
+            <p className="intel-subtitle">
+              Division strength metrics could not be loaded for {year}.
+            </p>
+          </div>
+        </section>
+
+        <div className="intel-banner intel-banner--warning">{error}</div>
       </div>
     );
   }
 
   if (divisions.length === 0) {
     return (
-      <div className="card">
-        <h2>Division Power Rankings</h2>
-        <p className="text-muted">No division power rankings are available yet.</p>
+      <div className="intel-page">
+        <section className="intel-hero">
+          <div className="intel-hero__copy">
+            <div className="intel-kicker">Division Power</div>
+            <h1 className="intel-title">No division rankings available</h1>
+            <p className="intel-subtitle">
+              The division strength feed has not returned any rankings yet.
+            </p>
+          </div>
+        </section>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <h1 style={{ marginTop: 0 }}>Division Power Rankings</h1>
-        <p className="text-small text-muted">
-          Compare each division by average TSI, league win percentage, and overall point differential.
-        </p>
-      </div>
+    <div className="intel-page">
+      <section className="intel-hero">
+        <div className="intel-hero__copy">
+          <div className="intel-kicker">{headline.label}</div>
+          <h1 className="intel-title">Division Power Rankings</h1>
+          <p className="intel-subtitle">{headline.title}</p>
+          <p className="intel-note">{headline.note}</p>
+        </div>
 
-      <div style={{ display: "grid", gap: "1rem" }}>
+        <div className="intel-hero__meta">
+          <div className="intel-chip">Season {year}</div>
+          <div className="intel-chip intel-chip--muted">
+            Division strength board
+          </div>
+        </div>
+      </section>
+
+      <section className="intel-stat-row">
+        {summaryStats.map((stat) => (
+          <article key={stat.label} className={`intel-stat intel-stat--${stat.tone}`}>
+            <div className="intel-stat__label">{stat.label}</div>
+            <div className="intel-stat__value">{stat.value}</div>
+          </article>
+        ))}
+      </section>
+
+      <section className="intel-grid intel-grid--support">
         {divisions.map((division) => (
-          <div key={`${division.conference}-${division.division}`} className="card">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+          <article
+            key={`${division.conference}-${division.division}`}
+            className="intel-panel"
+          >
+            <div className="intel-panel__header">
               <div>
-                <h2 style={{ margin: 0 }}>{division.division}</h2>
-                <p className="text-small text-muted" style={{ margin: 0 }}>{division.conference}</p>
+                <div className="intel-section-kicker">{division.conference}</div>
+                <h2 className="intel-section-title">{division.division}</h2>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: "1.6rem", fontWeight: 700 }}>{division.averageTSI}</div>
-                <div className="text-small text-muted">Avg. TSI</div>
-              </div>
+              <div className="intel-section-meta">Avg TSI {division.averageTSI}</div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
-              <div style={{ background: "#f8fafc", borderRadius: "10px", padding: "1rem" }}>
-                <strong>Avg. Win %</strong>
-                <div>{(division.averageWinPct * 100).toFixed(1)}%</div>
-              </div>
-              <div style={{ background: "#f8fafc", borderRadius: "10px", padding: "1rem" }}>
-                <strong>Avg. Point Diff</strong>
-                <div>{division.averagePointDiff}</div>
-              </div>
-              <div style={{ background: "#f8fafc", borderRadius: "10px", padding: "1rem" }}>
-                <strong>Division Leader</strong>
-                <div>{division.leader.code}</div>
-              </div>
-            </div>
+            <section className="intel-metric-grid">
+              <article className="intel-metric-card">
+                <div className="intel-metric-card__label">Avg Win %</div>
+                <div className="intel-metric-card__value">
+                  {((division.averageWinPct || 0) * 100).toFixed(1)}%
+                </div>
+              </article>
 
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", minWidth: "560px" }}>
+              <article className="intel-metric-card">
+                <div className="intel-metric-card__label">Avg Point Diff</div>
+                <div className="intel-metric-card__value">
+                  {division.averagePointDiff}
+                </div>
+              </article>
+
+              <article className="intel-metric-card">
+                <div className="intel-metric-card__label">Leader</div>
+                <div className="intel-metric-card__value">
+                  {division.leader?.code || "--"}
+                </div>
+              </article>
+            </section>
+
+            <div className="intel-table-wrap">
+              <table className="intel-table">
                 <thead>
                   <tr>
-                    <th style={{ textAlign: "left" }}>Team</th>
+                    <th>Team</th>
                     <th>TSI</th>
                     <th>Win %</th>
-                    <th>Diff</th>
+                    <th>Point Diff</th>
                   </tr>
                 </thead>
                 <tbody>
                   {division.teams.map((team) => (
                     <tr key={team.code}>
-                      <td style={{ fontWeight: 600 }}>{team.code}</td>
-                      <td>{team.tsi.toFixed(1)}</td>
-                      <td>{(team.record.winPct * 100).toFixed(1)}%</td>
+                      <td>
+                        <div className="intel-team">
+                          <span className="intel-team__code">{team.code}</span>
+                          <span className="intel-team__name">
+                            {team.name || team.code}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="intel-badge intel-badge--accent">
+                          {Number(team.tsi || 0).toFixed(1)}
+                        </span>
+                      </td>
+                      <td>{((team.record?.winPct || 0) * 100).toFixed(1)}%</td>
                       <td>{team.pointDiffPerGame}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          </article>
         ))}
-      </div>
+      </section>
     </div>
   );
 }
