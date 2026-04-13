@@ -2,11 +2,7 @@ function PlayerRadar() {
   const [payload, setPayload] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
-
-  // which player we’re “focused” on for the text section
   const [activeId, setActiveId] = React.useState("dak");
-
-  // which players are drawn on the chart
   const [visible, setVisible] = React.useState({
     dak: true,
     ceedee: true,
@@ -16,8 +12,9 @@ function PlayerRadar() {
   const canvasRef = React.useRef(null);
   const chartRef = React.useRef(null);
 
-  // ---- Fetch data from backend ----------------------------------
   React.useEffect(() => {
+    let cancelled = false;
+
     setLoading(true);
     setError(null);
 
@@ -28,11 +25,14 @@ function PlayerRadar() {
 
     fetch(`${BASE}/api/players/radar`)
       .then((res) => {
-        if (!res.ok) throw new Error("failed to load player radar");
+        if (!res.ok) {
+          throw new Error("Failed to load player radar.");
+        }
         return res.json();
       })
       .then((json) => {
-        // Normalize structure a bit defensively
+        if (cancelled) return;
+
         const labels = json.labels || [
           "Offense",
           "Explosiveness",
@@ -41,9 +41,10 @@ function PlayerRadar() {
           "Durability",
         ];
 
-        const players = (json.players || []).map((p) => {
-          const lower = (p.name || "").toLowerCase();
-          let id = p.id || "dak";
+        const players = (json.players || []).map((p, index) => {
+          const lower = String(p.name || "").toLowerCase();
+          let id = p.id || `player_${index}`;
+
           if (lower.includes("prescott")) id = "dak";
           else if (lower.includes("lamb")) id = "ceedee";
           else if (lower.includes("bland")) id = "bland";
@@ -51,112 +52,140 @@ function PlayerRadar() {
           const m = p.metrics || {};
           return {
             id,
-            name: p.name,
-            position: p.position,
+            name: p.name || "Unknown Player",
+            position: p.position || "N/A",
             role: p.role || "",
             metrics: {
-              offense: m.offense || 0,
-              explosiveness: m.explosiveness || 0,
-              consistency: m.consistency || 0,
-              clutch: m.clutch || 0,
-              durability: m.durability || 0,
+              offense: Number(m.offense || 0),
+              explosiveness: Number(m.explosiveness || 0),
+              consistency: Number(m.consistency || 0),
+              clutch: Number(m.clutch || 0),
+              durability: Number(m.durability || 0),
             },
           };
         });
 
         setPayload({ labels, players });
-        if (players.some((p) => p.id === "bland")) {
-          setActiveId("bland"); // focus Bland by default if present
+
+        if (players.length > 0) {
+          setActiveId(players[0].id);
         }
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err.message || "Unable to load player radar.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // ---- Build / update Chart.js radar ----------------------------
   React.useEffect(() => {
     if (!payload || !canvasRef.current || !window.Chart) return;
 
-    // clean up old chart
+    const ctx = canvasRef.current.getContext("2d");
+    if (!ctx) return;
+
+    const palette = {
+      dak: {
+        border: "rgba(0, 212, 170, 1)",
+        fill: "rgba(0, 212, 170, 0.16)",
+      },
+      ceedee: {
+        border: "rgba(69, 224, 255, 1)",
+        fill: "rgba(69, 224, 255, 0.16)",
+      },
+      bland: {
+        border: "rgba(245, 184, 61, 1)",
+        fill: "rgba(245, 184, 61, 0.14)",
+      },
+      fallback: {
+        border: "rgba(232, 238, 245, 0.9)",
+        fill: "rgba(232, 238, 245, 0.12)",
+      },
+    };
+
+    const datasets = payload.players
+      .filter((player) => visible[player.id])
+      .map((player) => {
+        const colors = palette[player.id] || palette.fallback;
+        return {
+          label: `${player.name} (${player.position})`,
+          data: [
+            player.metrics.offense,
+            player.metrics.explosiveness,
+            player.metrics.consistency,
+            player.metrics.clutch,
+            player.metrics.durability,
+          ],
+          borderColor: colors.border,
+          backgroundColor: colors.fill,
+          borderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 4,
+          fill: true,
+        };
+      });
+
     if (chartRef.current) {
       chartRef.current.destroy();
       chartRef.current = null;
     }
 
-    const ctx = canvasRef.current.getContext("2d");
-    const labels = payload.labels;
-
-    const palette = {
-      dak: {
-        bg: "rgba(0, 53, 148, 0.25)",
-        border: "rgba(0, 53, 148, 1)",
-      },
-      ceedee: {
-        bg: "rgba(255, 107, 53, 0.25)",
-        border: "rgba(255, 107, 53, 1)",
-      },
-      bland: {
-        bg: "rgba(30, 144, 255, 0.25)", // DodgerBlue-ish
-        border: "rgba(30, 144, 255, 1)",
-      },
-    };
-
-    const datasets = payload.players
-      .filter((p) => visible[p.id])
-      .map((p) => {
-        const m = p.metrics;
-        const vals = [
-          m.offense,
-          m.explosiveness,
-          m.consistency,
-          m.clutch,
-          m.durability,
-        ];
-        const colors = palette[p.id] || palette.dak;
-
-        return {
-          label: p.name,
-          data: vals,
-          fill: true,
-          backgroundColor: colors.bg,
-          borderColor: colors.border,
-          pointBackgroundColor: colors.border,
-          borderWidth: 2,
-        };
-      });
-
     chartRef.current = new window.Chart(ctx, {
       type: "radar",
       data: {
-        labels,
+        labels: payload.labels,
         datasets,
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: {
-          r: {
-            suggestedMin: 60,
-            suggestedMax: 100,
-            ticks: {
-              stepSize: 10,
-            },
-            grid: {
-              color: "rgba(148, 163, 184, 0.4)",
-            },
-            angleLines: {
-              color: "rgba(148, 163, 184, 0.4)",
-            },
-          },
+        animation: {
+          duration: 500,
         },
         plugins: {
           legend: {
-            position: "bottom",
+            labels: {
+              color: "#d8e1ea",
+              boxWidth: 14,
+              usePointStyle: true,
+            },
           },
           tooltip: {
-            callbacks: {
-              label: function (ctx) {
-                return `${ctx.dataset.label}: ${ctx.formattedValue}`;
+            backgroundColor: "rgba(10, 18, 28, 0.96)",
+            titleColor: "#f8fbff",
+            bodyColor: "#d8e1ea",
+            borderColor: "rgba(150, 174, 198, 0.18)",
+            borderWidth: 1,
+          },
+        },
+        scales: {
+          r: {
+            min: 0,
+            max: 100,
+            ticks: {
+              display: false,
+              stepSize: 20,
+            },
+            grid: {
+              color: "rgba(150, 174, 198, 0.16)",
+            },
+            angleLines: {
+              color: "rgba(150, 174, 198, 0.12)",
+            },
+            pointLabels: {
+              color: "#a8b7c6",
+              font: {
+                size: 12,
+                weight: "600",
               },
             },
           },
@@ -172,177 +201,149 @@ function PlayerRadar() {
     };
   }, [payload, visible]);
 
-  // ---- UI helpers -----------------------------------------------
-  const toggleVisible = (id) => {
+  const activePlayer =
+    payload?.players?.find((player) => player.id === activeId) ||
+    payload?.players?.[0] ||
+    null;
+
+  function toggleVisible(id) {
     setVisible((prev) => ({
       ...prev,
       [id]: !prev[id],
     }));
-  };
-
-  const setActive = (id) => {
-    setActiveId(id);
-    // if they accidentally hid a player, make sure it shows when activated
-    setVisible((prev) => ({
-      ...prev,
-      [id]: true,
-    }));
-  };
-
-  const getActivePlayer = () => {
-    if (!payload) return null;
-    return (
-      payload.players.find((p) => p.id === activeId) || payload.players[0] || null
-    );
-  };
-
-  const activePlayer = getActivePlayer();
+  }
 
   if (loading) {
     return (
-      <div className="card">
-        <h3>Player Impact Radar</h3>
-        <p>Loading player impact...</p>
+      <div className="intel-panel">
+        <div className="intel-section-title">Player Radar</div>
+        <div className="intel-note">Loading radar data…</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="card">
-        <h3>Player Impact Radar</h3>
-        <p style={{ color: "red" }}>Error: {error}</p>
+      <div className="intel-panel">
+        <div className="intel-section-title">Player Radar</div>
+        <div className="intel-banner intel-banner--warning">{error}</div>
       </div>
     );
   }
 
-  if (!payload) return null;
+  if (!payload || !payload.players || payload.players.length === 0) {
+    return (
+      <div className="intel-panel">
+        <div className="intel-section-title">Player Radar</div>
+        <div className="intel-empty">No radar data available.</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="card">
-      <h3>Player Impact Radar</h3>
-      <p style={{ color: "#555", fontSize: "0.9rem" }}>
-        How Dallas&rsquo;s core stars shape win probability across offense,
-        explosiveness, consistency, clutch, and durability.
-      </p>
-
-      {/* Toggle bar */}
-      <div
-        style={{
-          display: "flex",
-          gap: "0.75rem",
-          margin: "0.75rem 0 1rem",
-        }}
-      >
-        {["dak", "ceedee", "bland"].map((id) => {
-          const p = payload.players.find((pl) => pl.id === id);
-          if (!p) return null;
-
-          const isActive = activeId === id;
-          const isVisible = visible[id];
-
-          const baseStyles = {
-            flex: 1,
-            borderRadius: "10px",
-            padding: "0.6rem 0.75rem",
-            fontSize: "0.8rem",
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            border: "2px solid #000",
-            cursor: "pointer",
-            boxShadow: isActive ? "4px 4px 0 #000" : "2px 2px 0 #000",
-            opacity: isVisible ? 1 : 0.4,
-            color: "#fff",
-          };
-
-          let bg = "#003594";
-          if (id === "ceedee") bg = "#ff6b35";
-          if (id === "bland") bg = "#1e90ff";
-
-          return (
-            <button
-              key={id}
-              type="button"
-              style={{ ...baseStyles, background: bg }}
-              onClick={() => setActive(id)}
-              onDoubleClick={() => toggleVisible(id)}
-              title={
-                isVisible
-                  ? "Double-click to hide from chart"
-                  : "Double-click to show on chart"
-              }
-            >
-              {p.name}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Radar Chart */}
-      <div
-        style={{
-          height: "320px",
-          marginBottom: "1rem",
-          position: "relative",
-        }}
-      >
-        <canvas
-          ref={canvasRef}
-          style={{ width: "100%", height: "100%" }}
-        />
-      </div>
-
-      {/* Active player detail */}
-      {activePlayer && (
-        <div style={{ marginTop: "0.5rem", fontSize: "0.9rem" }}>
-          <div style={{ marginBottom: "0.5rem" }}>
-            <strong>
-              {activePlayer.name} &mdash; {activePlayer.position}
-            </strong>
-            {activePlayer.role && (
-              <span style={{ color: "#6b7280" }}> · {activePlayer.role}</span>
-            )}
-          </div>
-
-          <ul
-            style={{
-              listStyle: "none",
-              paddingLeft: 0,
-              margin: 0,
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-              gap: "0.25rem 1rem",
-            }}
-          >
-            {[
-              ["Offense", activePlayer.metrics.offense],
-              ["Explosiveness", activePlayer.metrics.explosiveness],
-              ["Consistency", activePlayer.metrics.consistency],
-              ["Clutch", activePlayer.metrics.clutch],
-              ["Durability", activePlayer.metrics.durability],
-            ].map(([label, value]) => (
-              <li key={label}>
-                <strong>{label}:</strong> {value}
-              </li>
-            ))}
-          </ul>
-
-          <hr style={{ margin: "1rem 0 0.75rem" }} />
-
-          <p style={{ fontSize: "0.8rem", color: "#4b5563" }}>
-            <strong>What these metrics mean:</strong> Offense &mdash; drive
-            impact and scoring production. Explosiveness &mdash; big-play
-            creation. Consistency &mdash; week-to-week reliability. Clutch
-            &mdash; high-leverage performance. Durability &mdash; availability
-            and ability to hold up over a full season.
+    <div className="intel-page">
+      <section className="intel-hero">
+        <div className="intel-hero__copy">
+          <div className="intel-kicker">Player Intelligence</div>
+          <h1 className="intel-title">Radar Comparison</h1>
+          <p className="intel-subtitle">
+            Compare player profiles across core impact dimensions.
           </p>
         </div>
-      )}
+      </section>
+
+      <section className="intel-grid intel-grid--main">
+        <article className="intel-panel intel-panel--primary">
+          <div className="intel-panel__header">
+            <h3 className="intel-section-title">Radar View</h3>
+          </div>
+
+          <div className="radar-shell">
+            <canvas ref={canvasRef} />
+          </div>
+        </article>
+
+        <article className="intel-stack">
+          <div className="intel-panel">
+            <div className="intel-panel__header">
+              <h3 className="intel-section-title">Players</h3>
+            </div>
+
+            <div className="intel-feed">
+              {payload.players.map((player) => (
+                <button
+                  key={player.id}
+                  type="button"
+                  className={`intel-feed-item ${activeId === player.id ? "active" : ""}`}
+                  onClick={() => setActiveId(player.id)}
+                >
+                  <div className="intel-feed-main">
+                    <div className="intel-feed-title">{player.name}</div>
+                    <div className="intel-feed-meta">
+                      {player.position} {player.role ? `• ${player.role}` : ""}
+                    </div>
+                  </div>
+
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+                    <input
+                      type="checkbox"
+                      checked={!!visible[player.id]}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleVisible(player.id);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <span className="muted">Show</span>
+                  </label>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="intel-panel">
+            <div className="intel-panel__header">
+              <h3 className="intel-section-title">Selected Player</h3>
+            </div>
+
+            {!activePlayer ? (
+              <div className="intel-empty">Select a player to inspect details.</div>
+            ) : (
+              <div className="intel-stack">
+                <div className="intel-badge">{activePlayer.name}</div>
+                <div className="intel-note">
+                  {activePlayer.position} {activePlayer.role ? `• ${activePlayer.role}` : ""}
+                </div>
+
+                <div className="intel-metric-grid">
+                  <div className="intel-metric-card">
+                    <div className="intel-metric-card__label">Offense</div>
+                    <div className="intel-metric-card__value">{activePlayer.metrics.offense}</div>
+                  </div>
+                  <div className="intel-metric-card">
+                    <div className="intel-metric-card__label">Explosiveness</div>
+                    <div className="intel-metric-card__value">{activePlayer.metrics.explosiveness}</div>
+                  </div>
+                  <div className="intel-metric-card">
+                    <div className="intel-metric-card__label">Consistency</div>
+                    <div className="intel-metric-card__value">{activePlayer.metrics.consistency}</div>
+                  </div>
+                  <div className="intel-metric-card">
+                    <div className="intel-metric-card__label">Clutch</div>
+                    <div className="intel-metric-card__value">{activePlayer.metrics.clutch}</div>
+                  </div>
+                  <div className="intel-metric-card">
+                    <div className="intel-metric-card__label">Durability</div>
+                    <div className="intel-metric-card__value">{activePlayer.metrics.durability}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
+      </section>
     </div>
   );
 }
 
 window.PlayerRadar = PlayerRadar;
-
-
