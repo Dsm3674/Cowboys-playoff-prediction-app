@@ -1171,3 +1171,184 @@ canvas {
     font-size: 0.82rem;
   }
 }
+
+/* =========================================================
+   NAV / SIDEBAR BINDING PATCH
+   Add this at the very bottom of style.css
+   ========================================================= */
+
+/* force the shell to actually behave like a sidebar + content layout */
+.intel-shell,
+.dashboard-shell,
+.app-layout,
+.app-shell-inner,
+.layout-shell,
+.shell {
+  display: grid !important;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  min-height: calc(100vh - var(--header-height)) !important;
+}
+
+/* lock the sidebar to a real column instead of letting it size like page content */
+.intel-sidebar,
+.dashboard-sidebar,
+.app-sidebar,
+.sidebar,
+.sidebar-shell,
+.sidebar-column,
+.left-rail {
+  width: var(--sidebar-width) !important;
+  min-width: var(--sidebar-width) !important;
+  max-width: var(--sidebar-width) !important;
+  justify-self: stretch !important;
+  align-self: stretch !important;
+
+  position: sticky !important;
+  top: var(--header-height) !important;
+  height: calc(100vh - var(--header-height)) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+
+  padding: 1rem !important;
+  background:
+    linear-gradient(180deg, rgba(8, 17, 27, 0.98), rgba(9, 18, 28, 0.92)) !important;
+  border-right: 1px solid var(--line-soft) !important;
+  z-index: 25 !important;
+}
+
+/* keep brand/nav content aligned to the sidebar width */
+.brand-block,
+.sidebar-brand,
+.intel-brand,
+.nav-group,
+.sidebar-nav,
+.sidebar-section,
+.nav-section {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  justify-self: stretch !important;
+}
+
+/* nav list should stack vertically and never center as page content */
+.nav-group,
+.sidebar-nav {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 0.45rem !important;
+}
+
+/* each nav item should fill only the sidebar, not the whole page */
+.nav-link,
+.sidebar-nav a,
+.nav-group a {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+
+  text-align: left !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+
+  padding: 0.82rem 0.95rem 0.82rem 1.85rem !important;
+  border-radius: 14px !important;
+}
+
+/* keep the active indicator on the left edge of the nav item */
+.nav-link::before,
+.sidebar-nav a::before,
+.nav-group a::before {
+  left: 0.72rem !important;
+}
+
+/* content column should not try to center the sidebar children */
+.intel-main,
+.dashboard-main,
+.app-main,
+.main-content,
+.content-shell,
+.content-column,
+.page-column {
+  min-width: 0 !important;
+  width: 100% !important;
+  justify-self: stretch !important;
+  padding: var(--content-padding) var(--content-padding) 6rem !important;
+}
+
+/* page wrapper stays centered only inside the content column */
+.intel-page,
+.page-shell,
+.page-content,
+.view-shell,
+.content-inner {
+  width: min(100%, var(--content-max)) !important;
+  margin: 0 auto !important;
+  min-width: 0 !important;
+}
+
+/* ticker stays attached to the content side, not under the sidebar */
+.live-ticker-wrap,
+.ticker,
+.site-footer {
+  left: calc(var(--sidebar-width) + 1.2rem) !important;
+  right: 1.2rem !important;
+}
+
+/* if the root app wrapper is accidentally centering everything, undo it */
+#root > *,
+.main-stage > *,
+.app-shell > * {
+  min-width: 0;
+}
+
+/* tablet/mobile collapse */
+@media (max-width: 980px) {
+  .intel-shell,
+  .dashboard-shell,
+  .app-layout,
+  .app-shell-inner,
+  .layout-shell,
+  .shell {
+    grid-template-columns: 1fr !important;
+  }
+
+  .intel-sidebar,
+  .dashboard-sidebar,
+  .app-sidebar,
+  .sidebar,
+  .sidebar-shell,
+  .sidebar-column,
+  .left-rail {
+    position: relative !important;
+    top: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--line-soft) !important;
+  }
+
+  .live-ticker-wrap,
+  .ticker,
+  .site-footer {
+    left: 1rem !important;
+    right: 1rem !important;
+  }
+}
