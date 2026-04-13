@@ -1352,3 +1352,560 @@ canvas {
     right: 1rem !important;
   }
 }
+
+/* =========================================================
+   PREMIUM MARKET / ROBINHOOD-STYLE EXTENSION
+   Add this to the bottom of your existing style.css
+   ========================================================= */
+
+:root {
+  --accent-success: #1dd1a1;
+  --accent-danger: #ff6b6b;
+  --accent-warning: #f7b84b;
+  --muted: var(--fg-dim);
+  --font-display: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --glass: rgba(255, 255, 255, 0.035);
+  --glass-strong: rgba(255, 255, 255, 0.06);
+  --panel-premium:
+    linear-gradient(180deg, rgba(14, 27, 40, 0.96), rgba(10, 19, 30, 0.98));
+  --hero-premium:
+    radial-gradient(circle at top right, rgba(0, 212, 170, 0.11), transparent 28%),
+    radial-gradient(circle at left center, rgba(69, 224, 255, 0.05), transparent 22%),
+    linear-gradient(180deg, rgba(16, 31, 45, 0.98), rgba(10, 21, 32, 1));
+}
+
+/* ---------- global density / polish ---------- */
+body {
+  letter-spacing: -0.01em;
+}
+
+.app-container {
+  position: relative;
+  width: 100%;
+  min-height: calc(100vh - var(--header-height));
+}
+
+/* ---------- typography refinements ---------- */
+.text-muted {
+  color: var(--fg-dim) !important;
+}
+
+.text-accent {
+  color: var(--accent) !important;
+  font-weight: 700;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin-top: 0;
+  letter-spacing: -0.03em;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-weight: 900;
+}
+
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+/* ---------- investor / ceo hero styling ---------- */
+.page-hero,
+.cowboys-banner,
+.war-room-banner {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.35rem;
+  padding: 1.5rem 1.5rem 1.4rem;
+  border-radius: 24px;
+  border: 1px solid rgba(150, 174, 198, 0.14);
+  background: var(--hero-premium);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.page-hero::before,
+.cowboys-banner::before,
+.war-room-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.015), transparent 45%, rgba(255, 255, 255, 0.01));
+  pointer-events: none;
+}
+
+.page-hero::after,
+.cowboys-banner::after,
+.war-room-banner::after {
+  content: "";
+  position: absolute;
+  right: -60px;
+  top: -60px;
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(0, 212, 170, 0.14), transparent 70%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.banner-content {
+  position: relative;
+  z-index: 1;
+  max-width: 840px;
+}
+
+.hero-title,
+.page-hero h1 {
+  margin: 0;
+  color: var(--fg-strong);
+  font-size: clamp(2rem, 3vw, 3.2rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+  font-weight: 900;
+}
+
+.hero-title span {
+  color: var(--accent);
+  text-shadow: 0 0 22px rgba(0, 212, 170, 0.22);
+}
+
+.hero-kicker,
+.page-subtitle {
+  margin-top: 0.7rem;
+  margin-bottom: 0;
+  max-width: 72ch;
+  color: var(--fg-soft);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.key-insight {
+  margin-top: 1rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.65rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(0, 212, 170, 0.1);
+  border: 1px solid rgba(0, 212, 170, 0.18);
+  color: #dffff8;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+/* ---------- cards become more like financial product panels ---------- */
+.card,
+.intel-panel,
+.surface-card {
+  background: var(--panel-premium);
+  border-color: rgba(150, 174, 198, 0.12);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.card:hover,
+.intel-panel:hover,
+.surface-card:hover {
+  border-color: rgba(150, 174, 198, 0.18);
+}
+
+.cowboys-card {
+  position: relative;
+}
+
+.cowboys-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+/* ---------- data-grid / composition ---------- */
+.data-grid {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.data-grid.three-col,
+.three-col {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.data-grid > *,
+.three-col > * {
+  min-width: 0;
+}
+
+/* ---------- metric blocks feel more like trading app KPIs ---------- */
+.intel-metric-card,
+.metric-card {
+  padding: 1rem 1rem 0.95rem;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.012));
+  border: 1px solid rgba(150, 174, 198, 0.1);
+}
+
+.intel-metric-card__value,
+.metric-value,
+.intel-big-number {
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.intel-metric-card__value,
+.metric-value {
+  font-size: clamp(1.45rem, 2vw, 1.9rem);
+}
+
+/* ---------- sub tabs like stock-app period/segment switchers ---------- */
+.sub-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  padding: 0.35rem;
+  border-radius: 16px;
+  border: 1px solid rgba(150, 174, 198, 0.1);
+  background: rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(8px);
+  flex-wrap: wrap;
+}
+
+.sub-tab {
+  min-height: 38px;
+  padding: 0.65rem 0.95rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fg-dim);
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    background var(--duration-sm) ease,
+    color var(--duration-sm) ease,
+    border-color var(--duration-sm) ease,
+    transform var(--duration-sm) ease;
+}
+
+.sub-tab:hover {
+  color: var(--fg-strong);
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateY(-1px);
+}
+
+.sub-tab.active {
+  color: #eafffa;
+  border-color: rgba(0, 212, 170, 0.24);
+  background:
+    linear-gradient(180deg, rgba(0, 212, 170, 0.14), rgba(0, 212, 170, 0.08));
+  box-shadow: 0 0 0 1px rgba(0, 212, 170, 0.06) inset;
+}
+
+/* ---------- command palette like a polished investor terminal ---------- */
+.cmd-k-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 1rem 1rem;
+  background: rgba(4, 10, 16, 0.62);
+  backdrop-filter: blur(10px);
+  z-index: 160;
+}
+
+.cmd-k-overlay.visible {
+  display: flex;
+}
+
+.cmd-k-modal {
+  width: min(760px, 100%);
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(150, 174, 198, 0.14);
+  background:
+    linear-gradient(180deg, rgba(15, 28, 41, 0.98), rgba(9, 18, 29, 0.98));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+}
+
+.cmd-k-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.9rem;
+  border-bottom: 1px solid rgba(150, 174, 198, 0.08);
+}
+
+.cmd-k-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  color: var(--fg-strong);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cmd-k-results {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.6rem;
+  max-height: min(60vh, 540px);
+  overflow: auto;
+}
+
+.cmd-k-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.9rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.cmd-k-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(150, 174, 198, 0.1);
+}
+
+.cmd-k-item > span:first-child {
+  color: var(--fg-strong);
+  font-weight: 700;
+}
+
+.cmd-k-item-meta {
+  color: var(--fg-dim);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* ---------- ticker becomes more like a market strip ---------- */
+.live-ticker-wrap {
+  gap: 1rem;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(10, 21, 32, 0.94), rgba(9, 18, 28, 0.94));
+  border: 1px solid rgba(150, 174, 198, 0.12);
+}
+
+.ticker-label {
+  position: relative;
+  padding-left: 0.95rem;
+}
+
+.ticker-label::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: var(--accent);
+  transform: translateY(-50%);
+  box-shadow: 0 0 0 6px rgba(0, 212, 170, 0.1);
+}
+
+.ticker-content {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker-item {
+  color: var(--fg-soft);
+  font-weight: 600;
+}
+
+/* ---------- skeletons / loading ---------- */
+.skeleton-block {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(150, 174, 198, 0.08);
+}
+
+.skeleton-block::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-row {
+  height: 14px;
+  margin-bottom: 0.75rem;
+}
+
+.h-lg {
+  height: 28px;
+}
+
+.w-40 {
+  width: 40%;
+}
+
+.w-60 {
+  width: 60%;
+}
+
+.w-80 {
+  width: 80%;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------- reveal motion ---------- */
+.reveal-up {
+  animation: revealUp 480ms ease both;
+}
+
+.stagger-1 { animation-delay: 40ms; }
+.stagger-2 { animation-delay: 90ms; }
+.stagger-3 { animation-delay: 140ms; }
+.stagger-4 { animation-delay: 190ms; }
+
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- premium nav polish ---------- */
+.sidebar-brand,
+.intel-brand,
+.brand-block {
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid rgba(150, 174, 198, 0.08);
+}
+
+.brand-mark,
+.sidebar-logo {
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.nav-link {
+  min-height: 46px;
+  font-weight: 700;
+}
+
+.nav-link.active {
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 170, 0.08) inset,
+    0 10px 26px rgba(0, 0, 0, 0.16);
+}
+
+/* ---------- table polish more like serious finance software ---------- */
+.intel-table-wrap,
+.data-table-wrap {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.intel-table thead th,
+thead th {
+  background: rgba(8, 17, 26, 0.96);
+  backdrop-filter: blur(8px);
+}
+
+.intel-table tbody tr:hover,
+tbody tr:hover {
+  background: rgba(0, 212, 170, 0.035);
+}
+
+.intel-table td,
+td {
+  color: var(--fg-soft);
+}
+
+.intel-table td strong,
+td strong {
+  color: var(--fg-strong);
+}
+
+/* ---------- small-screen control ---------- */
+@media (max-width: 1100px) {
+  .data-grid.three-col,
+  .three-col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .page-hero,
+  .cowboys-banner,
+  .war-room-banner {
+    padding: 1.15rem 1rem;
+    border-radius: 20px;
+  }
+
+  .hero-title,
+  .page-hero h1 {
+    font-size: 1.8rem;
+  }
+
+  .sub-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .sub-tab {
+    width: 100%;
+  }
+
+  .data-grid.three-col,
+  .three-col {
+    grid-template-columns: 1fr;
+  }
+
+  .cmd-k-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cmd-k-item-meta {
+    white-space: normal;
+  }
+}
