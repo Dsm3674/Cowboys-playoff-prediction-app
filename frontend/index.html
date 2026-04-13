@@ -19,23 +19,23 @@
 </head>
 <body>
   <div id="app-loader" class="boot-loader" aria-live="polite" aria-label="Loading application">
-  <div class="boot-loader__panel">
-    <div class="boot-loader__eyebrow">LONESTAR ANALYTICS</div>
-    <div class="boot-loader__title">Booting command center</div>
-    <div class="boot-loader__subtitle">
-      Loading player intelligence, timeline signals, and simulation modules…
-    </div>
+    <div class="boot-loader__panel">
+      <div class="boot-loader__eyebrow">LONESTAR ANALYTICS</div>
+      <div class="boot-loader__title">Booting command center</div>
+      <div class="boot-loader__subtitle">
+        Loading player intelligence, timeline signals, and simulation modules…
+      </div>
 
-    <div class="boot-loader__bar">
-      <div class="boot-loader__bar-fill"></div>
-    </div>
+      <div class="boot-loader__bar">
+        <div class="boot-loader__bar-fill"></div>
+      </div>
 
-    <div class="boot-loader__status-row">
-      <span class="boot-loader__dot"></span>
-      <span class="boot-loader__status">Syncing dashboards</span>
+      <div class="boot-loader__status-row">
+        <span class="boot-loader__dot"></span>
+        <span class="boot-loader__status">Syncing dashboards</span>
+      </div>
     </div>
   </div>
-</div>
 
   <div id="scroll-progress"></div>
 
@@ -123,28 +123,33 @@
     (function () {
       "use strict";
 
+      var loaderHidden = false;
+
       function hideLoader() {
-        var loader = document.getElementById("global-loader");
+        if (loaderHidden) return;
+        loaderHidden = true;
+
+        var loader = document.getElementById("app-loader");
         if (!loader) return;
 
-        loader.style.filter = "blur(10px)";
-        loader.style.opacity = "0";
-        loader.style.pointerEvents = "none";
+        loader.classList.add("is-hidden");
 
         setTimeout(function () {
-          loader.style.display = "none";
-        }, 700);
+          if (loader && loader.parentNode) {
+            loader.parentNode.removeChild(loader);
+          }
+        }, 360);
       }
 
-      setTimeout(hideLoader, 1400);
+      window.hideLoader = hideLoader;
 
       window.addEventListener("load", function () {
-        setTimeout(hideLoader, 350);
+        setTimeout(hideLoader, 250);
       });
 
       var waitForRoot = setInterval(function () {
         var root = document.getElementById("root");
-        if (root && root.children.length > 0) {
+        if (root && (root.children.length > 0 || root.textContent.trim().length > 0)) {
           clearInterval(waitForRoot);
           hideLoader();
         }
@@ -152,7 +157,8 @@
 
       setTimeout(function () {
         clearInterval(waitForRoot);
-      }, 3200);
+        hideLoader();
+      }, 2500);
 
       window.addEventListener(
         "scroll",
