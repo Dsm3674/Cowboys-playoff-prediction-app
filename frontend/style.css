@@ -1909,3 +1909,101 @@ td strong {
     white-space: normal;
   }
 }
+
+
+
+/* ----- RADAR FIX ----- */
+.radar-container,
+.player-radar,
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  min-height: 280px;
+}
+
+.radar-container canvas,
+.player-radar canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.intel-panel canvas {
+  display: block;
+  min-height: 280px;
+}
+
+/* ----- TIMELINE FIX ----- */
+.timeline-container,
+.timeline,
+.timeline-events {
+  display: block;
+  width: 100%;
+  min-height: 200px;
+}
+
+.timeline-empty {
+  padding: 1.2rem;
+  border-radius: 14px;
+  border: 1px dashed rgba(150, 174, 198, 0.2);
+  color: var(--fg-dim);
+  text-align: center;
+}
+
+.timeline-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.8rem;
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255,255,255,0.02);
+}
+
+/* ----- GLOBAL LOADER ----- */
+.app-loading {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 16, 0.92);
+  backdrop-filter: blur(8px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-box {
+  text-align: center;
+  padding: 2rem;
+}
+
+.loader-title {
+  color: var(--accent);
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  font-size: 0.9rem;
+  margin-bottom: 0.8rem;
+}
+
+.loader-bar {
+  width: 220px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+  position: relative;
+}
+
+.loader-bar::after {
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: 40%;
+  background: var(--accent);
+  animation: loaderMove 1.2s infinite;
+}
+
+@keyframes loaderMove {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
