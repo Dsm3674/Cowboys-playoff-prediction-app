@@ -18,18 +18,24 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div id="global-loader" aria-live="polite">
-    <div class="global-loader__box">
-      <div class="global-loader__eyebrow">LoneStar Analytics</div>
-      <div class="global-loader__title">Booting intelligence terminal</div>
-      <div class="global-loader__subtitle">
-        Initializing league models, simulation engines, and visualization surfaces
-      </div>
-      <div class="global-loader__bar">
-        <div class="global-loader__fill"></div>
-      </div>
+  <div id="app-loader" class="boot-loader" aria-live="polite" aria-label="Loading application">
+  <div class="boot-loader__panel">
+    <div class="boot-loader__eyebrow">LONESTAR ANALYTICS</div>
+    <div class="boot-loader__title">Booting command center</div>
+    <div class="boot-loader__subtitle">
+      Loading player intelligence, timeline signals, and simulation modules…
+    </div>
+
+    <div class="boot-loader__bar">
+      <div class="boot-loader__bar-fill"></div>
+    </div>
+
+    <div class="boot-loader__status-row">
+      <span class="boot-loader__dot"></span>
+      <span class="boot-loader__status">Syncing dashboards</span>
     </div>
   </div>
+</div>
 
   <div id="scroll-progress"></div>
 
