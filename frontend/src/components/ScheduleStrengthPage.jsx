@@ -4,6 +4,7 @@ function ScheduleStrengthPage({ year = new Date().getFullYear() }) {
   const [scheduleStrength, setScheduleStrength] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expandedTeam, setExpandedTeam] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,228 +36,137 @@ function ScheduleStrengthPage({ year = new Date().getFullYear() }) {
     };
   }, [year]);
 
-  const headline = useMemo(() => {
-    if (!scheduleStrength.length) {
-      return {
-        label: "Schedule Strength",
-        title: "Remaining schedule difficulty will appear once data is available.",
-        note: "Use this board to identify teams with tough finishes vs easy closing runs.",
-      };
-    }
-
-    const toughest = scheduleStrength[0];
-    const easiest = scheduleStrength[scheduleStrength.length - 1];
-
-    return {
-      label: "Schedule Strength",
-      title: `${toughest.code} faces the toughest remaining schedule, while ${easiest.code} has the easiest path forward.`,
-      note: `${toughest.code} opponents average ${toughest.averageOpponentTsi} TSI across ${toughest.remainingGames} games.`,
-    };
-  }, [scheduleStrength]);
-
-  const summaryStats = useMemo(() => {
-    if (!scheduleStrength.length) {
-      return [
-        { label: "Teams", value: "--", tone: "neutral" },
-        { label: "Toughest", value: "--", tone: "danger" },
-        { label: "Easiest", value: "--", tone: "success" },
-        { label: "Avg Opp TSI", value: "--", tone: "neutral" },
-      ];
-    }
-
-    const toughest = scheduleStrength[0];
-    const easiest = scheduleStrength[scheduleStrength.length - 1];
-
-    const avgTSI = (
-      scheduleStrength.reduce(
-        (sum, t) => sum + (Number(t.averageOpponentTsi) || 0),
-        0
-      ) / scheduleStrength.length
-    ).toFixed(1);
-
-    return [
-      { label: "Teams", value: scheduleStrength.length, tone: "neutral" },
-      { label: "Toughest", value: toughest.code, tone: "danger" },
-      { label: "Easiest", value: easiest.code, tone: "success" },
-      { label: "Avg Opp TSI", value: avgTSI, tone: "neutral" },
-    ];
-  }, [scheduleStrength]);
-
   if (loading) {
     return (
-      <div className="intel-page">
-        <section className="intel-hero">
-          <div className="intel-hero__copy">
-            <div className="intel-kicker">Schedule Strength</div>
-            <h1 className="intel-title">Evaluating remaining slates...</h1>
-            <p className="intel-subtitle">
-              Calculating opponent difficulty across the league for {year}.
-            </p>
-          </div>
-        </section>
+      <div>
+        <div className="data-grid three-col" style={{ marginBottom: "1.25rem" }}>
+          {[1,2,3].map(i => (
+            <div key={i} className="skeleton-block metric-tile" style={{ height: "90px" }}></div>
+          ))}
+        </div>
+        <div className="skeleton-block" style={{ height: "300px", borderRadius: "8px" }}></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="intel-page">
-        <section className="intel-hero">
-          <div className="intel-hero__copy">
-            <div className="intel-kicker">Schedule Strength</div>
-            <h1 className="intel-title">Schedule board unavailable</h1>
-            <p className="intel-subtitle">
-              Failed to load remaining schedule data.
-            </p>
-          </div>
-        </section>
-
-        <div className="intel-banner intel-banner--warning">{error}</div>
+      <div className="card" style={{ borderLeft: "3px solid var(--accent-danger)" }}>
+        <h3 style={{ marginTop: 0, color: "var(--accent-danger)" }}>Error</h3>
+        <p className="text-muted">{error}</p>
       </div>
     );
   }
 
+  const top5 = scheduleStrength.slice(0, 5);
+  const maxScore = Math.max(...scheduleStrength.map(t => t.strengthScore || 0), 1);
+  const hardest = scheduleStrength[0];
+
   return (
-    <div className="intel-page">
-      <section className="intel-hero">
-        <div className="intel-hero__copy">
-          <div className="intel-kicker">{headline.label}</div>
-          <h1 className="intel-title">Schedule Strength</h1>
-          <p className="intel-subtitle">{headline.title}</p>
-          <p className="intel-note">{headline.note}</p>
+    <div>
+      {hardest && (
+        <div className="key-insight" style={{ marginBottom: "1.5rem" }}>
+          {hardest.code} faces the toughest remaining schedule with a strength score of {hardest.strengthScore}
         </div>
+      )}
 
-        <div className="intel-hero__meta">
-          <div className="intel-chip">Season {year}</div>
-          <div className="intel-chip intel-chip--muted">
-            Remaining schedule analysis
-          </div>
-        </div>
-      </section>
-
-      <section className="intel-stat-row">
-        {summaryStats.map((stat) => (
-          <article
-            key={stat.label}
-            className={`intel-stat intel-stat--${stat.tone}`}
-          >
-            <div className="intel-stat__label">{stat.label}</div>
-            <div className="intel-stat__value">{stat.value}</div>
-          </article>
-        ))}
-      </section>
-
-      <section className="intel-grid intel-grid--main">
-        {/* TOP TABLE */}
-        <article className="intel-panel intel-panel--primary">
-          <div className="intel-panel__header">
-            <div>
-              <div className="intel-section-kicker">League Ranking</div>
-              <h2 className="intel-section-title">
-                Toughest Remaining Schedules
-              </h2>
-            </div>
-            <div className="intel-section-meta">
-              Sorted by difficulty
-            </div>
-          </div>
-
-          <div className="intel-table-wrap">
-            <table className="intel-table">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Team</th>
-                  <th>Strength</th>
-                  <th>Remaining</th>
-                  <th>Avg Opp TSI</th>
-                  <th>Record</th>
-                </tr>
-              </thead>
-              <tbody>
-                {scheduleStrength.map((team, index) => (
-                  <tr key={team.code}>
-                    <td>{String(index + 1).padStart(2, "0")}</td>
-                    <td>
-                      <div className="intel-team">
-                        <span className="intel-team__code">{team.code}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="intel-badge intel-badge--danger">
-                        {team.strengthScore}
-                      </span>
-                    </td>
-                    <td>{team.remainingGames}</td>
-                    <td>{team.averageOpponentTsi}</td>
-                    <td>
-                      {team.record?.wins}-{team.record?.losses}-
-                      {team.record?.ties}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </article>
-
-        {/* QUICK INSIGHT */}
-        <article className="intel-panel">
-          <div className="intel-panel__header">
-            <h2 className="intel-section-title">Key Signal</h2>
-          </div>
-
-          <div className="intel-stack">
-            <div className="intel-story-panel">
-              Teams at the top of this list face significantly stronger
-              opponents, increasing volatility in playoff projections.
-              Lower-ranked teams may benefit from easier closing schedules.
-            </div>
-          </div>
-        </article>
-      </section>
-
-      {/* TEAM BREAKDOWN */}
-      <section className="intel-panel">
-        <div className="intel-panel__header">
-          <h2 className="intel-section-title">Remaining Games by Team</h2>
-        </div>
-
-        <div className="intel-grid intel-grid--support">
-          {scheduleStrength.map((team) => (
-            <article key={team.code} className="intel-panel">
-              <div className="intel-panel__header">
-                <div>
-                  <div className="intel-section-kicker">{team.code}</div>
-                  <h3 className="intel-section-title">
-                    {team.remainingGames} Games Left
-                  </h3>
+      <div className="section-label">Top 5 Toughest Schedules</div>
+      <div className="data-grid auto-fit" style={{ marginBottom: "1.75rem" }}>
+        {top5.map((team, index) => (
+          <div key={team.code} className="metric-tile">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <div className="metric-value accent">{team.strengthScore}</div>
+                <div className="metric-label">#{index + 1} — {team.code}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: "0.85rem", color: "var(--fg-dim)" }}>
+                  {team.record?.wins}-{team.record?.losses}-{team.record?.ties}
+                </div>
+                <div style={{ fontSize: "0.72rem", color: "var(--muted)" }}>
+                  {team.remainingGames} games left
                 </div>
               </div>
+            </div>
+            <div className="strength-bar">
+              <div
+                className="strength-bar__fill"
+                style={{ width: `${(team.strengthScore / maxScore) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+        ))}
+      </div>
 
-              <div className="intel-stack">
-                {team.remainingSchedule.map((game, index) => (
-                  <div key={index} className="intel-row">
-                    <div>
-                      <div className="intel-row__title">
-                        vs {game.opponent}
-                      </div>
-                      <div className="intel-row__meta">
-                        {game.date
-                          ? new Date(game.date).toLocaleDateString()
-                          : "TBD"}
-                      </div>
-                    </div>
-                    <div className="intel-badge">
-                      {game.location}
-                    </div>
+      <div className="section-label">Full Rankings</div>
+      <div className="data-table-wrap">
+        <table style={{ minWidth: "680px" }}>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Team</th>
+              <th>Strength</th>
+              <th style={{ width: "160px" }}>Visual</th>
+              <th>Remaining</th>
+              <th>Avg Opp TSI</th>
+              <th>Record</th>
+            </tr>
+          </thead>
+          <tbody>
+            {scheduleStrength.map((team, index) => (
+              <tr
+                key={team.code}
+                style={{ cursor: "pointer" }}
+                onClick={() => setExpandedTeam(expandedTeam === team.code ? null : team.code)}
+              >
+                <td style={{ fontWeight: 700, color: "var(--fg)" }}>{index + 1}</td>
+                <td style={{ fontWeight: 600, color: "var(--fg)" }}>{team.code}</td>
+                <td className="text-accent" style={{ fontWeight: 700 }}>{team.strengthScore}</td>
+                <td>
+                  <div className="strength-bar">
+                    <div
+                      className="strength-bar__fill"
+                      style={{ width: `${(team.strengthScore / maxScore) * 100}%` }}
+                    ></div>
                   </div>
-                ))}
+                </td>
+                <td>{team.remainingGames}</td>
+                <td>{team.averageOpponentTsi}</td>
+                <td>{team.record?.wins}-{team.record?.losses}-{team.record?.ties}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {expandedTeam && (() => {
+        const team = scheduleStrength.find(t => t.code === expandedTeam);
+        if (!team) return null;
+        return (
+          <div className="card" style={{ marginTop: "1.25rem", borderTop: "2px solid var(--accent)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <div>
+                <h3 style={{ margin: 0 }}>{team.code} — Remaining Schedule</h3>
+                <p className="text-muted" style={{ margin: 0 }}>{team.remainingGames} games remaining</p>
               </div>
-            </article>
-          ))}
-        </div>
-      </section>
+              <button
+                className="sub-tab"
+                onClick={() => setExpandedTeam(null)}
+                style={{ fontSize: "0.72rem" }}
+              >✕ Close</button>
+            </div>
+            <div className="data-grid auto-fit">
+              {team.remainingSchedule.map((game, i) => (
+                <div key={i} className="metric-tile">
+                  <div className="metric-value" style={{ fontSize: "1.1rem" }}>{game.opponent}</div>
+                  <div className="metric-label">{game.date ? new Date(game.date).toLocaleDateString() : "TBD"}</div>
+                  <div className="metric-sub">{game.location}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

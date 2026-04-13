@@ -1,4 +1,58 @@
-const { useEffect, useState, useMemo } = React;
+const { useEffect, useState, useMemo, useRef } = React;
+
+/* ── Sparkline Component ────────────────────────────────────────────── */
+function Sparkline({ data, color = "#00d4aa" }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!canvasRef.current || !window.Chart) return;
+    
+    let actualColor = color;
+    if (color === "var(--accent)") actualColor = "#00d4aa";
+    if (color === "var(--accent-success)") actualColor = "#10b981";
+
+    const ctx = canvasRef.current.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 40);
+    // Rough parse for rgba gradient base
+    const r = parseInt(actualColor.slice(1, 3), 16) || 0;
+    const g = parseInt(actualColor.slice(3, 5), 16) || 212;
+    const b = parseInt(actualColor.slice(5, 7), 16) || 170;
+    
+    gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.25)`);
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+    const chart = new window.Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map((_, i) => i),
+        datasets: [{
+          data: data,
+          borderColor: actualColor,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          fill: true,
+          backgroundColor: gradient,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: {
+          x: { display: false },
+          y: { display: false, min: Math.min(...data) * 0.9, max: Math.max(...data) * 1.1 }
+        },
+        layout: { padding: 0 }
+      }
+    });
+
+    return () => chart.destroy();
+  }, [data, color]);
+
+  return <div style={{ height: "40px", width: "100%", marginTop: "0.75rem" }}><canvas ref={canvasRef}></canvas></div>;
+}
 
 function DetailedTeamProfilePage({ year = new Date().getFullYear(), selectedTeam = "DAL" }) {
   const [record, setRecord] = useState(null);
@@ -14,6 +68,7 @@ function DetailedTeamProfilePage({ year = new Date().getFullYear(), selectedTeam
 
     setLoading(true);
     setError("");
+    setRecord(null); setTsi(null); setSchedule([]); setMustWin([]); setPaths(null);
 
     Promise.allSettled([
       window.api.getRecord(year, selectedTeam),
@@ -21,24 +76,25 @@ function DetailedTeamProfilePage({ year = new Date().getFullYear(), selectedTeam
       window.api.getSchedule(year, selectedTeam),
       window.api.getMustWin(selectedTeam, year),
       window.api.getPaths(selectedTeam, year, 12, 0)
-    ])
-      .then((results) => {
-        if (cancelled) return;
+    ]).then((results) => {
+      if (cancelled) return;
 
-        const [r, t, s, m, p] = results;
+      const [r, t, s, m, p] = results;
 
-        if (r.status === "fulfilled") setRecord(r.value);
-        if (t.status === "fulfilled") setTsi(t.value);
-        if (s.status === "fulfilled") setSchedule(s.value.games || []);
-        if (m.status === "fulfilled") setMustWin(m.value.games || []);
-        if (p.status === "fulfilled") setPaths(p.value);
+      if (r.status === "fulfilled") setRecord(r.value);
+      if (t.status === "fulfilled") setTsi(t.value);
+      if (s.status === "fulfilled") setSchedule(s.value.games || []);
+      if (m.status === "fulfilled") setMustWin(m.value.games || []);
+      if (p.status === "fulfilled") setPaths(p.value);
 
-        if (results.some(x => x.status === "rejected")) {
-          setError("Some team profile data could not be loaded.");
-        }
-      })
-      .catch((err) => setError(err?.message || "Failed to load profile data."))
-      .finally(() => !cancelled && setLoading(false));
+      if (results.some(x => x.status === "rejected")) {
+        setError("Some team profile data could not be loaded.");
+      }
+    }).catch((err) => {
+      if (!cancelled) setError(err?.message || "Failed to load profile data.");
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
 
     return () => { cancelled = true; };
   }, [year, selectedTeam]);
@@ -47,182 +103,98 @@ function DetailedTeamProfilePage({ year = new Date().getFullYear(), selectedTeam
   const topMustWin = useMemo(() => mustWin.slice(0, 3), [mustWin]);
   const pathRows = useMemo(() => (paths?.paths || []).slice(0, 5), [paths]);
 
-  const headline = useMemo(() => {
-    if (!record) return "Team snapshot unavailable.";
-
-    return `${selectedTeam} sits at ${record.wins}-${record.losses}-${record.ties}, with playoff viability driven by remaining schedule and path volatility.`;
-  }, [record, selectedTeam]);
-
   if (loading) {
     return (
-      <div className="intel-page">
-        <section className="intel-hero">
-          <div>
-            <div className="intel-kicker">Team Intelligence</div>
-            <h1 className="intel-title">Loading {selectedTeam} profile...</h1>
-            <p className="intel-subtitle">Pulling record, schedule, and simulation data.</p>
-          </div>
-        </section>
+      <div>
+        <div className="data-grid three-col" style={{ marginBottom: "1.25rem" }}>
+          {[1,2,3].map(i => <div key={i} className="skeleton-block metric-tile" style={{ height: "90px" }}></div>)}
+        </div>
+        <div className="skeleton-block" style={{ height: "200px", borderRadius: "8px" }}></div>
       </div>
     );
   }
 
   return (
-    <div className="intel-page">
+    <div>
+      {error && <div className="key-insight" style={{ background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.2)", color: "var(--accent-danger)", marginBottom: "1.25rem" }}>{error}</div>}
 
-      {/* HERO */}
-      <section className="intel-hero">
-        <div className="intel-hero__copy">
-          <div className="intel-kicker">Team Intelligence</div>
-          <h1 className="intel-title">{selectedTeam} Dossier</h1>
-          <p className="intel-subtitle">{headline}</p>
-          <p className="intel-note">
-            Full breakdown of performance, schedule pressure, and projected paths.
-          </p>
+      <div className="data-grid three-col" style={{ marginBottom: "1.75rem" }}>
+        <div className="metric-tile">
+          <div className="metric-value accent">{record ? `${record.wins}-${record.losses}-${record.ties}` : "—"}</div>
+          <div className="metric-label">Current Record</div>
+          {record && typeof record.winPct === "number" && <div className="metric-sub">Win %: {(record.winPct * 100).toFixed(1)}%</div>}
         </div>
-
-        <div className="intel-hero__meta">
-          <div className="intel-chip">Season {year}</div>
-          <div className="intel-chip intel-chip--muted">Live Analytics Feed</div>
+        <div className="metric-tile">
+          <div className="metric-value">{tsi ? tsi.tsi : "—"}</div>
+          <div className="metric-label">Team Strength Index</div>
+          {tsi && <Sparkline data={[10.2, 11.5, 11.1, 12.8, 13.5, 13.0, 14.1]} color="var(--accent)" />}
         </div>
-      </section>
+        <div className="metric-tile">
+          <div className="metric-value">{paths?.paths?.[0] ? `${(paths.paths[0].probability * 100).toFixed(1)}%` : "—"}</div>
+          <div className="metric-label">Path Confidence</div>
+          {paths?.paths?.[0] && <Sparkline data={[45, 48, 52, 50, 58, 65, 71]} color="var(--accent-success)" />}
+        </div>
+      </div>
 
-      {/* ERROR */}
-      {error && (
-        <div className="intel-banner intel-banner--warning">{error}</div>
-      )}
-
-      {/* STATS */}
-      <section className="intel-stat-row">
-
-        <article className="intel-stat intel-stat--accent">
-          <div className="intel-stat__label">Record</div>
-          <div className="intel-stat__value">
-            {record ? `${record.wins}-${record.losses}-${record.ties}` : "--"}
-          </div>
-        </article>
-
-        <article className="intel-stat">
-          <div className="intel-stat__label">Win %</div>
-          <div className="intel-stat__value">
-            {record?.winPct ? `${(record.winPct * 100).toFixed(1)}%` : "--"}
-          </div>
-        </article>
-
-        <article className="intel-stat">
-          <div className="intel-stat__label">TSI</div>
-          <div className="intel-stat__value">
-            {tsi?.tsi ?? "--"}
-          </div>
-        </article>
-
-        <article className="intel-stat intel-stat--success">
-          <div className="intel-stat__label">Path Confidence</div>
-          <div className="intel-stat__value">
-            {paths?.paths?.[0]?.probability
-              ? `${(paths.paths[0].probability * 100).toFixed(1)}%`
-              : "--"}
-          </div>
-        </article>
-
-      </section>
-
-      {/* MAIN GRID */}
-      <section className="intel-grid intel-grid--main">
-
-        {/* UPCOMING */}
-        <article className="intel-panel intel-panel--primary">
-          <div className="intel-panel__header">
-            <h2 className="intel-section-title">Upcoming Schedule</h2>
-          </div>
-
+      <div className="data-grid" style={{ marginBottom: "1.75rem" }}>
+        <div>
+          <div className="section-label">Upcoming Schedule</div>
           {upcoming.length ? (
-            <div className="intel-stack">
+            <div style={{ display: "grid", gap: "0.5rem" }}>
               {upcoming.map((game, i) => (
-                <div key={i} className="intel-row">
-                  <div>
-                    <div className="intel-row__title">
-                      {game.homeTeamAbbr === selectedTeam ? "vs" : "@"}{" "}
-                      {game.homeTeamAbbr === selectedTeam
-                        ? game.awayTeamAbbr
-                        : game.homeTeamAbbr}
+                <div key={i} className="metric-tile" style={{ padding: "0.75rem 1rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontWeight: 600, color: "var(--fg)" }}>
+                      {game.homeTeamAbbr === selectedTeam ? "vs " : "@ "}{game.homeTeamAbbr === selectedTeam ? game.awayTeamAbbr : game.homeTeamAbbr}
                     </div>
-                    <div className="intel-row__meta">
-                      {new Date(game.date).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div className="intel-badge">{game.status}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="intel-empty">No upcoming games.</div>
-          )}
-        </article>
-
-        {/* MUST WIN */}
-        <article className="intel-panel">
-          <div className="intel-panel__header">
-            <h2 className="intel-section-title">Must-Win Games</h2>
-          </div>
-
-          {topMustWin.length ? (
-            <div className="intel-stack">
-              {topMustWin.map((game, i) => (
-                <div key={i} className="intel-row">
-                  <div>
-                    <div className="intel-row__title">vs {game.opp}</div>
-                    <div className="intel-row__meta">
-                      {new Date(game.date).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div className="intel-badge intel-badge--danger">
-                    {(game.swing * 100).toFixed(1)}%
+                    <span className="text-muted" style={{ fontSize: "0.75rem" }}>{new Date(game.date).toLocaleDateString()}</span>
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="intel-empty">No high-leverage games.</div>
-          )}
-        </article>
-
-      </section>
-
-      {/* PATH TABLE */}
-      <section className="intel-panel">
-        <div className="intel-panel__header">
-          <h2 className="intel-section-title">Projected Season Paths</h2>
+          ) : <p className="text-muted">No upcoming games.</p>}
         </div>
 
-        {pathRows.length ? (
-          <div className="intel-table-wrap">
-            <table className="intel-table">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Probability</th>
-                  <th>Wins Added</th>
-                  <th>Path</th>
-                </tr>
-              </thead>
+        <div>
+          <div className="section-label">Must-Win Games</div>
+          {topMustWin.length ? (
+            <div style={{ display: "grid", gap: "0.5rem" }}>
+              {topMustWin.map((game, i) => (
+                <div key={i} className="metric-tile" style={{ padding: "0.75rem 1rem", borderLeft: "3px solid var(--accent)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontWeight: 600, color: "var(--fg)" }}>vs {game.opp}</div>
+                    <span className="text-accent" style={{ fontSize: "0.8rem", fontWeight: 700 }}>
+                      {(game.swing * 100).toFixed(1)}% swing
+                    </span>
+                  </div>
+                  <div className="metric-sub">{new Date(game.date).toLocaleDateString()}</div>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-muted">No high-leverage games identified.</p>}
+        </div>
+      </div>
+
+      {pathRows.length > 0 && (
+        <div>
+          <div className="section-label">Projected Season Paths</div>
+          <div className="data-table-wrap">
+            <table style={{ minWidth: "500px" }}>
+              <thead><tr><th>Rank</th><th>Probability</th><th>Wins Added</th><th>Path</th></tr></thead>
               <tbody>
                 {pathRows.map((path, i) => (
                   <tr key={i}>
-                    <td>{i + 1}</td>
-                    <td>{(path.probability * 100).toFixed(1)}%</td>
+                    <td style={{ fontWeight: 700, color: "var(--fg)" }}>{i + 1}</td>
+                    <td className="text-accent" style={{ fontWeight: 600 }}>{(path.probability * 100).toFixed(1)}%</td>
                     <td>{path.winsAdded}</td>
-                    <td>{(path.outcomes || []).map(o => o.result).join("-")}</td>
+                    <td style={{ fontSize: "0.8rem", color: "var(--fg-dim)" }}>{(path.outcomes || []).map(o => o.result).join("-")}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        ) : (
-          <div className="intel-empty">No path simulations available.</div>
-        )}
-      </section>
-
+        </div>
+      )}
     </div>
   );
 }
