@@ -1,6 +1,6 @@
 const { useEffect, useMemo, useState } = React;
 
-function DivisionPowerPage({ year = new Date().getFullYear() }) {
+function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DAL" }) {
   const [divisions, setDivisions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -9,14 +9,21 @@ function DivisionPowerPage({ year = new Date().getFullYear() }) {
     let cancelled = false;
     setLoading(true);
     setError("");
-    window.api.getDivisionPower(year)
+
+    window.api
+      .getDivisionPower(year)
       .then((data) => {
         if (cancelled) return;
-        if (!data || !Array.isArray(data.divisions)) throw new Error("Missing division power metrics.");
+        if (!data || !Array.isArray(data.divisions)) {
+          throw new Error("Missing division power metrics.");
+        }
         setDivisions(data.divisions);
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message || "Unable to load division strength metrics.");
+        if (!cancelled) {
+          setError(err?.message || "Unable to load division strength metrics.");
+          setDivisions([]);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -27,72 +34,194 @@ function DivisionPowerPage({ year = new Date().getFullYear() }) {
     };
   }, [year]);
 
+  const rankedTeams = useMemo(() => {
+    return divisions
+      .flatMap((division) =>
+        (division.teams || []).map((team) => ({
+          ...team,
+          division: division.division,
+          conference: division.conference,
+          averageTSI: division.averageTSI,
+        }))
+      )
+      .sort((a, b) => (b.tsi || 0) - (a.tsi || 0));
+  }, [divisions]);
+
+  const dallas = rankedTeams.find((team) => team.code === selectedTeam) || rankedTeams.find((team) => team.code === "DAL");
+  const topFive = rankedTeams.slice(0, 5);
+
   if (loading) {
     return (
-      <div>
-        {[1,2,3,4].map(i => (
-          <div key={i} className="skeleton-block" style={{ height: "160px", borderRadius: "8px", marginBottom: "1rem" }}></div>
-        ))}
+      <div className="intel-page">
+        <section className="intel-panel">
+          <div className="skeleton-block" style={{ height: 220, borderRadius: 24, marginBottom: "1rem" }} />
+          <div className="skeleton-block" style={{ height: 320, borderRadius: 24 }} />
+        </section>
       </div>
     );
   }
 
-  if (error) return <div className="card" style={{ borderLeft: "3px solid var(--accent-danger)" }}><p className="text-muted">{error}</p></div>;
-  if (!divisions.length) return <div className="card"><p className="text-muted">No division power rankings available.</p></div>;
+  if (error) {
+    return (
+      <div className="intel-page">
+        <section className="intel-banner intel-banner--warning">{error}</section>
+      </div>
+    );
+  }
+
+  if (!divisions.length) {
+    return (
+      <div className="intel-page">
+        <section className="intel-panel">
+          <div className="intel-empty">No division power rankings available.</div>
+        </section>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      {divisions.map((division) => (
-        <div key={`${division.conference}-${division.division}`} style={{ marginBottom: "1.75rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: "1rem" }}>{division.division}</h3>
-              <span className="text-muted" style={{ fontSize: "0.75rem" }}>{division.conference}</span>
+    <div className="intel-page">
+      <section className="intel-hero">
+        <div className="intel-hero__copy">
+          <div className="intel-kicker">Division Intelligence</div>
+          <h1 className="intel-title">Dallas Team Power Rating</h1>
+          <p className="intel-subtitle">
+            Compare Dallas against every division environment using TSI, win rate, and scoring margin.
+          </p>
+        </div>
+
+        <div className="intel-hero__meta">
+          <div className="intel-chip">Season {year}</div>
+          <div className="intel-chip intel-chip--muted">
+            {dallas ? `${dallas.code} rank #${rankedTeams.findIndex((t) => t.code === dallas.code) + 1}` : "League view"}
+          </div>
+        </div>
+      </section>
+
+      {dallas ? (
+        <section className="intel-stat-row">
+          <article className="intel-stat intel-stat--accent">
+            <div className="intel-stat__label">Dallas TSI</div>
+            <div className="intel-stat__value">{Number(dallas.tsi || 0).toFixed(1)}</div>
+          </article>
+
+          <article className="intel-stat">
+            <div className="intel-stat__label">Dallas Win %</div>
+            <div className="intel-stat__value">{((dallas.record?.winPct || 0) * 100).toFixed(1)}%</div>
+          </article>
+
+          <article className="intel-stat">
+            <div className="intel-stat__label">Dallas Point Diff</div>
+            <div className="intel-stat__value">
+              {(dallas.pointDiffPerGame || 0) > 0 ? "+" : ""}
+              {Number(dallas.pointDiffPerGame || 0).toFixed(1)}
             </div>
-            <div className="metric-tile" style={{ padding: "0.5rem 0.85rem" }}>
-              <div className="metric-value accent" style={{ fontSize: "1.4rem" }}>{division.averageTSI}</div>
-              <div className="metric-label">Avg TSI</div>
-            </div>
+          </article>
+
+          <article className="intel-stat">
+            <div className="intel-stat__label">Division</div>
+            <div className="intel-stat__value">{dallas.division || "--"}</div>
+          </article>
+        </section>
+      ) : null}
+
+      <section className="intel-grid intel-grid--main" style={{ alignItems: "start" }}>
+        <article className="intel-panel intel-panel--primary">
+          <div className="intel-panel__header">
+            <h2 className="intel-section-title">Top 5 Power Board</h2>
           </div>
 
-          <div className="data-grid three-col" style={{ marginBottom: "0.75rem", gap: "0.75rem" }}>
-            <div className="metric-tile" style={{ padding: "0.75rem 1rem" }}>
-              <div className="metric-value" style={{ fontSize: "1.2rem" }}>{(division.averageWinPct * 100).toFixed(1)}%</div>
-              <div className="metric-label">Avg Win %</div>
-            </div>
-            <div className="metric-tile" style={{ padding: "0.75rem 1rem" }}>
-              <div className="metric-value" style={{ fontSize: "1.2rem", color: division.averagePointDiff > 0 ? "var(--accent-success)" : "var(--accent-danger)" }}>
-                {division.averagePointDiff > 0 ? "+" : ""}{division.averagePointDiff}
+          <div className="intel-stack">
+            {topFive.map((team, index) => (
+              <div
+                key={`${team.code}-${index}`}
+                className="intel-metric-card"
+                style={{
+                  border: team.code === "DAL" ? "1px solid rgba(0, 212, 170, 0.5)" : undefined,
+                  boxShadow: team.code === "DAL" ? "0 0 0 1px rgba(0, 212, 170, 0.15) inset" : undefined,
+                }}
+              >
+                <div className="intel-metric-card__label">#{index + 1} · {team.division}</div>
+                <div className="intel-metric-card__value" style={{ fontSize: "1.2rem" }}>
+                  {team.code} — {Number(team.tsi || 0).toFixed(1)}
+                </div>
+                <div className="text-muted" style={{ fontSize: "0.92rem" }}>
+                  Win % {((team.record?.winPct || 0) * 100).toFixed(1)} · Diff {team.pointDiffPerGame > 0 ? "+" : ""}{Number(team.pointDiffPerGame || 0).toFixed(1)}
+                </div>
               </div>
-              <div className="metric-label">Avg Pt Diff</div>
-            </div>
-            <div className="metric-tile" style={{ padding: "0.75rem 1rem" }}>
-              <div className="metric-value text-accent" style={{ fontSize: "1.2rem" }}>{division.leader.code}</div>
-              <div className="metric-label">Division Leader</div>
-            </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="intel-panel">
+          <div className="intel-panel__header">
+            <h2 className="intel-section-title">Division Strength Table</h2>
           </div>
 
-          <div className="data-table-wrap">
-            <table style={{ minWidth: "400px" }}>
+          <div className="intel-table-wrap">
+            <table className="intel-table">
               <thead>
-                <tr><th>Team</th><th>TSI</th><th>Win %</th><th>Diff</th></tr>
+                <tr>
+                  <th>Team</th>
+                  <th>Division</th>
+                  <th>TSI</th>
+                  <th>Win %</th>
+                  <th>Diff</th>
+                </tr>
               </thead>
               <tbody>
-                {division.teams.map((team) => (
-                  <tr key={team.code}>
-                    <td style={{ fontWeight: 600, color: "var(--fg)" }}>{team.code}</td>
-                    <td>{team.tsi.toFixed(1)}</td>
-                    <td>{(team.record.winPct * 100).toFixed(1)}%</td>
-                    <td style={{ color: team.pointDiffPerGame > 0 ? "var(--accent-success)" : team.pointDiffPerGame < 0 ? "var(--accent-danger)" : "var(--muted)" }}>
-                      {team.pointDiffPerGame > 0 ? "+" : ""}{team.pointDiffPerGame}
+                {rankedTeams.map((team) => (
+                  <tr
+                    key={`${team.division}-${team.code}`}
+                    className={team.code === "DAL" ? "intel-row--active" : ""}
+                  >
+                    <td>{team.code}</td>
+                    <td>{team.division}</td>
+                    <td>{Number(team.tsi || 0).toFixed(1)}</td>
+                    <td>{((team.record?.winPct || 0) * 100).toFixed(1)}%</td>
+                    <td>
+                      {team.pointDiffPerGame > 0 ? "+" : ""}
+                      {Number(team.pointDiffPerGame || 0).toFixed(1)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      ))}
+        </article>
+      </section>
+
+      <section className="intel-stack" style={{ marginTop: "1.25rem" }}>
+        {divisions.map((division) => (
+          <article key={`${division.conference}-${division.division}`} className="intel-panel">
+            <div className="intel-panel__header">
+              <div>
+                <h2 className="intel-section-title" style={{ marginBottom: 4 }}>{division.division}</h2>
+                <div className="text-muted">{division.conference}</div>
+              </div>
+              <div className="intel-chip intel-chip--muted">Avg TSI {Number(division.averageTSI || 0).toFixed(1)}</div>
+            </div>
+
+            <div className="intel-metric-grid">
+              <div className="intel-metric-card">
+                <div className="intel-metric-card__label">Avg Win %</div>
+                <div className="intel-metric-card__value">{((division.averageWinPct || 0) * 100).toFixed(1)}%</div>
+              </div>
+              <div className="intel-metric-card">
+                <div className="intel-metric-card__label">Avg Point Diff</div>
+                <div className="intel-metric-card__value">
+                  {(division.averagePointDiff || 0) > 0 ? "+" : ""}
+                  {Number(division.averagePointDiff || 0).toFixed(1)}
+                </div>
+              </div>
+              <div className="intel-metric-card">
+                <div className="intel-metric-card__label">Leader</div>
+                <div className="intel-metric-card__value">{division.leader?.code || "--"}</div>
+              </div>
+            </div>
+          </article>
+        ))}
+      </section>
     </div>
   );
 }
