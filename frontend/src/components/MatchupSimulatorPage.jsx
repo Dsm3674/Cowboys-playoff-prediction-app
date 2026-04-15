@@ -9,12 +9,15 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
   const [error, setError] = useState("");
 
   useEffect(() => {
-    window.api.getTeams().then((result) => {
-      const list = result?.teams || [];
-      setTeams(list);
-      setTeam1(selectedTeam);
-      setTeam2(list.find((team) => team.code !== selectedTeam)?.code || "PHI");
-    }).catch(console.error);
+    window.api
+      .getTeams()
+      .then((result) => {
+        const list = result?.teams || [];
+        setTeams(list);
+        setTeam1(selectedTeam);
+        setTeam2(list.find((team) => team.code !== selectedTeam)?.code || "PHI");
+      })
+      .catch(console.error);
   }, [selectedTeam]);
 
   useEffect(() => {
@@ -23,31 +26,97 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
     setLoading(true);
     setError("");
 
-    window.api.getMatchup(team1, team2, year)
+    window.api
+      .getMatchup(team1, team2, year)
       .then(setMatchup)
       .catch((err) => setError(err?.message || "Unable to simulate matchup."))
       .finally(() => setLoading(false));
   }, [team1, team2, year]);
 
-  if (loading) {
-    return (
-      <div className="card">
-        <h2>Matchup Simulator</h2>
-        <p className="text-muted">Simulating the projected outcome for {team1} vs {team2}...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="card">
-        <h2>Matchup Simulator</h2>
-        <p className="text-danger">{error}</p>
-      </div>
-    );
-  }
-
   const [left, right] = matchup?.teams || [];
+
+  const selectStyle = {
+    width: "100%",
+    padding: "0.9rem 1rem",
+    borderRadius: "12px",
+    border: "1px solid var(--line)",
+    background: "var(--bg-panel)",
+    color: "var(--fg)",
+    outline: "none",
+    boxShadow: "none",
+  };
+
+  const panelStyle = {
+    padding: "1rem 1.1rem",
+    borderRadius: "16px",
+    background: "linear-gradient(180deg, rgba(14, 26, 38, 0.96), rgba(10, 21, 32, 0.98))",
+    border: "1px solid var(--line)",
+    boxShadow: "var(--shadow-soft)",
+    minWidth: 0,
+  };
+
+  const valueStyle = {
+    fontSize: "2.5rem",
+    fontWeight: 800,
+    marginTop: "0.55rem",
+    color: "var(--fg-strong)",
+    lineHeight: 1,
+    letterSpacing: "-0.03em",
+  };
+
+  const profileRowStyle = {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "1rem",
+    padding: "0.55rem 0",
+    borderBottom: "1px solid var(--line-soft)",
+  };
+
+  const renderTeamProfile = (team) => {
+    if (!team) return null;
+
+    return (
+      <div style={panelStyle}>
+        <h3
+          style={{
+            marginTop: 0,
+            marginBottom: "1rem",
+            color: "var(--fg-strong)",
+            fontSize: "1.15rem",
+            lineHeight: 1.2,
+          }}
+        >
+          {team.name} ({team.code})
+        </h3>
+
+        <div style={profileRowStyle}>
+          <span className="text-muted">Record</span>
+          <strong style={{ color: "var(--fg-strong)" }}>
+            {team.record.wins}-{team.record.losses}-{team.record.ties}
+          </strong>
+        </div>
+
+        <div style={profileRowStyle}>
+          <span className="text-muted">TSI</span>
+          <strong style={{ color: "var(--fg-strong)" }}>{team.tsi.toFixed(1)}</strong>
+        </div>
+
+        <div style={profileRowStyle}>
+          <span className="text-muted">Point Diff</span>
+          <strong style={{ color: "var(--fg-strong)" }}>
+            {team.averagePointDiff ?? "—"}
+          </strong>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", paddingTop: "0.55rem" }}>
+          <span className="text-muted">Playoff Odds</span>
+          <strong style={{ color: "var(--fg-strong)" }}>
+            {team.playoffProbability != null ? `${team.playoffProbability}%` : "TBD"}
+          </strong>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -58,49 +127,97 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
         </p>
       </div>
 
-      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
-        <div style={{ flex: "1 1 280px" }}>
-          <label style={{ display: "block", marginBottom: "0.5rem" }}>Home team</label>
-          <select
-            value={team1}
-            onChange={(e) => setTeam1(e.target.value)}
-            style={{ width: "100%", padding: "0.9rem", borderRadius: "10px", border: "1px solid #cbd5e1" }}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: "1rem",
+          marginBottom: "1.5rem",
+        }}
+      >
+        <div>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "0.5rem",
+              color: "var(--fg-soft)",
+              fontWeight: 600,
+            }}
           >
+            Home team
+          </label>
+          <select value={team1} onChange={(e) => setTeam1(e.target.value)} style={selectStyle}>
             {teams.map((team) => (
-              <option key={team.code} value={team.code}>{team.code} — {team.name}</option>
+              <option key={team.code} value={team.code}>
+                {team.code} — {team.name}
+              </option>
             ))}
           </select>
         </div>
 
-        <div style={{ flex: "1 1 280px" }}>
-          <label style={{ display: "block", marginBottom: "0.5rem" }}>Away team</label>
-          <select
-            value={team2}
-            onChange={(e) => setTeam2(e.target.value)}
-            style={{ width: "100%", padding: "0.9rem", borderRadius: "10px", border: "1px solid #cbd5e1" }}
+        <div>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "0.5rem",
+              color: "var(--fg-soft)",
+              fontWeight: 600,
+            }}
           >
+            Away team
+          </label>
+          <select value={team2} onChange={(e) => setTeam2(e.target.value)} style={selectStyle}>
             {teams.map((team) => (
-              <option key={team.code} value={team.code}>{team.code} — {team.name}</option>
+              <option key={team.code} value={team.code}>
+                {team.code} — {team.name}
+              </option>
             ))}
           </select>
         </div>
       </div>
 
-      {matchup ? (
+      {loading ? (
+        <div className="card">
+          <h2>Matchup Simulator</h2>
+          <p className="text-muted">
+            Simulating the projected outcome for {team1} vs {team2}...
+          </p>
+        </div>
+      ) : error ? (
+        <div className="card">
+          <h2>Matchup Simulator</h2>
+          <p className="text-danger">{error}</p>
+        </div>
+      ) : matchup ? (
         <div className="card" style={{ marginBottom: "1.5rem" }}>
           <h2 style={{ marginTop: 0 }}>Projected Outcome</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-            <div style={{ padding: "1rem", borderRadius: "12px", background: "#f8fafc" }}>
-              <strong>{team1} Win %</strong>
-              <div style={{ fontSize: "2rem", fontWeight: 700, marginTop: "0.5rem" }}>{matchup.homeWinProbability}%</div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "1rem",
+            }}
+          >
+            <div style={panelStyle}>
+              <div className="text-muted" style={{ fontWeight: 700 }}>
+                {team1} Win %
+              </div>
+              <div style={valueStyle}>{matchup.homeWinProbability}%</div>
             </div>
-            <div style={{ padding: "1rem", borderRadius: "12px", background: "#f8fafc" }}>
-              <strong>{team2} Win %</strong>
-              <div style={{ fontSize: "2rem", fontWeight: 700, marginTop: "0.5rem" }}>{matchup.awayWinProbability}%</div>
+
+            <div style={panelStyle}>
+              <div className="text-muted" style={{ fontWeight: 700 }}>
+                {team2} Win %
+              </div>
+              <div style={valueStyle}>{matchup.awayWinProbability}%</div>
             </div>
-            <div style={{ padding: "1rem", borderRadius: "12px", background: "#f8fafc" }}>
-              <strong>Expected Margin</strong>
-              <div style={{ fontSize: "2rem", fontWeight: 700, marginTop: "0.5rem" }}>{matchup.expectedMargin} pts</div>
+
+            <div style={panelStyle}>
+              <div className="text-muted" style={{ fontWeight: 700 }}>
+                Expected Margin
+              </div>
+              <div style={valueStyle}>{matchup.expectedMargin} pts</div>
             </div>
           </div>
         </div>
@@ -108,25 +225,15 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Team Profiles</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-          {left && (
-            <div style={{ padding: "1rem", borderRadius: "10px", background: "#fff" }}>
-              <h3>{left.name} ({left.code})</h3>
-              <div><strong>Record:</strong> {left.record.wins}-{left.record.losses}-{left.record.ties}</div>
-              <div><strong>TSI:</strong> {left.tsi.toFixed(1)}</div>
-              <div><strong>Point Diff:</strong> {left.averagePointDiff}</div>
-              <div><strong>Playoff Odds:</strong> {left.playoffProbability ? `${left.playoffProbability}%` : "TBD"}</div>
-            </div>
-          )}
-          {right && (
-            <div style={{ padding: "1rem", borderRadius: "10px", background: "#fff" }}>
-              <h3>{right.name} ({right.code})</h3>
-              <div><strong>Record:</strong> {right.record.wins}-{right.record.losses}-{right.record.ties}</div>
-              <div><strong>TSI:</strong> {right.tsi.toFixed(1)}</div>
-              <div><strong>Point Diff:</strong> {right.averagePointDiff}</div>
-              <div><strong>Playoff Odds:</strong> {right.playoffProbability ? `${right.playoffProbability}%` : "TBD"}</div>
-            </div>
-          )}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "1rem",
+          }}
+        >
+          {renderTeamProfile(left)}
+          {renderTeamProfile(right)}
         </div>
       </div>
     </div>
