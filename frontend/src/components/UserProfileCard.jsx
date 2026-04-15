@@ -1,4 +1,12 @@
 function UserProfileCard() {
+  const THEMES = [
+    { value: "default", label: "Default Navy", note: "Original LoneStar look" },
+    { value: "midnight", label: "Midnight Glass", note: "Deep blue premium look" },
+    { value: "emerald", label: "Emerald Pulse", note: "Green market-style glow" },
+    { value: "sunset", label: "Sunset Signal", note: "Warm orange and magenta" },
+    { value: "retro", label: "Retro Console", note: "Terminal-inspired neon" },
+  ];
+
   const [username, setUsername] = React.useState("");
   const [theme, setTheme] = React.useState("default");
   const [hasProfile, setHasProfile] = React.useState(false);
@@ -8,16 +16,14 @@ function UserProfileCard() {
   React.useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("ls_profile") || "null");
-      if (saved && saved.username) {
+      if (saved?.username) {
         setUsername(saved.username);
         setTheme(saved.theme || "default");
         setHasProfile(true);
         applyTheme(saved.theme || "default");
       }
 
-      const savedPoll = JSON.parse(
-        localStorage.getItem("ls_pollResults") || "null"
-      );
+      const savedPoll = JSON.parse(localStorage.getItem("ls_pollResults") || "null");
       if (savedPoll) {
         setPollResults(savedPoll.results || { yes: 0, no: 0 });
         setPollChoice(savedPoll.choice || null);
@@ -28,19 +34,28 @@ function UserProfileCard() {
   }, []);
 
   const applyTheme = (themeValue) => {
-    if (!themeValue || themeValue === "default") {
-      document.body.className = "";
-    } else {
-      document.body.className = themeValue;
-    }
+    document.body.classList.remove("theme-midnight", "theme-emerald", "theme-sunset", "theme-retro");
+
+    if (themeValue === "midnight") document.body.classList.add("theme-midnight");
+    if (themeValue === "emerald") document.body.classList.add("theme-emerald");
+    if (themeValue === "sunset") document.body.classList.add("theme-sunset");
+    if (themeValue === "retro") document.body.classList.add("theme-retro");
+  };
+
+  const persistProfile = (nextUsername, nextTheme) => {
+    localStorage.setItem(
+      "ls_profile",
+      JSON.stringify({
+        username: nextUsername.trim(),
+        theme: nextTheme,
+      })
+    );
   };
 
   const saveProfile = (e) => {
     e.preventDefault();
     if (!username.trim()) return;
-
-    const profile = { username: username.trim(), theme };
-    localStorage.setItem("ls_profile", JSON.stringify(profile));
+    persistProfile(username, theme);
     setHasProfile(true);
     applyTheme(theme);
   };
@@ -49,26 +64,20 @@ function UserProfileCard() {
     const value = e.target.value;
     setTheme(value);
     applyTheme(value);
+
     if (hasProfile && username.trim()) {
-      localStorage.setItem(
-        "ls_profile",
-        JSON.stringify({ username: username.trim(), theme: value })
-      );
+      persistProfile(username, value);
     }
   };
 
   const vote = (choice) => {
-    setPollChoice(choice);
-
     const updated = { ...pollResults };
     if (choice === "yes") updated.yes += 1;
     if (choice === "no") updated.no += 1;
 
+    setPollChoice(choice);
     setPollResults(updated);
-    localStorage.setItem(
-      "ls_pollResults",
-      JSON.stringify({ choice, results: updated })
-    );
+    localStorage.setItem("ls_pollResults", JSON.stringify({ choice, results: updated }));
   };
 
   const logout = () => {
@@ -78,6 +87,7 @@ function UserProfileCard() {
     } catch (e) {
       console.warn("UserProfileCard: failed to clear profile", e);
     }
+
     setUsername("");
     setTheme("default");
     setHasProfile(false);
@@ -86,120 +96,139 @@ function UserProfileCard() {
     applyTheme("default");
   };
 
+  const activeTheme = THEMES.find((item) => item.value === theme) || THEMES[0];
+
   return (
-    <div className="card">
-      <h3>User Profile</h3>
-      {!hasProfile ? (
-        <>
-          <p className="text-muted">
-            Create a simple profile to save your theme and prediction history.
+    <div className="intel-page">
+      <section className="intel-hero">
+        <div className="intel-hero__copy">
+          <div className="intel-kicker">Identity & Personalization</div>
+          <h1 className="intel-title">User Profile</h1>
+          <p className="intel-subtitle">
+            Save your local profile, switch app themes, and keep your analytics workspace feeling personalized.
           </p>
-          <form onSubmit={saveProfile}>
-            <div className="form-group">
-              <label>Username:</label>
-              <input
-                type="text"
-                placeholder="e.g. DakDataNerd"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
+        </div>
 
-            <div className="form-group">
-              <label>Theme:</label>
-              <select value={theme} onChange={handleThemeChange}>
-                <option value="default">Default</option>
-                <option value="dark">Dark Mode</option>
-                <option value="retro">Retro Console</option>
-              </select>
-            </div>
+        <div className="intel-hero__meta">
+          <div className="intel-chip">{hasProfile ? username : "Guest"}</div>
+          <div className="intel-chip intel-chip--muted">{activeTheme.label}</div>
+        </div>
+      </section>
 
-            <button className="btn-primary" type="submit" style={{ width: "100%" }}>
-              Create Profile
-            </button>
-          </form>
-        </>
-      ) : (
-        <>
-          <p style={{ marginBottom: "0.5rem" }}>
-            Logged in as <strong>{username}</strong>
-          </p>
-
-          <div className="form-group">
-            <label>Theme:</label>
-            <select value={theme} onChange={handleThemeChange}>
-              <option value="default">Default</option>
-              <option value="dark">Dark Mode</option>
-              <option value="retro">Retro Console</option>
-            </select>
+      <section className="intel-grid intel-grid--main">
+        <article className="intel-panel intel-panel--primary">
+          <div className="intel-panel__header">
+            <h2 className="intel-section-title">{hasProfile ? "Profile Settings" : "Create Profile"}</h2>
           </div>
 
-          <small className="text-muted">
-            Theme + profile are stored locally in your browser.
-          </small>
+          {!hasProfile ? (
+            <form onSubmit={saveProfile} className="intel-stack">
+              <div className="intel-form-group">
+                <label className="intel-label">Username</label>
+                <input
+                  type="text"
+                  className="intel-select"
+                  placeholder="e.g. DakDataNerd"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
 
-          <button
-            type="button"
-            className="btn-secondary"
-            style={{
-              marginTop: "0.75rem",
-              width: "100%",
-            }}
-            onClick={logout}
-          >
-            Log out
-          </button>
+              <div className="intel-form-group">
+                <label className="intel-label">Theme</label>
+                <select className="intel-select" value={theme} onChange={handleThemeChange}>
+                  {THEMES.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="text-muted" style={{ marginTop: 8 }}>{activeTheme.note}</div>
+              </div>
 
-          <hr style={{ margin: "1.5rem 0", borderColor: "var(--slate-300)" }} />
+              <button className="intel-button intel-button--primary" type="submit">
+                Create Profile
+              </button>
+            </form>
+          ) : (
+            <div className="intel-stack">
+              <div className="intel-metric-grid">
+                <div className="intel-metric-card">
+                  <div className="intel-metric-card__label">Username</div>
+                  <div className="intel-metric-card__value">{username}</div>
+                </div>
+                <div className="intel-metric-card">
+                  <div className="intel-metric-card__label">Theme</div>
+                  <div className="intel-metric-card__value">{activeTheme.label}</div>
+                </div>
+              </div>
 
-          <h4 style={{ marginTop: 0 }}>Community Poll</h4>
-          <p className="text-muted">
-            Will the Cowboys make the NFC Championship this season?
-          </p>
+              <div className="intel-form-group">
+                <label className="intel-label">Switch Theme</label>
+                <select className="intel-select" value={theme} onChange={handleThemeChange}>
+                  {THEMES.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="text-muted" style={{ marginTop: 8 }}>{activeTheme.note}</div>
+              </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "0.75rem",
-              marginBottom: "1rem",
-            }}
-          >
-            <button
-              type="button"
-              className="btn-primary"
-              style={{
-                flex: 1,
-                opacity: pollChoice === "yes" ? 1 : 0.7,
-              }}
-              onClick={() => vote("yes")}
-            >
-              Yes
-            </button>
-            <button
-              type="button"
-              className="btn-danger"
-              style={{
-                flex: 1,
-                opacity: pollChoice === "no" ? 1 : 0.7,
-              }}
-              onClick={() => vote("no")}
-            >
-              No
-            </button>
-          </div>
-
-          <p className="text-small">
-            Votes – Yes: <strong>{pollResults.yes}</strong>, No:{" "}
-            <strong>{pollResults.no}</strong>
-          </p>
-
-          {pollChoice && (
-            <p className="text-small text-muted">
-              You voted: <strong>{pollChoice.toUpperCase()}</strong>
-            </p>
+              <button className="intel-button" type="button" onClick={logout}>
+                Log Out
+              </button>
+            </div>
           )}
-        </>
-      )}
+        </article>
+
+        <article className="intel-panel">
+          <div className="intel-panel__header">
+            <h2 className="intel-section-title">Community Poll</h2>
+          </div>
+
+          <div className="intel-stack">
+            <div className="text-muted">Will the Cowboys make the NFC Championship this season?</div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <button
+                type="button"
+                className="intel-button intel-button--primary"
+                style={{ opacity: pollChoice === "yes" ? 1 : 0.82 }}
+                onClick={() => vote("yes")}
+              >
+                Yes
+              </button>
+
+              <button
+                type="button"
+                className="intel-button"
+                style={{ opacity: pollChoice === "no" ? 1 : 0.82 }}
+                onClick={() => vote("no")}
+              >
+                No
+              </button>
+            </div>
+
+            <div className="intel-metric-grid">
+              <div className="intel-metric-card">
+                <div className="intel-metric-card__label">Yes Votes</div>
+                <div className="intel-metric-card__value">{pollResults.yes}</div>
+              </div>
+              <div className="intel-metric-card">
+                <div className="intel-metric-card__label">No Votes</div>
+                <div className="intel-metric-card__value">{pollResults.no}</div>
+              </div>
+            </div>
+
+            {pollChoice ? (
+              <div className="intel-story-panel">
+                You voted <strong>{pollChoice.toUpperCase()}</strong>.
+              </div>
+            ) : null}
+          </div>
+        </article>
+      </section>
     </div>
   );
 }
