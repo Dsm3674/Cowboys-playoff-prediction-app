@@ -123,17 +123,22 @@ function PlayerRadar() {
       <section className="intel-hero intel-hero--compact">
         <div className="intel-hero__copy">
           <div className="intel-kicker">Players Intelligence</div>
-          <h1 className="intel-title">Core Impact Board</h1>
+          <h1 className="intel-title">Cowboys Scouting Board</h1>
           <p className="intel-subtitle">
-            Compare offensive upside, consistency, clutch performance, and durability without the old broken radar layout.
+            Compare offensive upside, consistency, clutch performance, and durability in a cleaner board built to feel more like a real front-office scouting surface.
           </p>
+        </div>
+
+        <div className="intel-hero__meta">
+          <div className="intel-chip">Star Watch</div>
+          <div className="intel-chip intel-chip--muted">{players.length} player profiles</div>
         </div>
       </section>
 
       <section className="intel-grid intel-grid--main">
         <article className="intel-panel">
           <div className="intel-panel__header">
-            <h2 className="intel-section-title">Player Board</h2>
+            <h2 className="intel-section-title">Roster Board</h2>
           </div>
 
           <div className="player-radar-list">
@@ -184,7 +189,7 @@ function PlayerRadar() {
 
         <article className="intel-panel intel-panel--primary">
           <div className="intel-panel__header">
-            <h2 className="intel-section-title">Selected Player</h2>
+            <h2 className="intel-section-title">Star Profile</h2>
           </div>
 
           {active ? (
@@ -199,7 +204,7 @@ function PlayerRadar() {
 
                 <div className="player-radar-detail__score-wrap">
                   <div className="player-radar-detail__score">{avg(active.metrics).toFixed(1)}</div>
-                  <div className="player-radar-detail__score-label">Composite grade</div>
+                  <div className="player-radar-detail__score-label">Star grade</div>
                 </div>
               </div>
 
