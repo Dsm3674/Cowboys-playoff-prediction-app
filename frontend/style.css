@@ -32,6 +32,16 @@
   --sidebar-bg:    linear-gradient(180deg, #080c12 0%, #0e1319 100%);
   --banner-bg:     linear-gradient(135deg, #0f1520 0%, #0b0f14 100%);
   --gauge-fill:    rgba(0,212,170,0.08);
+  --ticker-bg:     rgba(8, 17, 29, 0.86);
+  --ticker-label-bg: linear-gradient(135deg, #d4dde8 0%, #8bacd8 100%);
+  --ticker-label-fg: #07111c;
+  --progress-gradient: linear-gradient(90deg, var(--accent) 0%, var(--accent-blue) 52%, var(--fg) 100%);
+  --progress-glow: 0 0 16px rgba(140, 172, 216, 0.35);
+  --stage-overlay: linear-gradient(180deg, rgba(5, 10, 18, 0.2), rgba(255, 255, 255, 0));
+  --banner-bg:     linear-gradient(135deg, #101a2b 0%, #12233b 55%, #314867 100%);
+  --banner-sheen:  linear-gradient(130deg, rgba(255, 255, 255, 0.06), transparent 40%);
+  --banner-orb:    radial-gradient(circle at 85% 20%, rgba(140, 172, 216, 0.2), transparent 22%);
+  --banner-watermark: rgba(255, 255, 255, 0.05);
 
   /* Shadows */
   --shadow:        0 8px 32px rgba(0,0,0,0.5);
@@ -738,6 +748,106 @@ img, canvas, svg, video { max-width: 100%; height: auto; }
   font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: 0.06em;
+}
+
+.tsi-card__title {
+  margin-top: 0;
+  color: var(--fg);
+}
+
+.tsi-card__hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tsi-card__scale {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.tsi-card__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  font-size: 0.9rem;
+}
+
+.tsi-card__metric {
+  padding: 0.8rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid rgba(190, 202, 219, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018)),
+    var(--card-2);
+  color: var(--fg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.tsi-card__metric strong {
+  color: var(--fg);
+}
+
+.must-win-card {
+  border-left: 4px solid var(--accent-danger);
+}
+
+.must-win-card__title {
+  margin-top: 0;
+  color: var(--accent-danger);
+}
+
+.must-win-card__intro {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.must-win-card__list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.must-win-card__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid rgba(190, 202, 219, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018)),
+    var(--card-2);
+}
+
+.must-win-card__opp {
+  color: var(--fg);
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.must-win-card__date {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.must-win-card__meta {
+  text-align: right;
+}
+
+.must-win-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.24rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  color: #ffb3bb;
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 
@@ -1489,7 +1599,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .main-stage {
-  background: linear-gradient(180deg, rgba(5, 10, 18, 0.2), rgba(255, 255, 255, 0));
+  background: var(--stage-overlay);
 }
 
 .app-shell-header,
@@ -1563,8 +1673,8 @@ h1, h2, h3, h4, h5, h6 {
 #scroll-progress {
   left: var(--sidebar-w);
   height: 3px;
-  background: linear-gradient(90deg, #dce3ec 0%, #8cacd8 52%, #ffffff 100%);
-  box-shadow: 0 0 16px rgba(140, 172, 216, 0.35);
+  background: var(--progress-gradient);
+  box-shadow: var(--progress-glow);
 }
 
 .app-container {
@@ -1573,14 +1683,14 @@ h1, h2, h3, h4, h5, h6 {
 
 .live-ticker-wrap {
   height: 38px;
-  background: rgba(8, 17, 29, 0.86);
+  background: var(--ticker-bg);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(12px);
 }
 
 .ticker-label {
-  background: linear-gradient(135deg, #d4dde8 0%, #8bacd8 100%);
-  color: #07111c;
+  background: var(--ticker-label-bg);
+  color: var(--ticker-label-fg);
   font-size: 0.62rem;
   border-right: 1px solid rgba(7, 17, 28, 0.08);
 }
@@ -1605,9 +1715,7 @@ h1, h2, h3, h4, h5, h6 {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(130deg, rgba(255, 255, 255, 0.06), transparent 40%),
-    radial-gradient(circle at 85% 20%, rgba(140, 172, 216, 0.2), transparent 22%);
+  background: var(--banner-sheen), var(--banner-orb);
   pointer-events: none;
 }
 
@@ -1620,7 +1728,7 @@ h1, h2, h3, h4, h5, h6 {
   font-size: clamp(2.4rem, 8vw, 5.4rem);
   font-weight: 800;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.05);
+  color: var(--banner-watermark);
   pointer-events: none;
 }
 
@@ -1638,13 +1746,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .hero-title span {
-  color: #dbe3ef;
+  color: var(--accent);
 }
 
 .hero-title span::after {
   bottom: -0.1rem;
   height: 4px;
-  background: linear-gradient(90deg, rgba(131, 167, 218, 0.95), transparent);
+  background: linear-gradient(90deg, var(--accent-blue), transparent);
 }
 
 .hero-kicker {
@@ -2010,7 +2118,7 @@ thead th,
 }
 
 .text-muted {
-  color: #94a1b6;
+  color: var(--muted);
 }
 
 .page-hero,
@@ -2029,9 +2137,7 @@ thead th,
 }
 
 .cowboys-banner::before {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 28%),
-    radial-gradient(circle at 88% 18%, rgba(138, 168, 209, 0.18), transparent 24%);
+  background: var(--banner-sheen), var(--banner-orb);
 }
 
 .intel-page {
@@ -3037,65 +3143,160 @@ thead th,
 
 .theme-midnight,
 .theme-midnight .shell {
+  --dak-navy: #10253d;
+  --dak-silver: #7f9cc0;
+  --dak-silver-lt: #dce9f7;
   --bg: #07111b;
   --card: #0d1826;
   --card-2: #122131;
+  --accent: #a7c2e5;
+  --accent-blue: #74a7f7;
+  --accent-glow: rgba(116, 167, 247, 0.16);
   --header-bg: rgba(5, 10, 18, 0.84);
   --sidebar-bg: linear-gradient(180deg, #050d18 0%, #08111d 40%, #0d1c2f 100%);
+  --ticker-bg: rgba(5, 11, 20, 0.9);
+  --ticker-label-bg: linear-gradient(135deg, #e4edf8 0%, #8aa8d1 100%);
+  --ticker-label-fg: #08111d;
+  --progress-gradient: linear-gradient(90deg, #dce9f7 0%, #74a7f7 55%, #ffffff 100%);
+  --progress-glow: 0 0 16px rgba(116, 167, 247, 0.26);
+  --stage-overlay: linear-gradient(180deg, rgba(9, 19, 33, 0.55), rgba(255, 255, 255, 0));
+  --banner-bg: linear-gradient(135deg, #0d1624 0%, #13263d 52%, #214267 100%);
+  --banner-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 30%);
+  --banner-orb: radial-gradient(circle at 82% 18%, rgba(116, 167, 247, 0.2), transparent 24%);
+  --banner-watermark: rgba(226, 237, 248, 0.08);
+  --gauge-fill: rgba(116, 167, 247, 0.12);
 }
 
 .theme-silver,
 .theme-silver .shell {
+  --dak-navy: #2a3d56;
+  --dak-silver: #b9c7d8;
+  --dak-silver-lt: #eff4fb;
   --bg: #0c131b;
   --card: #1a2430;
   --card-2: #223142;
   --accent: #d6dee9;
   --accent-blue: #9eb4cb;
+  --accent-glow: rgba(214, 222, 233, 0.16);
   --fg: #f6f9fd;
   --fg-dim: #d7dfeb;
   --muted: #9aaabf;
   --sidebar-bg: linear-gradient(180deg, #0d151f 0%, #182331 45%, #30445b 100%);
+  --ticker-bg: rgba(18, 27, 39, 0.9);
+  --ticker-label-bg: linear-gradient(135deg, #f2f6fc 0%, #b8c6d8 100%);
+  --ticker-label-fg: #101924;
+  --progress-gradient: linear-gradient(90deg, #eff4fb 0%, #9eb4cb 55%, #ffffff 100%);
+  --progress-glow: 0 0 16px rgba(185, 199, 216, 0.24);
+  --stage-overlay: linear-gradient(180deg, rgba(27, 38, 52, 0.5), rgba(255, 255, 255, 0));
+  --banner-bg: linear-gradient(135deg, #1a2430 0%, #2e4057 54%, #5e728b 100%);
+  --banner-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 28%);
+  --banner-orb: radial-gradient(circle at 82% 18%, rgba(214, 222, 233, 0.18), transparent 24%);
+  --banner-watermark: rgba(255, 255, 255, 0.09);
+  --gauge-fill: rgba(214, 222, 233, 0.14);
 }
 
 .theme-emerald,
 .theme-emerald .shell {
+  --dak-navy: #0f3029;
+  --dak-silver: #6eb8ab;
+  --dak-silver-lt: #d8f5ee;
   --bg: #071513;
   --card: #0d231f;
   --card-2: #14312c;
+  --accent: #7fe2c7;
   --accent-blue: #7fe2c7;
   --accent-success: #7fe2c7;
+  --accent-glow: rgba(127, 226, 199, 0.16);
   --sidebar-bg: linear-gradient(180deg, #061311 0%, #0d221f 45%, #11413a 100%);
+  --ticker-bg: rgba(7, 21, 19, 0.9);
+  --ticker-label-bg: linear-gradient(135deg, #d7f6ee 0%, #6ccbb3 100%);
+  --ticker-label-fg: #062019;
+  --progress-gradient: linear-gradient(90deg, #d8f5ee 0%, #7fe2c7 55%, #f4fffb 100%);
+  --progress-glow: 0 0 16px rgba(127, 226, 199, 0.26);
+  --stage-overlay: linear-gradient(180deg, rgba(10, 39, 33, 0.58), rgba(255, 255, 255, 0));
+  --banner-bg: linear-gradient(135deg, #0c211d 0%, #12342e 56%, #1e5f55 100%);
+  --banner-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 28%);
+  --banner-orb: radial-gradient(circle at 82% 18%, rgba(127, 226, 199, 0.18), transparent 24%);
+  --banner-watermark: rgba(216, 245, 238, 0.08);
+  --gauge-fill: rgba(127, 226, 199, 0.12);
 }
 
 .theme-sunset,
 .theme-sunset .shell {
+  --dak-navy: #4a271e;
+  --dak-silver: #f4b07d;
+  --dak-silver-lt: #ffe6d3;
   --bg: #181013;
   --card: #2a1d24;
   --card-2: #35232a;
+  --accent: #ffb47a;
   --accent-blue: #ffb47a;
   --accent-success: #ff8b6b;
+  --accent-glow: rgba(255, 180, 122, 0.18);
   --sidebar-bg: linear-gradient(180deg, #1a1014 0%, #2f1e25 45%, #6b3d35 100%);
+  --ticker-bg: rgba(30, 17, 21, 0.92);
+  --ticker-label-bg: linear-gradient(135deg, #ffe9d8 0%, #ffb47a 100%);
+  --ticker-label-fg: #321710;
+  --progress-gradient: linear-gradient(90deg, #ffe6d3 0%, #ffb47a 50%, #ffd9be 100%);
+  --progress-glow: 0 0 16px rgba(255, 180, 122, 0.26);
+  --stage-overlay: linear-gradient(180deg, rgba(51, 28, 36, 0.56), rgba(255, 255, 255, 0));
+  --banner-bg: linear-gradient(135deg, #29191f 0%, #4a2a30 54%, #8f5744 100%);
+  --banner-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 28%);
+  --banner-orb: radial-gradient(circle at 82% 18%, rgba(255, 180, 122, 0.2), transparent 24%);
+  --banner-watermark: rgba(255, 230, 211, 0.08);
+  --gauge-fill: rgba(255, 180, 122, 0.12);
 }
 
 .theme-victory,
 .theme-victory .shell {
+  --dak-navy: #4a3416;
+  --dak-silver: #e8c57d;
+  --dak-silver-lt: #f8ecd1;
   --bg: #161109;
   --card: #261d11;
   --card-2: #342718;
   --accent: #f1d59d;
   --accent-blue: #dfb766;
   --accent-success: #e8c57d;
+  --accent-glow: rgba(241, 213, 157, 0.18);
   --sidebar-bg: linear-gradient(180deg, #151008 0%, #23190e 45%, #5f4721 100%);
+  --ticker-bg: rgba(24, 18, 10, 0.9);
+  --ticker-label-bg: linear-gradient(135deg, #faefd8 0%, #dfb766 100%);
+  --ticker-label-fg: #2d1f0c;
+  --progress-gradient: linear-gradient(90deg, #f8ecd1 0%, #dfb766 55%, #fff7e2 100%);
+  --progress-glow: 0 0 16px rgba(223, 183, 102, 0.24);
+  --stage-overlay: linear-gradient(180deg, rgba(41, 29, 15, 0.55), rgba(255, 255, 255, 0));
+  --banner-bg: linear-gradient(135deg, #241b10 0%, #40301c 54%, #7a5c2b 100%);
+  --banner-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 28%);
+  --banner-orb: radial-gradient(circle at 82% 18%, rgba(241, 213, 157, 0.18), transparent 24%);
+  --banner-watermark: rgba(248, 236, 209, 0.08);
+  --gauge-fill: rgba(241, 213, 157, 0.12);
 }
 
 .theme-retro,
 .theme-retro .shell {
+  --dak-navy: #153018;
+  --dak-silver: #9ddc68;
+  --dak-silver-lt: #ecffd7;
   --bg: #07100a;
   --card: #0d1a11;
   --card-2: #142719;
+  --accent: #a9e870;
   --accent-blue: #a9e870;
   --accent-success: #8fd65b;
+  --accent-glow: rgba(169, 232, 112, 0.18);
   --sidebar-bg: linear-gradient(180deg, #071009 0%, #0c1a10 45%, #183322 100%);
+  --ticker-bg: rgba(8, 15, 10, 0.92);
+  --ticker-label-bg: linear-gradient(135deg, #edffd8 0%, #8fd65b 100%);
+  --ticker-label-fg: #0b150d;
+  --progress-gradient: linear-gradient(90deg, #ecffd7 0%, #8fd65b 55%, #f6ffec 100%);
+  --progress-glow: 0 0 16px rgba(143, 214, 91, 0.24);
+  --stage-overlay: linear-gradient(180deg, rgba(11, 28, 13, 0.58), rgba(255, 255, 255, 0));
+  --banner-bg: linear-gradient(135deg, #0b160d 0%, #16331d 54%, #2d6236 100%);
+  --banner-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 28%);
+  --banner-orb: radial-gradient(circle at 82% 18%, rgba(169, 232, 112, 0.2), transparent 24%);
+  --banner-watermark: rgba(236, 255, 215, 0.08);
+  --gauge-fill: rgba(169, 232, 112, 0.12);
 }
 
 @media (max-width: 1180px) {
@@ -3144,6 +3345,7 @@ thead th,
     font-size: 2.3rem;
   }
 
+  .tsi-card__grid,
   .intel-stat-row,
   .intel-metric-grid,
   .player-radar-metric-grid {

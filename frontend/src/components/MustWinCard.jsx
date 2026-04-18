@@ -17,38 +17,23 @@ function MustWinCard({ year, team = "DAL" }) {
   const topGames = games.slice(0, 3);
 
   return (
-    <div className="card" style={{ borderLeft: '4px solid #d20a0a' }}>
-      <h3 style={{ marginTop: 0, color: '#d20a0a' }}>{team} High Leverage Games</h3>
-      <p style={{ fontSize: '0.8rem', color: '#555' }}>
+    <div className="card must-win-card">
+      <h3 className="must-win-card__title">{team} High Leverage Games</h3>
+      <p className="must-win-card__intro">
         These matchups have the biggest impact on playoff probability for {team}.
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+      <div className="must-win-card__list">
         {topGames.map((g, i) => (
-          <div key={i} style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            background: '#fff',
-            border: '1px solid #eee',
-            padding: '0.5rem',
-            borderRadius: '6px'
-          }}>
+          <div key={i} className="must-win-card__item">
             <div>
-              <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>vs {g.opp}</div>
-              <div style={{ fontSize: '0.75rem', color: '#888' }}>
+              <div className="must-win-card__opp">vs {g.opp}</div>
+              <div className="must-win-card__date">
                 {new Date(g.date).toLocaleDateString(undefined, {month:'short', day:'numeric'})}
               </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ 
-                background: '#fee2e2', 
-                color: '#991b1b', 
-                fontSize: '0.75rem', 
-                fontWeight: 'bold',
-                padding: '2px 6px',
-                borderRadius: '4px'
-              }}>
+            <div className="must-win-card__meta">
+              <div className="must-win-card__badge">
                 {(g.swing * 100).toFixed(1)}% Swing
               </div>
             </div>

@@ -44,8 +44,8 @@ function PlayoffGauge({ teamCode = "DAL", year = new Date().getFullYear() }) {
       const style = getComputedStyle(document.body);
 
       // Read current themed colors
-      const PRIMARY = style.getPropertyValue('--dak-navy').trim() || "#002244";
-      const SECONDARY = style.getPropertyValue('--dak-silver').trim() || "#869397";
+      const PRIMARY = style.getPropertyValue('--accent-blue').trim() || "#3b82f6";
+      const SECONDARY = style.getPropertyValue('--fg-dim').trim() || "#869397";
       const ACCENT = style.getPropertyValue('--accent').trim() || PRIMARY;
       const GAUGE_FILL = style.getPropertyValue('--gauge-fill').trim() || "rgba(255,255,255,0.08)";
 

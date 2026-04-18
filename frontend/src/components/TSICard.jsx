@@ -16,11 +16,11 @@ function TSICard({ year, team = "DAL" }) {
   const tsiColor = data.tsi >= 55 ? "#059669" : data.tsi >= 45 ? "#d97706" : "#dc2626";
 
   return (
-    <div className="card">
+    <div className="card tsi-card">
       <div className="eyebrow">Team Strength Index</div>
-      <h3 style={{ marginTop: 0 }}>{team} Power Rating</h3>
+      <h3 className="tsi-card__title">{team} Power Rating</h3>
       
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+      <div className="tsi-card__hero">
         <div style={{ 
           fontSize: '2.5rem', 
           fontWeight: 900, 
@@ -29,22 +29,22 @@ function TSICard({ year, team = "DAL" }) {
         }}>
           {data.tsi}
         </div>
-        <div style={{ fontSize: '0.8rem', color: '#666' }}>
+        <div className="tsi-card__scale">
           / 100<br/>Scale
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.85rem' }}>
-        <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '4px' }}>
+      <div className="tsi-card__grid">
+        <div className="tsi-card__metric">
           <strong>Offense:</strong> {data.components.offense}
         </div>
-        <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '4px' }}>
+        <div className="tsi-card__metric">
           <strong>Defense:</strong> {data.components.defense}
         </div>
-        <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '4px' }}>
+        <div className="tsi-card__metric">
           <strong>Schedule:</strong> {data.components.schedule}
         </div>
-        <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '4px' }}>
+        <div className="tsi-card__metric">
           <strong>QB Adj:</strong> {data.components.qbAdj}
         </div>
       </div>
