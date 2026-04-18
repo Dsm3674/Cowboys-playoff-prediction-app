@@ -2,8 +2,10 @@ function UserProfileCard() {
   const THEMES = [
     { value: "default", label: "Default Navy", note: "Original LoneStar look" },
     { value: "midnight", label: "Midnight Glass", note: "Deep blue premium look" },
+    { value: "silver", label: "Silver Huddle", note: "Cool metallic Cowboys palette" },
     { value: "emerald", label: "Emerald Pulse", note: "Green market-style glow" },
     { value: "sunset", label: "Sunset Signal", note: "Warm orange and magenta" },
+    { value: "victory", label: "Victory Gold", note: "Warm stadium-light accents" },
     { value: "retro", label: "Retro Console", note: "Terminal-inspired neon" },
   ];
 
@@ -34,11 +36,20 @@ function UserProfileCard() {
   }, []);
 
   const applyTheme = (themeValue) => {
-    document.body.classList.remove("theme-midnight", "theme-emerald", "theme-sunset", "theme-retro");
+    document.body.classList.remove(
+      "theme-midnight",
+      "theme-silver",
+      "theme-emerald",
+      "theme-sunset",
+      "theme-victory",
+      "theme-retro"
+    );
 
     if (themeValue === "midnight") document.body.classList.add("theme-midnight");
+    if (themeValue === "silver") document.body.classList.add("theme-silver");
     if (themeValue === "emerald") document.body.classList.add("theme-emerald");
     if (themeValue === "sunset") document.body.classList.add("theme-sunset");
+    if (themeValue === "victory") document.body.classList.add("theme-victory");
     if (themeValue === "retro") document.body.classList.add("theme-retro");
   };
 
@@ -98,6 +109,31 @@ function UserProfileCard() {
 
   const activeTheme = THEMES.find((item) => item.value === theme) || THEMES[0];
 
+  const renderThemePicker = () => (
+    <div className="theme-option-grid">
+      {THEMES.map((item) => (
+        <button
+          key={item.value}
+          type="button"
+          className={`theme-option-card ${theme === item.value ? "is-active" : ""}`}
+          aria-pressed={theme === item.value}
+          aria-label={`${item.label} theme`}
+          onClick={() => handleThemeChange({ target: { value: item.value } })}
+        >
+          <div className={`theme-preview theme-preview--${item.value}`}>
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="theme-option-copy">
+            <div className="theme-option-title">{item.label}</div>
+            <div className="theme-option-note">{item.note}</div>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="intel-page">
       <section className="intel-hero">
@@ -136,13 +172,7 @@ function UserProfileCard() {
 
               <div className="intel-form-group">
                 <label className="intel-label">Theme</label>
-                <select className="intel-select" value={theme} onChange={handleThemeChange}>
-                  {THEMES.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
+                {renderThemePicker()}
                 <div className="text-muted" style={{ marginTop: 8 }}>{activeTheme.note}</div>
               </div>
 
@@ -165,13 +195,7 @@ function UserProfileCard() {
 
               <div className="intel-form-group">
                 <label className="intel-label">Switch Theme</label>
-                <select className="intel-select" value={theme} onChange={handleThemeChange}>
-                  {THEMES.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
+                {renderThemePicker()}
                 <div className="text-muted" style={{ marginTop: 8 }}>{activeTheme.note}</div>
               </div>
 

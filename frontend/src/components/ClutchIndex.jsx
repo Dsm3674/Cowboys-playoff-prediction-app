@@ -29,6 +29,14 @@ function ClutchIndex() {
     return "intel-badge--danger";
   };
 
+  const formatLabel = (value) => {
+    if (!value) return "Unknown";
+    return String(value)
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
   const getSortedPlayers = () => {
     if (!data?.players) return [];
 
@@ -112,13 +120,14 @@ function ClutchIndex() {
       <section className="intel-grid intel-grid--support">
 
         <article className="intel-panel">
-          <div className="intel-section-title">🏆 Clutch Leaders</div>
+          <div className="intel-section-kicker">Top Performers</div>
+          <div className="intel-section-title">Clutch Leaders</div>
           <div className="intel-rank-list">
             {data.leaders?.slice(0, 3).map((p, i) => (
               <div key={p.id} className="intel-rank-row">
                 <div>
-                  <div className="intel-rank-name">{p.name}</div>
-                  <div className="intel-rank-meta">{p.ranking}</div>
+                  <div className="intel-rank-name">{i + 1}. {p.name}</div>
+                  <div className="intel-rank-meta">{formatLabel(p.ranking)}</div>
                 </div>
                 <div className="intel-rank-value">
                   {p.clutchIndex.toFixed(1)}
@@ -129,13 +138,14 @@ function ClutchIndex() {
         </article>
 
         <article className="intel-panel">
-          <div className="intel-section-title">⚠️ Underperformers</div>
+          <div className="intel-section-kicker">Needs Lift</div>
+          <div className="intel-section-title">Underperformers</div>
           <div className="intel-rank-list">
             {data.underperformers?.slice(0, 3).map((p) => (
               <div key={p.id} className="intel-rank-row">
                 <div>
                   <div className="intel-rank-name">{p.name}</div>
-                  <div className="intel-rank-meta">{p.ranking}</div>
+                  <div className="intel-rank-meta">{formatLabel(p.ranking)}</div>
                 </div>
                 <div className="intel-rank-value intel-danger">
                   {p.clutchIndex.toFixed(1)}
@@ -146,11 +156,15 @@ function ClutchIndex() {
         </article>
 
         <article className="intel-panel">
-          <div className="intel-section-title">📊 Team Situations</div>
+          <div className="intel-section-kicker">Pressure Zones</div>
+          <div className="intel-section-title">Team Situations</div>
           <div className="intel-stack">
             {data.teamStats?.situationAnalysis?.slice(0, 4).map((s, i) => (
               <div key={i} className="intel-bar-row">
-                <div className="intel-bar-label">{s.situation}</div>
+                <div className="intel-bar-header">
+                  <div className="intel-bar-label">{formatLabel(s.situation)}</div>
+                  <div className="intel-bar-value">{Number(s.performance || 0).toFixed(0)}</div>
+                </div>
                 <div className="intel-bar">
                   <div
                     className={`intel-bar-fill ${getPerformanceColorClass(s.performance)}`}
@@ -166,6 +180,7 @@ function ClutchIndex() {
 
       {/* TABLE */}
       <section className="intel-panel intel-panel--primary">
+        <div className="intel-section-kicker">Player Snapshot</div>
         <div className="intel-section-title">Roster Breakdown</div>
 
         <div className="intel-table-wrap">
@@ -202,7 +217,7 @@ function ClutchIndex() {
                     </td>
                     <td>
                       <span className="intel-badge">
-                        {player.ranking}
+                        {formatLabel(player.ranking)}
                       </span>
                     </td>
                   </tr>
@@ -226,7 +241,8 @@ function ClutchIndex() {
       {/* INSIGHTS */}
       {data.insights?.length > 0 && (
         <section className="intel-panel">
-          <div className="intel-section-title">💡 Insights</div>
+          <div className="intel-section-kicker">Film Notes</div>
+          <div className="intel-section-title">Insights</div>
           <div className="intel-insight-grid">
             {data.insights.map((insight, i) => (
               <div key={i} className="intel-insight-card">
