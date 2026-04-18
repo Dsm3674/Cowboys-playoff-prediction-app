@@ -197,13 +197,13 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
       <div className="cowboys-banner war-room-banner">
         <div className="banner-content">
           <h1 className="hero-title">
-            {teamInfo.name} <span>War Room</span>
+            {teamInfo.name} <span>Playoff Pulse</span>
           </h1>
           <p className="hero-kicker">
-            Predictive analytics and season intelligence for the {teamInfo.name}.
+            Dark navy playoff analytics and live season intelligence for the {teamInfo.name}.
           </p>
           <p className="intel-note">
-            Unified command center for record, TSI, schedule pressure, and live win-state tools.
+            Cowboys-inspired command center for record, TSI, schedule leverage, and live win-state tools.
           </p>
         </div>
       </div>
@@ -223,10 +223,10 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
       <div className="data-grid">
         <div className="reveal-up stagger-3">
           <div className="card cowboys-card">
-            <div className="eyebrow">Tactical Overview</div>
+            <div className="eyebrow">Playoff Snapshot</div>
             <h3>Playoff Outlook</h3>
             <p className="text-muted">
-              Live team metrics plus what-if analysis.
+              Live team metrics, cleaner hierarchy, and what-if analysis at a glance.
             </p>
           </div>
           <LiveWinProbTool />
