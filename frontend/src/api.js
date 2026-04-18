@@ -207,6 +207,12 @@
     return request("/api/players/maps");
   }
 
+  async function getPlayerRadar(season) {
+    return request("/api/players/radar", {
+      query: { season }
+    });
+  }
+
   async function getClutchIndex(season) {
     return request("/api/players/clutch", {
       query: { season }
@@ -221,6 +227,12 @@
 
   async function getTimelinePoints(season) {
     return request("/api/timeline/points", {
+      query: { season }
+    });
+  }
+
+  async function getTimelineFull(season) {
+    return request("/api/timeline/full", {
       query: { season }
     });
   }
@@ -305,9 +317,11 @@
     getMatchup,
     getTeamComparison,
     getPlayerMaps,
+    getPlayerRadar,
     getClutchIndex,
     getPlayerEvents,
     getTimelinePoints,
+    getTimelineFull,
     getCacheStats,
     generatePrediction,
     getCurrentPrediction,

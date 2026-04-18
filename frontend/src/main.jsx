@@ -282,7 +282,6 @@ function PlayersPage({ year, selectedTeam }) {
   const DetailedTeamProfilePage = getGlobalComponent("DetailedTeamProfilePage", "Team Profile");
   const TeamComparisonPage = getGlobalComponent("TeamComparisonPage", "Team Comparison");
   const PlayerRadar = getGlobalComponent("PlayerRadar", "Player Radar");
-  const Maps = getGlobalComponent("Maps", "Maps");
   const RivalTeamImpactPage = getGlobalComponent("RivalTeamImpactPage", "Rival Impact");
 
   return (
@@ -294,12 +293,7 @@ function PlayersPage({ year, selectedTeam }) {
       <div className="reveal-up" key={activeTab}>
         {activeTab === "team-profile" && <DetailedTeamProfilePage year={year} selectedTeam={selectedTeam} />}
         {activeTab === "compare" && <TeamComparisonPage year={year} selectedTeam={selectedTeam} />}
-        {activeTab === "analytics" && (
-          <div className="data-grid">
-            <PlayerRadar />
-            <Maps />
-          </div>
-        )}
+        {activeTab === "analytics" && <PlayerRadar />}
         {activeTab === "rival" && <RivalTeamImpactPage year={year} selectedTeam={selectedTeam} />}
       </div>
     </PageShell>

@@ -15,17 +15,15 @@ function Timeline() {
       setTimelineReason("");
 
       try {
-        const BASE =
-          window.location.hostname === "localhost"
-            ? "http://localhost:3001"
-            : window.location.origin;
-
-        const res = await fetch(`${BASE}/api/timeline?season=${season}`);
-        if (!res.ok) {
-          throw new Error(`Failed to load timeline for ${season}.`);
+        const api = window.api;
+        if (!api?.getTimelineFull && !api?.getTimelinePoints) {
+          throw new Error("Timeline API is unavailable.");
         }
 
-        const json = await res.json();
+        const json = api.getTimelineFull
+          ? await api.getTimelineFull(season)
+          : await api.getTimelinePoints(season);
+
         if (cancelled) return;
 
         const normalizedEvents = Array.isArray(json.events)
@@ -38,7 +36,7 @@ function Timeline() {
         setSelectedEvent(normalizedEvents[0] || null);
 
         if (!normalizedEvents.length) {
-          setTimelineReason("No timeline events were returned for this season.");
+          setTimelineReason(json.reason || "No timeline events were returned for this season.");
         }
       } catch (err) {
         if (!cancelled) {

@@ -11,16 +11,12 @@ function PlayerRadar() {
       try {
         setLoading(true);
         setError("");
+        const api = window.api;
+        if (!api?.getPlayerRadar) {
+          throw new Error("Player radar API is unavailable.");
+        }
 
-        const BASE =
-          window.location.hostname === "localhost"
-            ? "http://localhost:3001"
-            : window.location.origin;
-
-        const res = await fetch(`${BASE}/api/players/radar`);
-        if (!res.ok) throw new Error("Failed to load player radar.");
-
-        const json = await res.json();
+        const json = await api.getPlayerRadar(new Date().getFullYear());
 
         const labels = Array.isArray(json.labels) && json.labels.length
           ? json.labels
