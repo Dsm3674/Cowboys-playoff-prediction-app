@@ -3360,3 +3360,301 @@ thead th,
     text-align: left;
   }
 }
+
+/* ============================================================
+   HAND-TUNED SPORTS DESK PASS
+   Keeps the dark Cowboys feel while trimming glossy template cues.
+   ============================================================ */
+
+:root {
+  --bg: #07101b;
+  --bg-elevated: #0a1421;
+  --card: #0d1826;
+  --card-2: #111f30;
+  --border: rgba(183, 194, 211, 0.16);
+  --border-hover: rgba(225, 231, 241, 0.28);
+  --fg: #f0f3f8;
+  --fg-dim: #c6d0de;
+  --muted: #8795aa;
+  --accent: #c7d0dc;
+  --accent-blue: #7c9cc7;
+  --accent-glow: rgba(124, 156, 199, 0.12);
+  --header-bg: rgba(7, 16, 27, 0.92);
+  --sidebar-bg: #081320;
+  --banner-bg:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 78px),
+    linear-gradient(135deg, #0b1a2c 0%, #10233a 58%, #182f4c 100%);
+  --banner-sheen: linear-gradient(90deg, rgba(255, 255, 255, 0.055), transparent 42%);
+  --banner-orb: none;
+  --banner-watermark: rgba(236, 241, 248, 0.055);
+  --progress-gradient: linear-gradient(90deg, #d6dee9 0%, #7896bf 55%, #edf2f8 100%);
+  --progress-glow: none;
+  --stage-overlay: linear-gradient(180deg, rgba(8, 18, 31, 0.2), rgba(8, 18, 31, 0));
+  --shadow: 0 14px 28px rgba(0, 0, 0, 0.32);
+  --shadow-soft: 0 8px 18px rgba(0, 0, 0, 0.22);
+  --shadow-glow: 0 12px 22px rgba(0, 0, 0, 0.22);
+  --font-display: "Barlow Condensed", "Oswald", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-ui: "IBM Plex Sans", system-ui, sans-serif;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 100%),
+    linear-gradient(180deg, #07101b 0%, #091725 46%, #07101b 100%);
+  background-size: 96px 96px, auto;
+  letter-spacing: 0;
+}
+
+.shell {
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 32px),
+    transparent;
+}
+
+h1, h2, h3, h4, h5, h6,
+.intel-title,
+.hero-title,
+.sidebar__title,
+.metric-value,
+.stat-value,
+.prob-display,
+.scoreboard-card .score-display {
+  letter-spacing: 0;
+}
+
+.sidebar {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), transparent 180px),
+    var(--sidebar-bg);
+  box-shadow: 8px 0 22px rgba(0, 0, 0, 0.24);
+}
+
+.sidebar::before {
+  content: "DAL";
+  font-size: 4.25rem;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.028);
+}
+
+.sidebar__logo,
+.card,
+.metric-tile,
+.scoreboard-card,
+.data-table-wrap,
+.rival-card,
+.cmd-k-modal,
+.intel-panel,
+.intel-stat,
+.intel-input,
+.intel-select,
+.intel-form textarea,
+.intel-dropdown,
+.intel-table-wrap,
+.intel-metric-card,
+.intel-story-panel,
+.intel-insight-card,
+.theme-option-card,
+.theme-preview,
+.intel-feed-item,
+.intel-canvas,
+.intel-row,
+.player-radar-card,
+.player-radar-metric,
+.tsi-card__metric,
+.must-win-card__item {
+  border-radius: 8px;
+}
+
+.sidebar__logo {
+  margin: 0.9rem;
+  border-color: rgba(198, 208, 222, 0.14);
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: none;
+}
+
+.sidebar__logo::after {
+  border-radius: 4px;
+  background: transparent;
+}
+
+.star-icon {
+  border-radius: 4px;
+  background: #c7d0dc;
+  box-shadow: none;
+  letter-spacing: 0.12em;
+}
+
+.nav-link,
+.sub-tab,
+.key-insight,
+.app-shell-header__status,
+.intel-chip,
+.intel-badge,
+.must-win-card__badge,
+.badge,
+.chip.win,
+.must-win-badge,
+.pos-badge,
+.path-w,
+.path-l {
+  border-radius: 4px;
+}
+
+.nav-link {
+  font-weight: 650;
+  background: transparent;
+}
+
+.nav-link::after,
+.nav-link::before {
+  border-radius: 2px;
+}
+
+.nav-link.active,
+.sub-tab.active,
+.cmd-k-item.active,
+.cmd-k-item:hover,
+.intel-feed-item.active,
+.player-radar-card.is-active {
+  background: rgba(124, 156, 199, 0.12);
+  box-shadow: none;
+}
+
+.app-shell-header,
+.dashboard-header {
+  height: 68px;
+  background: var(--header-bg);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-shell-header__status {
+  background: transparent;
+}
+
+.intel-live-dot {
+  box-shadow: none;
+}
+
+.cowboys-banner {
+  border-radius: 10px;
+  padding: 2.35rem 2rem;
+  box-shadow: var(--shadow);
+}
+
+.cowboys-banner::before {
+  background: var(--banner-sheen);
+}
+
+.cowboys-banner::after {
+  right: 1.6rem;
+  bottom: 1.1rem;
+  letter-spacing: 0;
+}
+
+.hero-title {
+  font-size: clamp(2.2rem, 4.7vw, 3.65rem);
+  line-height: 0.98;
+}
+
+.hero-title span::after {
+  height: 2px;
+  background: #7c9cc7;
+}
+
+.hero-kicker,
+.intel-note,
+.page-subtitle,
+.text-muted,
+.intel-subtitle {
+  color: #9aa8ba;
+}
+
+.card,
+.metric-tile,
+.scoreboard-card,
+.data-table-wrap,
+.rival-card,
+.cmd-k-modal,
+.intel-panel {
+  background: rgba(13, 24, 38, 0.96);
+  box-shadow: var(--shadow-soft);
+}
+
+.card::before,
+.intel-panel::before {
+  display: none;
+}
+
+.card:hover,
+.metric-tile:hover,
+.rival-card:hover,
+.theme-option-card:hover,
+.theme-option-card.is-active,
+.intel-feed-item:hover,
+.intel-feed-item.active,
+.player-radar-card:hover,
+.player-radar-card.is-active {
+  transform: none;
+}
+
+.btn-primary,
+.intel-button--primary {
+  background: #c7d0dc;
+  border-color: #d8e0ea;
+  box-shadow: none;
+}
+
+.btn-primary:hover:not(:disabled),
+.intel-button--primary:hover:not(:disabled) {
+  background: #dbe2eb;
+  box-shadow: none;
+}
+
+.btn-secondary,
+.intel-button {
+  box-shadow: none;
+}
+
+.progress-fill,
+.win-prob-home,
+.win-prob-away,
+.intel-bar-fill,
+.intel-bar-fill.intel-badge--success,
+.intel-bar-fill.intel-badge--warning,
+.intel-bar-fill.intel-badge--accent,
+.intel-bar-fill.intel-badge--danger,
+.player-radar-mini__track span,
+.player-radar-metric__track span {
+  background: #8aa5c6;
+}
+
+.skeleton-block,
+.intel-skeleton {
+  animation-duration: 2.4s;
+}
+
+.live-ticker-wrap {
+  background: rgba(7, 16, 27, 0.94);
+  backdrop-filter: none;
+}
+
+.ticker-label {
+  background: #c7d0dc;
+}
+
+.data-table-wrap thead th {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+@media (max-width: 960px) {
+  .cowboys-banner {
+    border-radius: 8px;
+  }
+}
