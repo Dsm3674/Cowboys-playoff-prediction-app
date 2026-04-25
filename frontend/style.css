@@ -3398,6 +3398,15 @@ thead th,
   --font-ui: "IBM Plex Sans", system-ui, sans-serif;
 }
 
+.theme-midnight,
+.theme-silver,
+.theme-emerald,
+.theme-sunset,
+.theme-victory,
+.theme-retro {
+  --bg-elevated: var(--card);
+}
+
 html {
   background: var(--bg);
 }
@@ -3405,7 +3414,7 @@ html {
 body {
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 100%),
-    linear-gradient(180deg, #07101b 0%, #091725 46%, #07101b 100%);
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-elevated) 46%, var(--bg) 100%);
   background-size: 96px 96px, auto;
   letter-spacing: 0;
 }
@@ -3438,7 +3447,7 @@ h1, h2, h3, h4, h5, h6,
   content: "DAL";
   font-size: 4.25rem;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.028);
+  color: var(--banner-watermark);
 }
 
 .sidebar__logo,
@@ -3484,7 +3493,8 @@ h1, h2, h3, h4, h5, h6,
 
 .star-icon {
   border-radius: 4px;
-  background: #c7d0dc;
+  background: var(--accent);
+  color: var(--ticker-label-fg);
   box-shadow: none;
   letter-spacing: 0.12em;
 }
@@ -3521,7 +3531,7 @@ h1, h2, h3, h4, h5, h6,
 .cmd-k-item:hover,
 .intel-feed-item.active,
 .player-radar-card.is-active {
-  background: rgba(124, 156, 199, 0.12);
+  background: var(--accent-glow);
   box-shadow: none;
 }
 
@@ -3564,7 +3574,7 @@ h1, h2, h3, h4, h5, h6,
 
 .hero-title span::after {
   height: 2px;
-  background: #7c9cc7;
+  background: var(--accent-blue);
 }
 
 .hero-kicker,
@@ -3572,7 +3582,7 @@ h1, h2, h3, h4, h5, h6,
 .page-subtitle,
 .text-muted,
 .intel-subtitle {
-  color: #9aa8ba;
+  color: var(--muted);
 }
 
 .card,
@@ -3582,7 +3592,7 @@ h1, h2, h3, h4, h5, h6,
 .rival-card,
 .cmd-k-modal,
 .intel-panel {
-  background: rgba(13, 24, 38, 0.96);
+  background: var(--card);
   box-shadow: var(--shadow-soft);
 }
 
@@ -3605,14 +3615,15 @@ h1, h2, h3, h4, h5, h6,
 
 .btn-primary,
 .intel-button--primary {
-  background: #c7d0dc;
-  border-color: #d8e0ea;
+  background: var(--accent);
+  border-color: var(--dak-silver-lt);
+  color: var(--ticker-label-fg);
   box-shadow: none;
 }
 
 .btn-primary:hover:not(:disabled),
 .intel-button--primary:hover:not(:disabled) {
-  background: #dbe2eb;
+  background: var(--dak-silver-lt);
   box-shadow: none;
 }
 
@@ -3631,7 +3642,7 @@ h1, h2, h3, h4, h5, h6,
 .intel-bar-fill.intel-badge--danger,
 .player-radar-mini__track span,
 .player-radar-metric__track span {
-  background: #8aa5c6;
+  background: var(--accent-blue);
 }
 
 .skeleton-block,
@@ -3640,17 +3651,191 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .live-ticker-wrap {
-  background: rgba(7, 16, 27, 0.94);
+  background: var(--ticker-bg);
   backdrop-filter: none;
 }
 
 .ticker-label {
-  background: #c7d0dc;
+  background: var(--ticker-label-bg);
+  color: var(--ticker-label-fg);
 }
 
 .data-table-wrap thead th {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+.text-accent,
+.metric-value.accent,
+.ticker-item .text-accent,
+.badge.cowboys,
+.chip.win,
+.path-w {
+  color: var(--accent);
+}
+
+.app-shell-header__page,
+.intel-title,
+.intel-section-title,
+.intel-stat__value,
+.intel-metric-card__value,
+.intel-rank-name,
+.intel-rank-value,
+.intel-feed-title,
+.player-radar-card__name,
+.player-radar-detail__name,
+.player-radar-score,
+.player-radar-detail__score,
+.player-radar-metric__header strong,
+.theme-option-title {
+  color: var(--fg);
+}
+
+.app-shell-header__label,
+.app-shell-header__divider,
+.metric-label,
+.prob-label,
+.progress-label,
+.scoreboard-card .score-label,
+thead th,
+.cmd-k-item-meta,
+.intel-stat__label,
+.intel-label,
+.intel-metric-card__label,
+.intel-rank-meta,
+.intel-bar-value,
+.intel-empty,
+.intel-expanded,
+.theme-option-note,
+.intel-feed-meta,
+.intel-row__meta,
+.player-radar-card__meta,
+.player-radar-detail__meta,
+.player-radar-score-label,
+.player-radar-detail__score-label,
+.player-radar-mini__label,
+.player-radar-metric__header span {
+  color: var(--muted);
+}
+
+.intel-kicker,
+.intel-section-kicker,
+.card .eyebrow {
+  color: var(--accent-blue);
+}
+
+.intel-kicker::before {
+  color: var(--accent);
+}
+
+.sub-tab,
+.key-insight,
+.intel-chip,
+.intel-banner,
+.intel-stat,
+.intel-input,
+.intel-select,
+.intel-form textarea,
+.intel-table-wrap,
+.intel-metric-card,
+.intel-story-panel,
+.intel-insight-card,
+.theme-option-card,
+.intel-feed-item,
+.intel-canvas,
+.intel-row,
+.player-radar-card,
+.player-radar-metric,
+.tsi-card__metric,
+.must-win-card__item {
+  background: var(--card-2);
+  border-color: var(--border);
+  color: var(--fg-dim);
+}
+
+.sub-tab:hover,
+.sub-tab.active,
+.theme-option-card:hover,
+.theme-option-card.is-active,
+.intel-feed-item:hover,
+.intel-feed-item.active,
+.player-radar-card:hover,
+.player-radar-card.is-active {
+  background: var(--accent-glow);
+  border-color: var(--border-hover);
+}
+
+.intel-input:focus,
+.intel-select:focus,
+.intel-form textarea:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+  background: var(--card);
+}
+
+.intel-dropdown {
+  background: var(--card);
+  border-color: var(--border);
+}
+
+.intel-dropdown > div {
+  color: var(--fg);
+}
+
+.intel-dropdown > div:hover {
+  background: var(--accent-glow);
+}
+
+.intel-slider {
+  background: linear-gradient(90deg, var(--accent-blue), var(--card-2));
+}
+
+.intel-slider::-webkit-slider-thumb {
+  background: var(--accent);
+  border-color: var(--bg);
+  box-shadow: none;
+}
+
+.intel-slider::-moz-range-thumb {
+  background: var(--accent);
+  border-color: var(--bg);
+  box-shadow: none;
+}
+
+.intel-button,
+.btn-secondary {
+  background: var(--card-2);
+  border-color: var(--border);
+  color: var(--fg-dim);
+}
+
+.intel-button:hover:not(:disabled),
+.btn-secondary:hover:not(:disabled) {
+  background: var(--accent-glow);
+  border-color: var(--border-hover);
+  color: var(--fg);
+}
+
+.intel-badge,
+.badge,
+.chip.win,
+.path-w,
+.pos-badge,
+.must-win-badge {
+  background: var(--accent-glow);
+  border-color: var(--border);
+  color: var(--accent);
+}
+
+.intel-badge--accent,
+.intel-badge--neutral {
+  background: var(--accent-glow);
+  border-color: var(--border-hover);
+  color: var(--accent);
+}
+
+.theme-preview--default {
+  background: var(--banner-bg);
 }
 
 @media (max-width: 960px) {
