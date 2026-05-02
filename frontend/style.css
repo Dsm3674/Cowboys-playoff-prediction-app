@@ -3491,6 +3491,10 @@ h1, h2, h3, h4, h5, h6,
   background: transparent;
 }
 
+.sidebar__logo::after {
+  content: none !important;
+}
+
 .star-icon {
   border-radius: 4px;
   background: var(--accent);
