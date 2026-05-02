@@ -18,6 +18,8 @@ const generalLimiter = rateLimit({
 
 const teamsRoutes = require("./routes/teams");
 const cowboysRoutes = require("./routes/cowboys");
+const authRoutes = require("./routes/auth");
+app.use("/api/auth", authRoutes);
 app.use("/api/teams", teamsRoutes);
 app.use("/api/cowboys", cowboysRoutes);
 
@@ -56,4 +58,3 @@ app.get("*", generalLimiter, (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
-

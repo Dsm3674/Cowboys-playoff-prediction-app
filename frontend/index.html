@@ -69,7 +69,7 @@
     <footer class="lp-foot"><div>© 2025 Cowboys IQ · A playoff intelligence platform.</div><div class="lp-foot__links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Data Sources</a><a href="#">Contact</a></div></footer>
   </div>
 
-  <div class="lp-modal-backdrop" id="lp-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="lp-modal-title"><div class="lp-modal"><button class="lp-modal__close" id="lp-modal-close" aria-label="Close">×</button><div class="lp-modal__eyebrow">★ Cowboys IQ Access</div><h2 class="lp-modal__title" id="lp-modal-title">Welcome back</h2><p class="lp-modal__sub" id="lp-modal-sub">Sign in to your command center.</p><div class="lp-tabs" role="tablist"><button class="lp-tab is-active" data-tab="signin" role="tab" aria-selected="true">Sign In</button><button class="lp-tab" data-tab="signup" role="tab" aria-selected="false">Sign Up</button></div><div class="lp-modal__error" id="lp-modal-error">Please enter your Gmail and password.</div><form id="lp-auth-form" autocomplete="on" novalidate><div class="lp-field" id="lp-name-field" style="display:none"><label class="lp-field__label" for="lp-name">Name</label><input type="text" id="lp-name" name="name" placeholder="Jerry Jones" autocomplete="name" /></div><div class="lp-field"><label class="lp-field__label" for="lp-email">Gmail</label><input type="email" id="lp-email" name="email" placeholder="you@gmail.com" required autocomplete="email" /></div><div class="lp-field"><label class="lp-field__label" for="lp-pass">Password</label><input type="password" id="lp-pass" name="password" placeholder="••••••••" required autocomplete="current-password" minlength="6" /></div><div class="lp-field lp-field--otp" id="lp-otp-field" style="display:none"><label class="lp-field__label" for="lp-otp">Two-factor code</label><input type="text" id="lp-otp" name="otp" placeholder="246810" inputmode="numeric" maxlength="6" autocomplete="one-time-code" /><div class="lp-otp-hint">Demo code: 246810</div></div><div class="lp-field__row"><label><input type="checkbox" id="lp-remember" checked /> Remember me</label><a href="#">Forgot password?</a></div><button type="submit" class="lp-btn lp-btn--primary"><span id="lp-submit-label">Enter the Game App</span><span class="lp-btn__arrow">-></span></button></form><div class="lp-modal__divider">Gmail + 2FA required</div><button class="lp-modal__guest" id="lp-modal-guest">Create an account with Gmail</button></div></div>
+  <div class="lp-modal-backdrop" id="lp-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="lp-modal-title"><div class="lp-modal"><button class="lp-modal__close" id="lp-modal-close" aria-label="Close">×</button><div class="lp-modal__eyebrow">★ Cowboys IQ Access</div><h2 class="lp-modal__title" id="lp-modal-title">Welcome back</h2><p class="lp-modal__sub" id="lp-modal-sub">Sign in to your command center.</p><div class="lp-tabs" role="tablist"><button class="lp-tab is-active" data-tab="signin" role="tab" aria-selected="true">Sign In</button><button class="lp-tab" data-tab="signup" role="tab" aria-selected="false">Sign Up</button></div><div class="lp-modal__error" id="lp-modal-error">Please enter your Gmail and password.</div><form id="lp-auth-form" autocomplete="on" novalidate><div class="lp-field" id="lp-name-field" style="display:none"><label class="lp-field__label" for="lp-name">Name</label><input type="text" id="lp-name" name="name" placeholder="Jerry Jones" autocomplete="name" /></div><div class="lp-field"><label class="lp-field__label" for="lp-email">Gmail</label><input type="email" id="lp-email" name="email" placeholder="you@gmail.com" required autocomplete="email" /></div><div class="lp-field"><label class="lp-field__label" for="lp-pass">Password</label><input type="password" id="lp-pass" name="password" placeholder="••••••••" required autocomplete="current-password" minlength="6" /></div><div class="lp-field lp-field--otp" id="lp-otp-field" style="display:none"><label class="lp-field__label" for="lp-otp">Two-factor code</label><input type="text" id="lp-otp" name="otp" placeholder="000000" inputmode="numeric" maxlength="6" autocomplete="one-time-code" /><div class="lp-otp-hint" id="lp-otp-hint">Check your Gmail for the 6-digit code.</div></div><div class="lp-field__row"><label><input type="checkbox" id="lp-remember" checked /> Remember me</label><a href="#">Forgot password?</a></div><button type="submit" class="lp-btn lp-btn--primary"><span id="lp-submit-label">Enter the Game App</span><span class="lp-btn__arrow">-></span></button></form><div class="lp-modal__divider">Gmail + 2FA required</div><button class="lp-modal__guest" id="lp-modal-guest">Create an account with Gmail</button></div></div>
 
   <div class="lp-auth-transition" id="lp-auth-transition" aria-hidden="true"><div class="lp-auth-transition__box"><div class="lp-auth-transition__ring"></div><div class="lp-auth-transition__title">Opening dashboard</div><div class="lp-auth-transition__copy">Verifying Gmail · 2FA · Cowboys IQ</div></div></div>
 
@@ -82,7 +82,10 @@
       "use strict";
 
       var AUTH_KEY = "cowboys_iq_auth_v2";
-      var OTP_CODE = "246810";
+      var AUTH_BASE =
+        (location.hostname === "localhost" || location.hostname === "127.0.0.1") && location.port !== "3001"
+          ? "http://localhost:3001"
+          : location.origin;
       var body = document.body;
       var modal = document.getElementById("lp-modal-backdrop");
       var stage = document.getElementById("lp-stage");
@@ -96,11 +99,13 @@
       var nameInput = document.getElementById("lp-name");
       var otpField = document.getElementById("lp-otp-field");
       var otpInput = document.getElementById("lp-otp");
+      var otpHint = document.getElementById("lp-otp-hint");
       var submitLabel = document.getElementById("lp-submit-label");
       var form = document.getElementById("lp-auth-form");
       var tabs = document.querySelectorAll(".lp-tab");
       var currentTab = "signin";
       var pendingUser = null;
+      var pendingChallengeId = null;
 
       try {
         localStorage.removeItem("cowboys_iq_auth_v1");
@@ -124,26 +129,60 @@
         modalError.classList.add("is-visible");
       }
 
+      async function postAuth(path, payload) {
+        var res = await fetch(AUTH_BASE + path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        var data = await res.json().catch(function () { return {}; });
+        if (!res.ok) {
+          throw new Error(data.error || data.message || "Authentication request failed.");
+        }
+        return data;
+      }
+
       function resetTwoFactor() {
         pendingUser = null;
+        pendingChallengeId = null;
         otpInput.value = "";
         otpField.style.display = "none";
+        otpHint.textContent = "Check your Gmail for the 6-digit code.";
         emailInput.disabled = false;
         passInput.disabled = false;
         nameInput.disabled = false;
       }
 
-      function requestTwoFactor(email) {
-        pendingUser = email;
+      async function requestTwoFactor(email) {
         modalError.classList.remove("is-visible");
-        modalTitle.textContent = "Two-factor check";
-        modalSub.textContent = "Enter the 6-digit code to open the dashboard.";
-        submitLabel.textContent = "Verify and enter";
-        otpField.style.display = "";
-        emailInput.disabled = true;
-        passInput.disabled = true;
-        nameInput.disabled = true;
-        setTimeout(function () { otpInput.focus(); }, 120);
+        submitLabel.textContent = "Sending code...";
+        try {
+          var data = await postAuth("/api/auth/request-otp", { email: email });
+          pendingUser = email;
+          pendingChallengeId = data.challengeId;
+          modalTitle.textContent = "Two-factor check";
+          modalSub.textContent = "Enter the 6-digit code to open the dashboard.";
+          submitLabel.textContent = "Verify and enter";
+          otpField.style.display = "";
+          otpHint.textContent = data.devCode
+            ? "Local dev code: " + data.devCode
+            : "Check your Gmail for the 6-digit code.";
+          emailInput.disabled = true;
+          passInput.disabled = true;
+          nameInput.disabled = true;
+          setTimeout(function () { otpInput.focus(); }, 120);
+        } catch (err) {
+          submitLabel.textContent = currentTab === "signup" ? "Create account" : "Enter the War Room";
+          showError(err.message || "Unable to send two-factor code.");
+        }
+      }
+
+      async function verifyTwoFactor() {
+        var data = await postAuth("/api/auth/verify-otp", {
+          challengeId: pendingChallengeId,
+          code: otpInput.value.trim()
+        });
+        return data;
       }
 
       function openModal(mode) {
@@ -210,6 +249,7 @@
                 method: "gmail",
                 twoFactor: true,
                 user: opts.user,
+                sessionToken: opts.sessionToken || null,
                 ts: Date.now()
               }));
             } catch (e) {}
@@ -273,14 +313,21 @@
         });
       });
 
-      form.addEventListener("submit", function (e) {
+      form.addEventListener("submit", async function (e) {
         e.preventDefault();
         if (pendingUser) {
-          if (otpInput.value.trim() !== OTP_CODE) {
-            showError("Two-factor code is 246810 for this demo.");
+          if (!pendingChallengeId) {
+            showError("Request a new two-factor code.");
             return;
           }
-          unlockApp({ user: pendingUser });
+          submitLabel.textContent = "Verifying...";
+          try {
+            var verified = await verifyTwoFactor();
+            unlockApp({ user: verified.user || pendingUser, sessionToken: verified.sessionToken });
+          } catch (err) {
+            submitLabel.textContent = "Verify and enter";
+            showError(err.message || "Invalid two-factor code.");
+          }
           return;
         }
         var email = emailInput.value.trim().toLowerCase();
@@ -297,7 +344,7 @@
           showError("Please enter your name.");
           return;
         }
-        requestTwoFactor(email);
+        await requestTwoFactor(email);
       });
 
       window.cowboysIQAuth = {
