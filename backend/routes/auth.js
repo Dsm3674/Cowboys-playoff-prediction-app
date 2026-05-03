@@ -10,6 +10,7 @@ const router = express.Router();
 const OTP_TTL_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const challenges = new Map();
+const isProduction = process.env.NODE_ENV === "production";
 
 const authLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
@@ -43,6 +44,10 @@ function cleanupExpiredChallenges() {
 
 async function sendOtpEmail(email, code) {
   if (!process.env.RESEND_API_KEY) {
+    if (isProduction) {
+      throw new Error("Email delivery is not configured. Set RESEND_API_KEY before deploying 2FA.");
+    }
+
     console.log(`[auth] Local 2FA code for ${email}: ${code}`);
     return { delivered: false, provider: "local-dev" };
   }
@@ -95,7 +100,7 @@ router.post("/request-otp", authLimiter, async (req, res) => {
       challengeId,
       expiresInSeconds: Math.floor(OTP_TTL_MS / 1000),
       delivery,
-      devCode: process.env.NODE_ENV === "production" ? undefined : code
+      devCode: isProduction ? undefined : code
     });
   } catch (err) {
     challenges.delete(challengeId);
