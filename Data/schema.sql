@@ -2,6 +2,7 @@
 DROP TABLE IF EXISTS simulations CASCADE;
 DROP TABLE IF EXISTS player_projections CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS access_requests CASCADE;
 DROP TABLE IF EXISTS predictions CASCADE;
 DROP TABLE IF EXISTS opponents CASCADE;
 DROP TABLE IF EXISTS players CASCADE;
@@ -89,6 +90,21 @@ CREATE TABLE users (
     theme_preference VARCHAR(20) DEFAULT 'cowboys',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE access_requests (
+    request_id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    name VARCHAR(120),
+    plan VARCHAR(80) NOT NULL,
+    price VARCHAR(40) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'requested',
+    source VARCHAR(80) NOT NULL DEFAULT 'landing_page',
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_access_requests_email_created
+ON access_requests (email, created_at DESC);
 
 -- 7. PLAYER PROJECTIONS (New Feature)
 CREATE TABLE player_projections (

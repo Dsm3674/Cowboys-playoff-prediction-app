@@ -19,7 +19,9 @@ const generalLimiter = rateLimit({
 const teamsRoutes = require("./routes/teams");
 const cowboysRoutes = require("./routes/cowboys");
 const authRoutes = require("./routes/auth");
+const billingRoutes = require("./routes/billing");
 app.use("/api/auth", authRoutes);
+app.use("/api/billing", billingRoutes);
 app.use("/api/teams", teamsRoutes);
 app.use("/api/cowboys", cowboysRoutes);
 
