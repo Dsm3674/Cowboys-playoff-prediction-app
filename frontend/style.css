@@ -3847,3 +3847,458 @@ thead th,
     border-radius: 8px;
   }
 }
+
+/* ==========================================================================
+   Playoff Pulse Command Theme
+   Keeps the original React pages intact while moving the cinematic redesign
+   language into the shared stylesheet.
+   ========================================================================== */
+
+:root {
+  --bg: #06080f;
+  --bg-elevated: #0b1020;
+  --card: #0b1020;
+  --card-2: #111a2e;
+  --border: rgba(176, 187, 207, 0.16);
+  --border-hover: rgba(122, 168, 255, 0.46);
+  --fg: #f2f0ea;
+  --fg-dim: #c8cdd8;
+  --muted: #8a95ab;
+  --accent: #58d689;
+  --accent-blue: #4a86ff;
+  --accent-glow: rgba(74, 134, 255, 0.15);
+  --accent-warn: #e9b949;
+  --accent-danger: #e03a4d;
+  --accent-success: #58d689;
+  --header-bg: rgba(6, 8, 15, 0.86);
+  --sidebar-bg: linear-gradient(180deg, rgba(8, 12, 20, 0.98), rgba(5, 8, 14, 0.98));
+  --banner-bg: linear-gradient(135deg, rgba(20, 34, 59, 0.98), rgba(9, 14, 25, 0.98) 58%, rgba(21, 34, 55, 0.94));
+  --banner-sheen: linear-gradient(125deg, rgba(237, 230, 214, 0.1), transparent 42%);
+  --banner-orb: radial-gradient(circle at 86% 18%, rgba(74, 134, 255, 0.24), transparent 24%);
+  --banner-watermark: rgba(242, 240, 234, 0.06);
+  --ticker-bg: rgba(11, 16, 32, 0.84);
+  --ticker-label-bg: linear-gradient(135deg, #ede6d6, #b0b7bc);
+  --ticker-label-fg: #101006;
+  --progress-gradient: linear-gradient(90deg, #4a86ff, #58d689 52%, #e9b949);
+  --progress-glow: 0 0 22px rgba(74, 134, 255, 0.45);
+  --shadow: 0 34px 80px rgba(0, 0, 0, 0.42);
+  --shadow-soft: 0 18px 38px rgba(0, 0, 0, 0.28);
+  --shadow-navy: 0 28px 70px rgba(2, 8, 22, 0.46);
+  --shadow-glow: 0 0 36px rgba(74, 134, 255, 0.16);
+  --font-display: 'Fraunces', 'Sora', Georgia, serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  --font-ui: 'Manrope', system-ui, sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(900px 520px at 82% -8%, rgba(74, 134, 255, 0.16), transparent 58%),
+    radial-gradient(740px 520px at 3% 110%, rgba(233, 185, 73, 0.08), transparent 62%),
+    #06080f;
+}
+
+body:not(.lp-locked)::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, rgba(242, 240, 234, 0.022) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(242, 240, 234, 0.022) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse 1180px 760px at 62% 8%, #000 0%, transparent 76%);
+          mask-image: radial-gradient(ellipse 1180px 760px at 62% 8%, #000 0%, transparent 76%);
+}
+
+.shell,
+.main-stage,
+.content-area {
+  position: relative;
+}
+
+.main-stage,
+.content-area {
+  background:
+    linear-gradient(180deg, rgba(6, 8, 15, 0.05), rgba(6, 8, 15, 0.42)),
+    transparent;
+}
+
+.app-shell-header,
+.topbar,
+.header {
+  background: rgba(6, 8, 15, 0.86);
+  border-bottom: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+          backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.26);
+}
+
+.sidebar {
+  background:
+    linear-gradient(180deg, rgba(15, 21, 38, 0.98), rgba(6, 10, 18, 0.98)),
+    var(--sidebar-bg);
+  border-right: 1px solid rgba(176, 187, 207, 0.16);
+  box-shadow: 28px 0 70px rgba(0, 0, 0, 0.32);
+}
+
+.sidebar::before {
+  color: rgba(237, 230, 214, 0.04);
+  text-shadow: 0 0 42px rgba(74, 134, 255, 0.16);
+}
+
+.sidebar__logo {
+  margin: 1rem 0.85rem 0.7rem;
+  padding: 1.05rem;
+  border: 1px solid rgba(176, 187, 207, 0.16);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(237, 230, 214, 0.08), rgba(74, 134, 255, 0.08)),
+    rgba(255, 255, 255, 0.03);
+}
+
+.star-icon {
+  color: #ede6d6;
+  text-shadow: 0 0 18px rgba(233, 185, 73, 0.35);
+}
+
+.sidebar__title,
+.nav-link,
+.section-label,
+.metric-label,
+.table th,
+th {
+  letter-spacing: 0.18em;
+}
+
+.nav-link {
+  margin: 0.15rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition:
+    transform 180ms var(--ease-standard),
+    background 180ms var(--ease-standard),
+    border-color 180ms var(--ease-standard),
+    box-shadow 180ms var(--ease-standard);
+}
+
+.nav-link:hover {
+  transform: translateX(3px);
+  border-color: rgba(122, 168, 255, 0.26);
+  background: rgba(74, 134, 255, 0.08);
+}
+
+.nav-link.active,
+.nav-link.is-active {
+  border-color: rgba(122, 168, 255, 0.55);
+  background:
+    linear-gradient(90deg, rgba(74, 134, 255, 0.24), rgba(88, 214, 137, 0.07)),
+    rgba(255, 255, 255, 0.035);
+  box-shadow:
+    inset 3px 0 0 #4a86ff,
+    0 0 0 1px rgba(237, 230, 214, 0.05),
+    0 14px 34px rgba(0, 0, 0, 0.24);
+}
+
+.live-ticker-wrap,
+.ticker,
+.ticker-strip {
+  background: var(--ticker-bg);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.ticker-label,
+.live-ticker-label {
+  background: var(--ticker-label-bg);
+  color: var(--ticker-label-fg);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.24em;
+}
+
+.ticker-content,
+.ticker-track {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  animation: ppTickerDrift 72s linear infinite;
+}
+
+.cowboys-banner,
+.page-hero,
+.dashboard-hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid rgba(122, 168, 255, 0.22);
+  border-radius: 8px;
+  background:
+    var(--banner-sheen),
+    var(--banner-orb),
+    repeating-linear-gradient(90deg, rgba(237, 230, 214, 0.045) 0 1px, transparent 1px 82px),
+    var(--banner-bg);
+  box-shadow: var(--shadow-navy);
+  animation: ppPanelIn 560ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.cowboys-banner::before,
+.page-hero::before,
+.dashboard-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(100deg, transparent 0%, rgba(237, 230, 214, 0.12) 42%, transparent 68%);
+  transform: translateX(-115%);
+  animation: ppGlobalSweep 5.8s ease-in-out infinite;
+}
+
+.cowboys-banner::after,
+.page-hero::after,
+.dashboard-hero::after {
+  color: var(--banner-watermark);
+  text-shadow: 0 0 38px rgba(74, 134, 255, 0.14);
+}
+
+.cowboys-banner h1,
+.page-title,
+.page-hero h1 {
+  font-family: var(--font-display);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.card,
+.metric-tile,
+.data-table-wrap,
+.key-insight,
+.panel,
+.chart-card,
+.sim-card {
+  border: 1px solid rgba(176, 187, 207, 0.16);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(17, 26, 46, 0.94), rgba(7, 11, 19, 0.96)),
+    rgba(255, 255, 255, 0.02);
+  box-shadow: var(--shadow-soft);
+  animation: ppPanelIn 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.card:hover,
+.metric-tile:hover,
+.data-table-wrap:hover,
+.panel:hover,
+.chart-card:hover,
+.sim-card:hover {
+  border-color: rgba(122, 168, 255, 0.35);
+  box-shadow: var(--shadow), var(--shadow-glow);
+}
+
+.metric-tile {
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-tile::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: var(--progress-gradient);
+  opacity: 0.75;
+}
+
+.metric-value,
+.stat-value,
+.big-number {
+  font-family: var(--font-display);
+  letter-spacing: -0.035em;
+}
+
+.metric-value.accent,
+.text-accent,
+.accent {
+  color: #7aa8ff;
+  text-shadow: 0 0 20px rgba(74, 134, 255, 0.28);
+}
+
+.key-insight {
+  color: #ede6d6;
+  background:
+    linear-gradient(90deg, rgba(233, 185, 73, 0.12), rgba(74, 134, 255, 0.08)),
+    rgba(255, 255, 255, 0.025);
+  border-left: 3px solid #e9b949;
+}
+
+.section-label {
+  color: #b0b7bc;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.data-table-wrap {
+  overflow: auto;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th {
+  color: #8a95ab;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+}
+
+td {
+  color: var(--fg-dim);
+}
+
+tbody tr {
+  transition: background 160ms ease, color 160ms ease;
+}
+
+tbody tr:hover {
+  background: rgba(74, 134, 255, 0.08);
+}
+
+.strength-bar,
+.prob-bar-inline .bar,
+.mini-bar,
+.bar {
+  background: rgba(242, 240, 234, 0.075);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.strength-bar__fill,
+.bar-fill,
+.mini-fill,
+.fill {
+  background: var(--progress-gradient);
+  box-shadow: var(--progress-glow);
+}
+
+.sub-tabs,
+.tabbar,
+.filter-tabs {
+  border: 1px solid rgba(176, 187, 207, 0.14);
+  border-radius: 999px;
+  background: rgba(11, 16, 32, 0.72);
+  padding: 0.25rem;
+}
+
+.sub-tab,
+.tab-btn,
+.pill-button {
+  border-radius: 999px;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.sub-tab:hover,
+.tab-btn:hover,
+.pill-button:hover {
+  transform: translateY(-1px);
+  color: var(--fg);
+}
+
+.sub-tab.active,
+.tab-btn.active,
+.pill-button.active {
+  background: #4a86ff;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(74, 134, 255, 0.13);
+}
+
+.global-loader {
+  background:
+    radial-gradient(720px 420px at 50% 20%, rgba(74, 134, 255, 0.18), transparent 62%),
+    #06080f;
+}
+
+.loader-logo,
+.loader-title {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.loader-bar-fill,
+#scroll-progress {
+  background: var(--progress-gradient);
+  box-shadow: var(--progress-glow);
+}
+
+@keyframes ppGlobalSweep {
+  0%,
+  46% {
+    transform: translateX(-115%);
+  }
+  64%,
+  100% {
+    transform: translateX(115%);
+  }
+}
+
+@keyframes ppPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ppTickerDrift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-content,
+  .ticker-track,
+  .cowboys-banner::before,
+  .page-hero::before,
+  .dashboard-hero::before,
+  .card,
+  .metric-tile,
+  .data-table-wrap,
+  .key-insight,
+  .panel,
+  .chart-card,
+  .sim-card {
+    animation: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .sidebar__logo {
+    margin: 0.75rem;
+  }
+
+  .cowboys-banner,
+  .page-hero,
+  .dashboard-hero,
+  .card,
+  .metric-tile,
+  .data-table-wrap,
+  .key-insight,
+  .panel,
+  .chart-card,
+  .sim-card {
+    border-radius: 8px;
+  }
+
+  .ticker-content,
+  .ticker-track {
+    animation-duration: 46s;
+  }
+}
