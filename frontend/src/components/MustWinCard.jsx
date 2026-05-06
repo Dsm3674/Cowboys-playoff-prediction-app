@@ -1,10 +1,13 @@
+import React from "react";
+import { api } from "../api";
+
 function MustWinCard({ year, team = "DAL" }) {
   const [games, setGames] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     setLoading(true);
-    window.api.getMustWin(team, year, 0)
+    api.getMustWin(team, year, 0)
       .then(res => setGames(res.games || []))
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -45,3 +48,5 @@ function MustWinCard({ year, team = "DAL" }) {
 }
 
 window.MustWinCard = MustWinCard;
+
+export default MustWinCard;

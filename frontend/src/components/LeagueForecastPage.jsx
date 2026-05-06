@@ -1,4 +1,5 @@
-const { useEffect, useMemo, useState } = React;
+import React, { useEffect, useMemo, useState } from "react";
+import { api } from "../api";
 
 function LeagueForecastPage({ year = new Date().getFullYear() }) {
   const [forecast, setForecast] = useState([]);
@@ -10,7 +11,7 @@ function LeagueForecastPage({ year = new Date().getFullYear() }) {
 
     setLoading(true);
     setError("");
-    window.api.getLeagueForecast(year)
+    api.getLeagueForecast(year)
       .then((data) => {
         if (cancelled) return;
         if (!data || !Array.isArray(data.forecast)) throw new Error("Forecast data is unavailable.");
@@ -108,3 +109,5 @@ function LeagueForecastPage({ year = new Date().getFullYear() }) {
 }
 
 window.LeagueForecastPage = LeagueForecastPage;
+
+export default LeagueForecastPage;

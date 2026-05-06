@@ -1,4 +1,5 @@
-const { useEffect, useMemo, useState } = React;
+import React, { useEffect, useMemo, useState } from "react";
+import { api } from "../api";
 
 function ScheduleStrengthPage({ year = new Date().getFullYear() }) {
   const [scheduleStrength, setScheduleStrength] = useState([]);
@@ -12,7 +13,7 @@ function ScheduleStrengthPage({ year = new Date().getFullYear() }) {
     setLoading(true);
     setError("");
 
-    window.api
+    api
       .getScheduleStrength(year)
       .then((data) => {
         if (cancelled) return;
@@ -172,3 +173,5 @@ function ScheduleStrengthPage({ year = new Date().getFullYear() }) {
 }
 
 window.ScheduleStrengthPage = ScheduleStrengthPage;
+
+export default ScheduleStrengthPage;

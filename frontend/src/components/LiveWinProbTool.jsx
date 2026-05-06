@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 function LiveWinProbTool() {
   const [inputs, setInputs] = React.useState({
     scoreDiff: 0,
@@ -25,7 +28,7 @@ function LiveWinProbTool() {
     try {
       setLoading(true);
       setError("");
-      const res = await window.api.getWinProb(inputs);
+      const res = await api.getWinProb(inputs);
       setProb(res?.winProbability ?? null);
     } catch (err) {
       setError(err?.message || "Failed to calculate win probability.");
@@ -282,3 +285,5 @@ function LiveWinProbTool() {
 }
 
 window.LiveWinProbTool = LiveWinProbTool;
+
+export default LiveWinProbTool;

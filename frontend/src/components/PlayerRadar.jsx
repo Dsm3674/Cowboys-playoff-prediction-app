@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 function PlayerRadar() {
   const [payload, setPayload] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
@@ -11,7 +14,7 @@ function PlayerRadar() {
       try {
         setLoading(true);
         setError("");
-        const api = window.api;
+        const api = api;
         if (!api?.getPlayerRadar) {
           throw new Error("Player radar API is unavailable.");
         }
@@ -228,3 +231,5 @@ function PlayerRadar() {
 }
 
 window.PlayerRadar = PlayerRadar;
+
+export default PlayerRadar;

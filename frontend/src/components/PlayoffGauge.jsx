@@ -1,4 +1,5 @@
-const { useEffect, useState, useRef } = React;
+import React, { useEffect, useRef, useState } from "react";
+import { api } from "../api";
 
 function PlayoffGauge({ teamCode = "DAL", year = new Date().getFullYear() }) {
   const [probability, setProbability] = useState(null);
@@ -10,7 +11,7 @@ function PlayoffGauge({ teamCode = "DAL", year = new Date().getFullYear() }) {
     let isMounted = true;
     setLoading(true);
 
-    window.api
+    api
       .getPlayoffPulse(year)
       .then((data) => {
         if (!isMounted) return;
@@ -116,3 +117,5 @@ function PlayoffGauge({ teamCode = "DAL", year = new Date().getFullYear() }) {
 }
 
 window.PlayoffGauge = PlayoffGauge;
+
+export default PlayoffGauge;

@@ -1,4 +1,5 @@
-const { useEffect, useMemo, useState } = React;
+import React, { useEffect, useMemo, useState } from "react";
+import { api } from "../api";
 
 function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DAL" }) {
   const [divisions, setDivisions] = useState([]);
@@ -11,7 +12,7 @@ function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DA
     setLoading(true);
     setError("");
 
-    window.api
+    api
       .getDivisionPower(year)
       .then((data) => {
         if (cancelled) return;
@@ -331,3 +332,5 @@ function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DA
 }
 
 window.DivisionPowerPage = DivisionPowerPage;
+
+export default DivisionPowerPage;

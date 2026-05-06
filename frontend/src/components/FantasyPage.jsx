@@ -1,3 +1,7 @@
+import React from "react";
+import { api } from "../api";
+import { BASE_URL } from "../api";
+
 function FantasyPage({ year = new Date().getFullYear() }) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -17,9 +21,9 @@ function FantasyPage({ year = new Date().getFullYear() }) {
       setLoading(true);
       setError("");
 
-      const result = window.api?.getFantasyBoard
-        ? await window.api.getFantasyBoard(year, format)
-        : await fetch(`${window.BASE_URL}/api/fantasy/board?year=${year}&format=${format}`)
+      const result = api?.getFantasyBoard
+        ? await api.getFantasyBoard(year, format)
+        : await fetch(`${BASE_URL}/api/fantasy/board?year=${year}&format=${format}`)
             .then(r => r.json());
 
       setData(result || null);
@@ -237,3 +241,5 @@ function FantasyPage({ year = new Date().getFullYear() }) {
 }
 
 window.FantasyPage = FantasyPage;
+
+export default FantasyPage;

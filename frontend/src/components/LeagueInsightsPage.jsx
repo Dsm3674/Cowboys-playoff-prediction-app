@@ -1,4 +1,5 @@
-const { useEffect, useMemo, useState } = React;
+import React, { useEffect, useMemo, useState } from "react";
+import { api } from "../api";
 
 function LeagueInsightsPage({ year = new Date().getFullYear() }) {
   const [standings, setStandings] = useState(null);
@@ -13,10 +14,10 @@ function LeagueInsightsPage({ year = new Date().getFullYear() }) {
     setLoading(true);
     setError("");
     Promise.allSettled([
-      window.api.getStandings(year),
-      window.api.getDivisionPower(year),
-      window.api.getLeagueForecast(year),
-      window.api.getPlayoffPulse(year)
+      api.getStandings(year),
+      api.getDivisionPower(year),
+      api.getLeagueForecast(year),
+      api.getPlayoffPulse(year)
     ]).then((results) => {
       if (cancelled) return;
       
@@ -157,3 +158,5 @@ function LeagueInsightsPage({ year = new Date().getFullYear() }) {
 }
 
 window.LeagueInsightsPage = LeagueInsightsPage;
+
+export default LeagueInsightsPage;

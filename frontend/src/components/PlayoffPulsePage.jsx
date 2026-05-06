@@ -1,4 +1,5 @@
-const { useEffect, useState } = React;
+import React, { useEffect, useState } from "react";
+import { api } from "../api";
 
 function PlayoffPulsePage({ year = new Date().getFullYear() }) {
   const [pulse, setPulse] = useState([]);
@@ -8,7 +9,7 @@ function PlayoffPulsePage({ year = new Date().getFullYear() }) {
   useEffect(() => {
     setLoading(true);
     setError("");
-    window.api
+    api
       .getPlayoffPulse(year)
       .then((data) => {
         if (!data || !Array.isArray(data.pulse)) throw new Error("No playoff pulse data available.");
@@ -145,3 +146,5 @@ function PlayoffPulsePage({ year = new Date().getFullYear() }) {
 }
 
 window.PlayoffPulsePage = PlayoffPulsePage;
+
+export default PlayoffPulsePage;

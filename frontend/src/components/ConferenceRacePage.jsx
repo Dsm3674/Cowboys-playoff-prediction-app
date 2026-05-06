@@ -1,4 +1,5 @@
-const { useEffect, useMemo, useState } = React;
+import React, { useEffect, useMemo, useState } from "react";
+import { api } from "../api";
 
 function ConferenceRacePage({ year = new Date().getFullYear() }) {
   const [standings, setStandings] = useState(null);
@@ -9,7 +10,7 @@ function ConferenceRacePage({ year = new Date().getFullYear() }) {
     let cancelled = false;
     setLoading(true);
     setError("");
-    window.api.getStandings(year)
+    api.getStandings(year)
       .then((data) => {
         if (cancelled) return;
         if (!data || !data.standings) throw new Error("Unable to load conference standings.");
@@ -104,3 +105,5 @@ function ConferenceRacePage({ year = new Date().getFullYear() }) {
 }
 
 window.ConferenceRacePage = ConferenceRacePage;
+
+export default ConferenceRacePage;

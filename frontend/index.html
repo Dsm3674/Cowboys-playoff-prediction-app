@@ -13,11 +13,6 @@
   <link rel="stylesheet" href="./src/styles/Timeline.css" />
   <link rel="stylesheet" href="./src/styles/EventsAdmin.css" />
 
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <style>
     :root {
       --lp-paper:#f5f3ec; --lp-paper-deep:#ecebe3; --lp-ink:#0a1530; --lp-ink-soft:#4a5670;
@@ -470,35 +465,7 @@
     })();
   </script>
 
-  <script type="text/babel" src="./src/api.js"></script>
-  <script type="text/babel" src="./src/components/UserProfileCard.jsx"></script>
-  <script type="text/babel" src="./src/components/RecordCard.jsx"></script>
-  <script type="text/babel" src="./src/components/TSICard.jsx"></script>
-  <script type="text/babel" src="./src/components/MustWinCard.jsx"></script>
-  <script type="text/babel" src="./src/components/LiveWinProbTool.jsx"></script>
-  <script type="text/babel" src="./src/components/GameTable.jsx"></script>
-  <script type="text/babel" src="./src/components/PlayerRadar.jsx"></script>
-  <script type="text/babel" src="./src/components/Maps.jsx"></script>
-  <script type="text/babel" src="./src/components/ClutchIndex.jsx"></script>
-  <script type="text/babel" src="./src/components/EventsAdmin.jsx"></script>
-  <script type="text/babel" src="./src/components/Timeline.jsx"></script>
-  <script type="text/babel" src="./src/components/RivalTeamImpactPage.jsx"></script>
-  <script type="text/babel" src="./src/components/StandingsPage.jsx"></script>
-  <script type="text/babel" src="./src/components/TeamComparisonPage.jsx"></script>
-  <script type="text/babel" src="./src/components/DivisionPowerPage.jsx"></script>
-  <script type="text/babel" src="./src/components/LeagueForecastPage.jsx"></script>
-  <script type="text/babel" src="./src/components/PlayoffPulsePage.jsx"></script>
-  <script type="text/babel" src="./src/components/MatchupSimulatorPage.jsx"></script>
-  <script type="text/babel" src="./src/components/ScheduleStrengthPage.jsx"></script>
-  <script type="text/babel" src="./src/components/DetailedTeamProfilePage.jsx"></script>
-  <script type="text/babel" src="./src/components/ConferenceRacePage.jsx"></script>
-  <script type="text/babel" src="./src/components/LeagueInsightsPage.jsx"></script>
-  <script type="text/babel" src="./src/components/SeasonPathExplorer.jsx"></script>
-  <script type="text/babel" src="./src/components/PlayoffGauge.jsx"></script>
-  <script type="text/babel" src="./src/components/HistoryPage.jsx"></script>
-  <script type="text/babel" src="./src/components/AIStorySimulator.jsx"></script>
-  <script type="text/babel" src="./src/components/QuantumEngineIntegrated.jsx"></script>
-  <script type="text/babel" src="./src/main.jsx"></script>
+  <script type="module" src="/src/main.jsx"></script>
 
   <script>
     (function(){"use strict";function hideLoader(){var loader=document.getElementById("global-loader");if(!loader)return;loader.style.filter="blur(10px)";loader.style.opacity="0";loader.style.pointerEvents="none";setTimeout(function(){loader.style.display="none"},700)}setTimeout(hideLoader,1400);window.addEventListener("load",function(){setTimeout(hideLoader,350)});var waitForRoot=setInterval(function(){var root=document.getElementById("root");if(root&&root.children.length>0){clearInterval(waitForRoot);hideLoader()}},120);setTimeout(function(){clearInterval(waitForRoot)},3200);window.addEventListener("scroll",function(){var docH=document.body.scrollHeight-window.innerHeight;var pct=docH>0?window.scrollY/docH*100:0;var bar=document.getElementById("scroll-progress");if(bar)bar.style.width=pct+"%"},{passive:true})})();

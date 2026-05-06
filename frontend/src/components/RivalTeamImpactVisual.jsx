@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 function RivalTeamImpactVisual({ year = 2025 }) {
   const [loading, setLoading] = React.useState(true);
   const [rivalImpacts, setRivalImpacts] = React.useState([]);
@@ -14,7 +17,7 @@ function RivalTeamImpactVisual({ year = 2025 }) {
     try {
       setLoading(true);
       // keep your backend logic unchanged
-      const result = await window.api.getRivalImpactVisual(year, scenario);
+      const result = await api.getRivalImpactVisual(year, scenario);
 
       setRivalImpacts(result.rivalImpacts || []);
       setRankedGames(result.rankedGames || []);
@@ -229,3 +232,5 @@ function RivalTeamImpactVisual({ year = 2025 }) {
 }
 
 window.RivalTeamImpactVisual = RivalTeamImpactVisual;
+
+export default RivalTeamImpactVisual;

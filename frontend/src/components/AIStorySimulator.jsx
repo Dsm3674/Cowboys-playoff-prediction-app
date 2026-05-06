@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 function AIStorySimulator() {
   const [modelType, setModelType] = React.useState("RandomForest");
   const [scenario, setScenario] = React.useState("");
@@ -68,7 +71,7 @@ function AIStorySimulator() {
         iterations: Number(iterations) || 500,
       };
 
-      const data = await window.api.runWhatIfSimulation(payload);
+      const data = await api.runWhatIfSimulation(payload);
 
       if (!data?.success) {
         throw new Error("Simulation failed on server");
@@ -280,3 +283,5 @@ function AIStorySimulator() {
 }
 
 window.AIStorySimulator = AIStorySimulator;
+
+export default AIStorySimulator;

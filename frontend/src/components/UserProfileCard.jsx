@@ -1,3 +1,5 @@
+import React from "react";
+
 function UserProfileCard() {
   const THEMES = [
     { value: "default", label: "Default Navy", note: "Original LoneStar look" },
@@ -258,3 +260,5 @@ function UserProfileCard() {
 }
 
 window.UserProfileCard = UserProfileCard;
+
+export default UserProfileCard;

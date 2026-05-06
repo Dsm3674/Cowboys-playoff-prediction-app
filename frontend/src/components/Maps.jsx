@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 function Maps() {
   const canvasRef = React.useRef(null);
   const [data, setData] = React.useState(null);
@@ -17,7 +20,7 @@ function Maps() {
   const loadPlayerMaps = async () => {
     try {
       setLoading(true);
-      const result = await window.api.getPlayerMaps();
+      const result = await api.getPlayerMaps();
       setData(result);
     } catch (error) {
       console.error("Error loading player maps:", error);
@@ -240,3 +243,5 @@ function Maps() {
 }
 
 window.Maps = Maps;
+
+export default Maps;

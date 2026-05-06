@@ -1,4 +1,5 @@
-const { useEffect, useState } = React;
+import React, { useEffect, useState } from "react";
+import { api } from "../api";
 
 function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "DAL" }) {
   const [teams, setTeams] = useState([]);
@@ -9,7 +10,7 @@ function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "D
   const [error, setError] = useState("");
 
   useEffect(() => {
-    window.api.getTeams().then((result) => {
+    api.getTeams().then((result) => {
       if (result?.teams) {
         setTeams(result.teams);
         setFirstTeam(selectedTeam);
@@ -25,7 +26,7 @@ function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "D
     setLoading(true);
     setError("");
 
-    window.api
+    api
       .getTeamComparison(firstTeam, secondTeam, year)
       .then((data) => {
         setComparison(data);
@@ -171,3 +172,5 @@ function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "D
 }
 
 window.TeamComparisonPage = TeamComparisonPage;
+
+export default TeamComparisonPage;

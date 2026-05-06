@@ -1,4 +1,5 @@
-const { useEffect, useState } = React;
+import React, { useEffect, useState } from "react";
+import { api } from "../api";
 
 function StandingsPage({ year = new Date().getFullYear() }) {
   const [standings, setStandings] = useState(null);
@@ -8,7 +9,7 @@ function StandingsPage({ year = new Date().getFullYear() }) {
   useEffect(() => {
     setLoading(true);
     setError("");
-    window.api
+    api
       .getStandings(year)
       .then((data) => {
         if (!data || !data.standings) throw new Error("Unable to load standings.");
@@ -88,3 +89,5 @@ function StandingsPage({ year = new Date().getFullYear() }) {
 }
 
 window.StandingsPage = StandingsPage;
+
+export default StandingsPage;

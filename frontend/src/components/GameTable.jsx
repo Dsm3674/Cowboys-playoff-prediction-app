@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 function GameTable({ year, team = "DAL" }) {
   const [games, setGames] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -9,7 +12,7 @@ function GameTable({ year, team = "DAL" }) {
     setLoading(true);
     setError("");
 
-    window.api
+    api
       .getSchedule(year, team)
       .then((data) => {
         if (cancelled) return;
@@ -156,3 +159,5 @@ function GameTable({ year, team = "DAL" }) {
 }
 
 window.GameTable = GameTable;
+
+export default GameTable;

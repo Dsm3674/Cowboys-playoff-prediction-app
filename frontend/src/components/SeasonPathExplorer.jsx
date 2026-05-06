@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 // frontend/src/components/SeasonPathExplorer.jsx
 
 function SeasonPathExplorer({ year, team = "DAL" }) {
@@ -7,7 +10,7 @@ function SeasonPathExplorer({ year, team = "DAL" }) {
   React.useEffect(() => {
     // k=15 paths, chaos=0
     setLoading(true);
-    window.api.getPaths(team, year, 15, 0)
+    api.getPaths(team, year, 15, 0)
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -74,3 +77,5 @@ function SeasonPathExplorer({ year, team = "DAL" }) {
 }
 
 window.SeasonPathExplorer = SeasonPathExplorer;
+
+export default SeasonPathExplorer;

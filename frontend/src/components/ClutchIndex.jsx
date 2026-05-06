@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 function ClutchIndex() {
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
@@ -13,7 +16,7 @@ function ClutchIndex() {
   const loadClutchData = async () => {
     try {
       setLoading(true);
-      const result = await window.api.getClutchIndex(2025);
+      const result = await api.getClutchIndex(2025);
       setData(result);
     } catch (error) {
       console.error("Error loading clutch data:", error);
@@ -257,3 +260,5 @@ function ClutchIndex() {
 }
 
 window.ClutchIndex = ClutchIndex;
+
+export default ClutchIndex;

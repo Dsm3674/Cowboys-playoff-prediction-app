@@ -1,4 +1,5 @@
-const { useState, useEffect, useCallback, useRef, useMemo } = React;
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BASE_URL } from "../api";
 
 function EventsAdmin() {
   const [playerQuery, setPlayerQuery] = useState("");
@@ -25,7 +26,7 @@ function EventsAdmin() {
     if (query.length < 2) return setSuggestions([]);
 
     try {
-      const res = await fetch(`${window.BASE_URL}/api/players/search?name=${encodeURIComponent(query)}`);
+      const res = await fetch(`${BASE_URL}/api/players/search?name=${encodeURIComponent(query)}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setSuggestions(Array.isArray(data) ? data : []);
@@ -43,7 +44,7 @@ function EventsAdmin() {
 
   const fetchRecentEvents = useCallback(async () => {
     try {
-      const res = await fetch(`${window.BASE_URL}/api/players/events?season=${season}&limit=20`);
+      const res = await fetch(`${BASE_URL}/api/players/events?season=${season}&limit=20`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setEvents(data.events || []);
@@ -65,7 +66,7 @@ function EventsAdmin() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${window.BASE_URL}/api/players/events`, {
+      const res = await fetch(`${BASE_URL}/api/players/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -262,3 +263,5 @@ function EventsAdmin() {
 }
 
 window.EventsAdmin = EventsAdmin;
+
+export default EventsAdmin;

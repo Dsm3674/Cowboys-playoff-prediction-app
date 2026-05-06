@@ -1,4 +1,39 @@
-const { useEffect, useMemo, useState } = React;
+import React, { useEffect, useMemo, useState } from "react";
+import ReactDOM from "react-dom/client";
+import { api } from "./api";
+
+// Component imports
+import AIStorySimulator from "./components/AIStorySimulator";
+import ClutchIndex from "./components/ClutchIndex";
+import ConferenceRacePage from "./components/ConferenceRacePage";
+import DetailedTeamProfilePage from "./components/DetailedTeamProfilePage";
+import DivisionPowerPage from "./components/DivisionPowerPage";
+import EventsAdmin from "./components/EventsAdmin";
+import GameTable from "./components/GameTable";
+import HistoryPage from "./components/HistoryPage";
+import LeagueForecastPage from "./components/LeagueForecastPage";
+import LeagueInsightsPage from "./components/LeagueInsightsPage";
+import LiveWinProbTool from "./components/LiveWinProbTool";
+import MatchupSimulatorPage from "./components/MatchupSimulatorPage";
+import MustWinCard from "./components/MustWinCard";
+import PlayerRadar from "./components/PlayerRadar";
+import PlayoffGauge from "./components/PlayoffGauge";
+import PlayoffPulsePage from "./components/PlayoffPulsePage";
+import QuantumEngineIntegrated from "./components/QuantumEngineIntegrated";
+import RecordCard from "./components/RecordCard";
+import RivalTeamImpactPage from "./components/RivalTeamImpactPage";
+import ScheduleStrengthPage from "./components/ScheduleStrengthPage";
+import SeasonPathExplorer from "./components/SeasonPathExplorer";
+import StandingsPage from "./components/StandingsPage";
+import TSICard from "./components/TSICard";
+import TeamComparisonPage from "./components/TeamComparisonPage";
+import Timeline from "./components/Timeline";
+import UserProfileCard from "./components/UserProfileCard";
+
+import "./styles/global.css";
+import "../style.css";
+import "./styles/EventsAdmin.css";
+import "./styles/Timeline.css";
 
 const CATEGORY_MAP = {
   dashboard: 'Core',
@@ -46,17 +81,6 @@ const NFL_TEAMS = [
   { code: "WAS", name: "Washington Commanders" }
 ];
 
-function getGlobalComponent(name, fallbackTitle) {
-  return window[name]
-    ? window[name]
-    : () => (
-        <div className="card">
-          <h3>{fallbackTitle}</h3>
-          <p className="text-muted">{name} is unavailable right now.</p>
-        </div>
-      );
-}
-
 /* ── Shared Components ──────────────────────────────────────── */
 
 function LiveTicker() {
@@ -98,11 +122,11 @@ function CommandPalette({ isOpen, onClose, onNavigate }) {
   if (!isOpen) return null;
 
   const pages = [
-    { id: 'dashboard', label: 'Dashboard', desc: 'Core War Room metrics' },
-    { id: 'games', label: 'Games', desc: 'Schedule and Win Probability' },
-    { id: 'players', label: 'Players', desc: 'Roster and Draft' },
-    { id: 'predictions', label: 'Predictions', desc: 'Quantum Engine Forecasts' },
-    { id: 'insights', label: 'Insights', desc: 'League-wide intelligence' },
+    { id: 'dashboard', label: 'Dashboard', desc: 'Core season outlook' },
+    { id: 'games', label: 'Games', desc: 'Schedule and win probability' },
+    { id: 'players', label: 'Players', desc: 'Roster profiles and comparison' },
+    { id: 'predictions', label: 'Predictions', desc: 'Model output and scenarios' },
+    { id: 'insights', label: 'Insights', desc: 'League standings and trends' },
   ];
 
   const results = pages.filter(p => p.label.toLowerCase().includes(query.toLowerCase()));
@@ -182,14 +206,6 @@ function TabBar({ tabs, activeTab, onTabChange }) {
 /* ── Dashboard ──────────────────────────────────────────────── */
 
 function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
-  const UserProfileCard = getGlobalComponent("UserProfileCard", "Profile");
-  const RecordCard = getGlobalComponent("RecordCard", "Record");
-  const TSICard = getGlobalComponent("TSICard", "TSI");
-  const MustWinCard = getGlobalComponent("MustWinCard", "Must Win");
-  const LiveWinProbTool = getGlobalComponent("LiveWinProbTool", "Win Probability");
-  const GameTable = getGlobalComponent("GameTable", "Schedule");
-  const PlayoffGauge = getGlobalComponent("PlayoffGauge", "Playoff Gauge");
-
   const teamInfo = NFL_TEAMS.find((t) => t.code === selectedTeam) || { name: selectedTeam };
 
   return (
@@ -197,13 +213,13 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
       <div className="cowboys-banner war-room-banner">
         <div className="banner-content">
           <h1 className="hero-title">
-            {teamInfo.name} <span>Playoff Pulse</span>
+            {teamInfo.name} <span>Postseason Desk</span>
           </h1>
           <p className="hero-kicker">
-            Dark navy playoff analytics and live season intelligence for the {teamInfo.name}.
+            Straight-line reads on record, schedule leverage, pressure games, and playoff odds for the {teamInfo.name}.
           </p>
           <p className="intel-note">
-            Cowboys-inspired command center for record, TSI, schedule leverage, and live win-state tools.
+            Built like a film-room dashboard: fewer gimmicks, clearer signals, and faster reads.
           </p>
         </div>
       </div>
@@ -249,11 +265,7 @@ function GamesPage({ year, selectedTeam }) {
     { id: "liveprob", label: "Live Win Prob" }
   ];
 
-  const ScheduleStrengthPage = getGlobalComponent("ScheduleStrengthPage", "Schedule Strength");
-  const MatchupSimulatorPage = getGlobalComponent("MatchupSimulatorPage", "Matchup Simulator");
-  const LiveWinProbTool = getGlobalComponent("LiveWinProbTool", "Win Probability");
-
-  return (
+        return (
     <PageShell
       title="Games"
       subtitle="Schedule analysis, matchup simulations, and live win probability tools."
@@ -279,12 +291,7 @@ function PlayersPage({ year, selectedTeam }) {
     { id: "rival", label: "Rival Impact" }
   ];
 
-  const DetailedTeamProfilePage = getGlobalComponent("DetailedTeamProfilePage", "Team Profile");
-  const TeamComparisonPage = getGlobalComponent("TeamComparisonPage", "Team Comparison");
-  const PlayerRadar = getGlobalComponent("PlayerRadar", "Player Radar");
-  const RivalTeamImpactPage = getGlobalComponent("RivalTeamImpactPage", "Rival Impact");
-
-  return (
+          return (
     <PageShell
       title="Players & Scouting"
       subtitle="Team profiles, player analysis, comparisons, and rival impact breakdowns."
@@ -305,21 +312,16 @@ function PlayersPage({ year, selectedTeam }) {
 function PredictionsPage({ year, selectedTeam }) {
   const [activeTab, setActiveTab] = useState("quantum");
   const tabs = [
-    { id: "quantum", label: "Quantum Engine" },
-    { id: "simulator", label: "AI Simulator" },
+    { id: "quantum", label: "Model Output" },
+    { id: "simulator", label: "Scenario Studio" },
     { id: "paths", label: "Season Paths" },
     { id: "forecast", label: "League Forecast" }
   ];
 
-  const QuantumEngineIntegrated = getGlobalComponent("QuantumEngineIntegrated", "Quantum Engine");
-  const AIStorySimulator = getGlobalComponent("AIStorySimulator", "Simulator");
-  const SeasonPathExplorer = getGlobalComponent("SeasonPathExplorer", "Season Paths");
-  const LeagueForecastPage = getGlobalComponent("LeagueForecastPage", "League Forecast");
-
   return (
     <PageShell
       title="Predictions"
-      subtitle="Quantum simulation, AI story analysis, season paths, and league-wide forecasting."
+      subtitle="Model output, scenario planning, season paths, and league-wide forecasting."
     >
       <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="reveal-up" key={activeTab}>
@@ -346,15 +348,7 @@ function InsightsPage({ year, selectedTeam }) {
     { id: "timeline", label: "Timeline" }
   ];
 
-  const LeagueInsightsPage = getGlobalComponent("LeagueInsightsPage", "League Insights");
-  const StandingsPage = getGlobalComponent("StandingsPage", "Standings");
-  const PlayoffPulsePage = getGlobalComponent("PlayoffPulsePage", "Playoff Pulse");
-  const DivisionPowerPage = getGlobalComponent("DivisionPowerPage", "Division Power");
-  const ConferenceRacePage = getGlobalComponent("ConferenceRacePage", "Conference Race");
-  const ClutchIndex = getGlobalComponent("ClutchIndex", "Clutch Index");
-  const Timeline = getGlobalComponent("Timeline", "Timeline");
-
-  return (
+                return (
     <PageShell
       title="Insights"
       subtitle="League-wide analytics, standings, playoff odds, division rankings, and historical trends."
@@ -473,9 +467,13 @@ function App() {
     return () => window.removeEventListener('keydown', handleGlobalKey);
   }, []);
 
-  const EventsAdmin = getGlobalComponent("EventsAdmin", "Events Admin");
-  const UserProfileCard = getGlobalComponent("UserProfileCard", "Profile");
-  const HistoryPage = getGlobalComponent("HistoryPage", "History");
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      window.dispatchEvent(new Event("app-shell-ready"));
+    }, 260);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   function renderPage() {
     const year = currentYear;

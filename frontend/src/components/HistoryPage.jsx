@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 function HistoryPage() {
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -7,7 +10,7 @@ function HistoryPage() {
     setLoading(true);
     setError(null);
 
-    window.api
+    api
       .getPredictionHistory()
       .then((data) => {
         // FIX: always normalize to array
@@ -118,3 +121,5 @@ function HistoryPage() {
 }
 
 window.HistoryPage = HistoryPage;
+
+export default HistoryPage;

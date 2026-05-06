@@ -1,10 +1,13 @@
+import React from "react";
+import { api } from "../api";
+
 function TSICard({ year, team = "DAL" }) {
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     setLoading(true);
-    window.api.getTSI(team, year)
+    api.getTSI(team, year)
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -54,3 +57,5 @@ function TSICard({ year, team = "DAL" }) {
 
 // Export to global scope for main.jsx
 window.TSICard = TSICard;
+
+export default TSICard;

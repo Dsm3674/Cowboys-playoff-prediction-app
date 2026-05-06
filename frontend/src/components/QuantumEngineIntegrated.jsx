@@ -1,3 +1,5 @@
+import React from "react";
+
 function QuantumEngineIntegrated({ teamData = {} }) {
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
@@ -663,3 +665,5 @@ function QuantumEngineIntegrated({ teamData = {} }) {
 }
 
 window.QuantumEngineIntegrated = QuantumEngineIntegrated;
+
+export default QuantumEngineIntegrated;

@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 function RivalTeamImpactPage({ year = 2025, selectedTeam = "DAL" }) {
   const [loading, setLoading] = React.useState(false);
   const [data, setData] = React.useState(null);
@@ -15,7 +18,7 @@ function RivalTeamImpactPage({ year = 2025, selectedTeam = "DAL" }) {
     try {
       setLoading(true);
       setError("");
-      const result = await window.api.getRivalImpact(selectedTeam, year, chaos, iterations);
+      const result = await api.getRivalImpact(selectedTeam, year, chaos, iterations);
       setData(result);
     } catch (err) {
       setError(err.message || "Failed to load rival impact analysis.");
@@ -245,3 +248,5 @@ function formatValue(value, digits = 1) {
 }
 
 window.RivalTeamImpactPage = RivalTeamImpactPage;
+
+export default RivalTeamImpactPage;

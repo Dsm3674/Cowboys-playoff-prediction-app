@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 function Timeline() {
   const [season, setSeason] = React.useState(2025);
   const [events, setEvents] = React.useState([]);
@@ -15,7 +18,7 @@ function Timeline() {
       setTimelineReason("");
 
       try {
-        const api = window.api;
+        const api = api;
         if (!api?.getTimelineFull && !api?.getTimelinePoints) {
           throw new Error("Timeline API is unavailable.");
         }
@@ -204,3 +207,5 @@ function Timeline() {
 }
 
 window.Timeline = Timeline;
+
+export default Timeline;

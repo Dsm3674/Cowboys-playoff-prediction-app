@@ -1,3 +1,6 @@
+import React from "react";
+import { api } from "../api";
+
 function RecordCard({ year, team = "DAL" }) {
   const [record, setRecord] = React.useState({
     wins: 0,
@@ -11,7 +14,7 @@ function RecordCard({ year, team = "DAL" }) {
     setLoading(true);
     setError(null);
 
-    window.api
+    api
       .getRecord(year, team)
       .then((data) => setRecord(data))
       .catch((err) => setError(err.message))
@@ -40,3 +43,5 @@ function RecordCard({ year, team = "DAL" }) {
   );
 }
 window.RecordCard = RecordCard;
+
+export default RecordCard;

@@ -1,4 +1,5 @@
-const { useEffect, useState } = React;
+import React, { useEffect, useState } from "react";
+import { api } from "../api";
 
 function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = "DAL" }) {
   const [teams, setTeams] = useState([]);
@@ -9,7 +10,7 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
   const [error, setError] = useState("");
 
   useEffect(() => {
-    window.api
+    api
       .getTeams()
       .then((result) => {
         const list = result?.teams || [];
@@ -26,7 +27,7 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
     setLoading(true);
     setError("");
 
-    window.api
+    api
       .getMatchup(team1, team2, year)
       .then(setMatchup)
       .catch((err) => setError(err?.message || "Unable to simulate matchup."))
@@ -241,3 +242,5 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
 }
 
 window.MatchupSimulatorPage = MatchupSimulatorPage;
+
+export default MatchupSimulatorPage;

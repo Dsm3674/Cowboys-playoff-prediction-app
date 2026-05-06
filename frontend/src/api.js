@@ -1,12 +1,10 @@
-(function () {
-  "use strict";
+  const envBase = import.meta.env.VITE_API_BASE_URL;
+  const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+  const BASE = envBase || (isLocal ? "" : window.location.origin);
 
-  const BASE =
-    window.location.hostname === "localhost"
-      ? "http://localhost:3001"
-      : window.location.origin;
-
-  window.BASE_URL = BASE;
+  export const BASE_URL = BASE;
 
   function buildQuery(params = {}) {
     const query = new URLSearchParams();
@@ -295,7 +293,7 @@
     ]);
   }
 
-  window.api = {
+  export const api = {
     getCowboysRecord,
     getRecord,
     getCowboysSchedule,
@@ -328,4 +326,3 @@
     getPredictionHistory,
     runWhatIfSimulation
   };
-})();

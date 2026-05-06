@@ -1,11 +1,13 @@
-const { useEffect, useState, useMemo, useRef } = React;
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { api } from "../api";
+import Chart from "chart.js/auto";
 
 /* ── Sparkline Component ────────────────────────────────────────────── */
 function Sparkline({ data, color = "#00d4aa" }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    if (!canvasRef.current || !window.Chart) return;
+    if (!canvasRef.current || !Chart) return;
     
     let actualColor = color;
     if (color === "var(--accent)") actualColor = "#00d4aa";
@@ -21,7 +23,7 @@ function Sparkline({ data, color = "#00d4aa" }) {
     gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.25)`);
     gradient.addColorStop(1, 'rgba(0,0,0,0)');
 
-    const chart = new window.Chart(ctx, {
+    const chart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: data.map((_, i) => i),
@@ -71,11 +73,11 @@ function DetailedTeamProfilePage({ year = new Date().getFullYear(), selectedTeam
     setRecord(null); setTsi(null); setSchedule([]); setMustWin([]); setPaths(null);
 
     Promise.allSettled([
-      window.api.getRecord(year, selectedTeam),
-      window.api.getTSI(selectedTeam, year),
-      window.api.getSchedule(year, selectedTeam),
-      window.api.getMustWin(selectedTeam, year),
-      window.api.getPaths(selectedTeam, year, 12, 0)
+      api.getRecord(year, selectedTeam),
+      api.getTSI(selectedTeam, year),
+      api.getSchedule(year, selectedTeam),
+      api.getMustWin(selectedTeam, year),
+      api.getPaths(selectedTeam, year, 12, 0)
     ]).then((results) => {
       if (cancelled) return;
 
@@ -200,3 +202,5 @@ function DetailedTeamProfilePage({ year = new Date().getFullYear(), selectedTeam
 }
 
 window.DetailedTeamProfilePage = DetailedTeamProfilePage;
+
+export default DetailedTeamProfilePage;
