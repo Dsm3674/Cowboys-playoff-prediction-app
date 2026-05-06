@@ -7,14 +7,14 @@ async function initDatabase() {
   try {
     console.log('Starting database initialization...');
 
-    const schemaPath = path.join(__dirname, '../Data/schema.sql');
+    const schemaPath = path.join(__dirname, 'Data/schema.sql');
     const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
 
     console.log('Creating tables...');
     await pool.query(schemaSQL);
     console.log('✓ Tables created successfully');
 
-    const seedPath = path.join(__dirname, '../Data/seed.sql');
+    const seedPath = path.join(__dirname, 'Data/seed.sql');
     const seedSQL = fs.readFileSync(seedPath, 'utf8');
 
     console.log('Seeding initial data...');
