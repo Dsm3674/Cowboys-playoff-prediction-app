@@ -19,16 +19,59 @@ function getSslConfig() {
   return { ssl: { rejectUnauthorized: false } };
 }
 
+function firstEnvValue(keys) {
+  const key = keys.find((candidate) => process.env[candidate]);
+  return key
+    ? {
+        key,
+        value: process.env[key]
+      }
+    : null;
+}
+
+function getConnectionStringInfo() {
+  return firstEnvValue([
+    "DATABASE_URL",
+    "DATABASE_PRIVATE_URL",
+    "DATABASE_PUBLIC_URL",
+    "POSTGRES_URL",
+    "POSTGRES_PRISMA_URL",
+    "POSTGRES_URL_NON_POOLING",
+    "PGDATABASE_URL"
+  ]);
+}
+
 function getConnectionString() {
-  return process.env.DATABASE_URL || "";
+  return getConnectionStringInfo()?.value || "";
+}
+
+function getDiscretePgConfig() {
+  if (!process.env.PGHOST || !process.env.PGUSER || !process.env.PGDATABASE) {
+    return null;
+  }
+
+  return {
+    host: process.env.PGHOST,
+    port: Number(process.env.PGPORT || 5432),
+    user: process.env.PGUSER,
+    password: process.env.PGPASSWORD || "",
+    database: process.env.PGDATABASE
+  };
+}
+
+function hasDatabaseConfig() {
+  return Boolean(getConnectionStringInfo() || getDiscretePgConfig());
 }
 
 function getPoolConfig() {
-  const connectionString = getConnectionString();
+  const connectionInfo = getConnectionStringInfo();
+  const discretePgConfig = getDiscretePgConfig();
 
-  if (!connectionString) {
+  if (!connectionInfo && !discretePgConfig) {
     if (isTestEnv()) return null;
-    throw new Error("DATABASE_URL is not set. Refusing to start with a synthetic or stub database connection.");
+    throw new Error(
+      "No database connection is configured. Set DATABASE_URL, DATABASE_PRIVATE_URL, POSTGRES_URL, or PGHOST/PGUSER/PGPASSWORD/PGDATABASE in Railway Variables."
+    );
   }
 
   const max = Number(process.env.PG_POOL_MAX || 20);
@@ -37,7 +80,9 @@ function getPoolConfig() {
   const allowExitOnIdle = isTruthy(process.env.PG_ALLOW_EXIT_ON_IDLE || "false");
 
   return {
-    connectionString,
+    ...(connectionInfo
+      ? { connectionString: connectionInfo.value }
+      : discretePgConfig),
     ...getSslConfig(),
     max: Number.isFinite(max) ? max : 20,
     idleTimeoutMillis: Number.isFinite(idleTimeoutMillis) ? idleTimeoutMillis : 30000,
@@ -153,14 +198,14 @@ async function healthcheck() {
     return {
       ok,
       elapsedMs,
-      configured: Boolean(getConnectionString()),
+      configured: hasDatabaseConfig(),
       environment: process.env.NODE_ENV || "development"
     };
   } catch (error) {
     return {
       ok: false,
       elapsedMs: null,
-      configured: Boolean(getConnectionString()),
+      configured: hasDatabaseConfig(),
       environment: process.env.NODE_ENV || "development",
       error: error.message
     };
@@ -217,5 +262,7 @@ module.exports = {
   ping,
   healthcheck,
   end,
-  getPool
+  getPool,
+  getConnectionString,
+  hasDatabaseConfig
 };
