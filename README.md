@@ -76,10 +76,8 @@ VITE_STACK_PROJECT_ID=your_project_id_here
 VITE_STACK_PUBLISHABLE_CLIENT_KEY=your_publishable_key_here
 STACK_SECRET_SERVER_KEY=your_secret_key_here
 
-# Two-factor email delivery
-# Required in production for login codes. Local dev logs/displays the code without this key.
-RESEND_API_KEY=your_resend_api_key_here
-AUTH_FROM_EMAIL=Cowboys IQ <verify@yourdomain.com>
+# Auth
+# Login uses Gmail + password only. No email delivery key is required.
 ```
 
 **Important**: Never commit your `.env` file to version control!
