@@ -44,7 +44,7 @@ app.use("/api/players", playersRoutes);
 const timelineRoutes = require("./routes/timeline");
 app.use("/api/timeline", timelineRoutes);
 
-const frontendPath = path.join(__dirname, "../frontend");
+const frontendPath = path.join(__dirname, "../frontend/dist");
 const frontendIndexPath = path.join(frontendPath, "index.html");
 
 
