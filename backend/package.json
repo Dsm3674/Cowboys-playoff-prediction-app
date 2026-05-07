@@ -7,6 +7,7 @@
     "test": "jest --detectOpenHandles",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "build": "echo \"No backend build step required\"",
     "start": "node migrate_player_events.js && node server.js",
     "init-db": "node initDatabase.js",
     "dev": "nodemon server.js",
