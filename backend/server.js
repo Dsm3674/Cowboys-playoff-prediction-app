@@ -47,16 +47,20 @@ app.use("/api/timeline", timelineRoutes);
 const frontendPath = path.join(__dirname, "../frontend/dist");
 const frontendIndexPath = path.join(frontendPath, "index.html");
 
+function sendFrontendIndex(res) {
+  res.set("Cache-Control", "no-store");
+  res.sendFile(frontendIndexPath);
+}
 
 if (fs.existsSync(frontendIndexPath)) {
-  app.use(express.static(frontendPath));
+  app.use(express.static(frontendPath, { index: false }));
 
   app.get("/", generalLimiter, (req, res) => {
-    res.sendFile(frontendIndexPath);
+    sendFrontendIndex(res);
   });
 
   app.get("*", generalLimiter, (req, res) => {
-    res.sendFile(frontendIndexPath);
+    sendFrontendIndex(res);
   });
 } else {
   app.get("/", generalLimiter, (_req, res) => {
