@@ -2,6 +2,7 @@
 
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
 const path = require("path");
 const rateLimit = require("express-rate-limit");
 
@@ -44,19 +45,28 @@ const timelineRoutes = require("./routes/timeline");
 app.use("/api/timeline", timelineRoutes);
 
 const frontendPath = path.join(__dirname, "../frontend");
+const frontendIndexPath = path.join(frontendPath, "index.html");
 
 
-app.use(express.static(frontendPath));
+if (fs.existsSync(frontendIndexPath)) {
+  app.use(express.static(frontendPath));
 
+  app.get("/", generalLimiter, (req, res) => {
+    res.sendFile(frontendIndexPath);
+  });
 
-app.get("/", generalLimiter, (req, res) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
-});
-
-
-app.get("*", generalLimiter, (req, res) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
-});
+  app.get("*", generalLimiter, (req, res) => {
+    res.sendFile(frontendIndexPath);
+  });
+} else {
+  app.get("/", generalLimiter, (_req, res) => {
+    res.json({
+      ok: true,
+      service: "cowboys-playoff-predictor",
+      message: "API running"
+    });
+  });
+}
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

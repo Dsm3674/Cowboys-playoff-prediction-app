@@ -1,17 +1,6 @@
--- !!! DESTRUCTIVE RESET to ensure new columns are added !!!
-DROP TABLE IF EXISTS simulations CASCADE;
-DROP TABLE IF EXISTS player_projections CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS access_requests CASCADE;
-DROP TABLE IF EXISTS predictions CASCADE;
-DROP TABLE IF EXISTS opponents CASCADE;
-DROP TABLE IF EXISTS players CASCADE;
-DROP TABLE IF EXISTS game_stats CASCADE;
-DROP TABLE IF EXISTS seasons CASCADE;
-DROP TABLE IF EXISTS teams CASCADE;
-
+-- Idempotent schema for Railway deploys. Do not drop existing data.
 -- 1. TEAMS
-CREATE TABLE teams (
+CREATE TABLE IF NOT EXISTS teams (
     team_id SERIAL PRIMARY KEY,
     team_name VARCHAR(100) NOT NULL,
     conference VARCHAR(10) CHECK (conference IN ('NFC', 'AFC')),
@@ -22,7 +11,7 @@ CREATE TABLE teams (
 );
 
 -- 2. SEASONS
-CREATE TABLE seasons (
+CREATE TABLE IF NOT EXISTS seasons (
     season_id SERIAL PRIMARY KEY,
     team_id INT REFERENCES teams(team_id) ON DELETE CASCADE,
     year INT NOT NULL,
@@ -37,7 +26,7 @@ CREATE TABLE seasons (
 );
 
 -- 3. GAME STATS
-CREATE TABLE game_stats (
+CREATE TABLE IF NOT EXISTS game_stats (
     stat_id SERIAL PRIMARY KEY,
     season_id INT REFERENCES seasons(season_id) ON DELETE CASCADE,
     week INT NOT NULL,
@@ -56,7 +45,7 @@ CREATE TABLE game_stats (
 );
 
 -- 4. PLAYERS
-CREATE TABLE players (
+CREATE TABLE IF NOT EXISTS players (
     player_id SERIAL PRIMARY KEY,
     season_id INT REFERENCES seasons(season_id) ON DELETE CASCADE,
     player_name VARCHAR(100) NOT NULL,
@@ -69,7 +58,7 @@ CREATE TABLE players (
 );
 
 -- 5. PREDICTIONS
-CREATE TABLE predictions (
+CREATE TABLE IF NOT EXISTS predictions (
     prediction_id SERIAL PRIMARY KEY,
     season_id INT REFERENCES seasons(season_id) ON DELETE CASCADE,
     prediction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -83,7 +72,7 @@ CREATE TABLE predictions (
 );
 
 -- 6. USERS (New Feature)
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     password_hash VARCHAR(255),
@@ -91,7 +80,7 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE access_requests (
+CREATE TABLE IF NOT EXISTS access_requests (
     request_id SERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL,
     name VARCHAR(120),
@@ -103,11 +92,11 @@ CREATE TABLE access_requests (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_access_requests_email_created
+CREATE INDEX IF NOT EXISTS idx_access_requests_email_created
 ON access_requests (email, created_at DESC);
 
 -- 7. PLAYER PROJECTIONS (New Feature)
-CREATE TABLE player_projections (
+CREATE TABLE IF NOT EXISTS player_projections (
     proj_id SERIAL PRIMARY KEY,
     player_id INT REFERENCES players(player_id),
     week INT,
@@ -117,7 +106,7 @@ CREATE TABLE player_projections (
 );
 
 -- 8. SIMULATIONS (New Feature)
-CREATE TABLE simulations (
+CREATE TABLE IF NOT EXISTS simulations (
     sim_id SERIAL PRIMARY KEY,
     user_id INT,
     scenario_type VARCHAR(50),

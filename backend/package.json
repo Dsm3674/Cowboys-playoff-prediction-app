@@ -7,7 +7,8 @@
     "test": "jest --detectOpenHandles",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "start": "node initDatabase.js && node migrate_player_events.js && node server.js",
+    "start": "node migrate_player_events.js && node server.js",
+    "init-db": "node initDatabase.js",
     "dev": "nodemon server.js",
     "seed": "node initDatabase.js",
     "migrate": "node migrate_player_events.js"
@@ -35,6 +36,6 @@
     "supertest": "^6.3.3"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": "20.x"
   }
 }
