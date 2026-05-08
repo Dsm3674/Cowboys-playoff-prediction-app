@@ -53,17 +53,13 @@ let _teamMapCache = null;
 let _teamMapCacheTs = 0;
 
 async function getNflTeamIdMap() {
-  // cache for 24h
   const now = Date.now();
   if (_teamMapCache && now - _teamMapCacheTs < 24 * 60 * 60 * 1000) {
     return _teamMapCache;
   }
 
   const fetch = (await import("node-fetch")).default;
-
-  // ESPN teams list
-  const url =
-    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams";
+  const url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams";
   const res = await fetch(url);
   if (!res.ok) {
     _teamMapCache = {};
@@ -73,8 +69,7 @@ async function getNflTeamIdMap() {
 
   const data = await res.json();
 
-  // ESPN structure: sports[0].leagues[0].teams is common
-  let teams =[];
+  let teams = [];
   if (Array.isArray(data.sports) && data.sports[0]?.leagues?.[0]?.teams) {
     teams = data.sports[0].leagues[0].teams;
   } else if (Array.isArray(data.leagues) && data.leagues[0]?.teams) {
@@ -121,7 +116,7 @@ async function getNFLTeamList() {
   }));
 }
 
-function parseEspnScheduleEvents(events =[]) {
+function parseEspnScheduleEvents(events = []) {
   const getScore = (comp) => {
     if (!comp) return 0;
     if (comp.score?.value != null) return Number(comp.score.value);
@@ -146,7 +141,7 @@ function parseEspnScheduleEvents(events =[]) {
       if (!home || !away) return null;
 
       return {
-        id: event.id, // Included for fetching deep play-by-play logs
+        id: event.id,
         week: event.week?.number ?? null,
         date: event.date,
         homeTeamName: home.team?.displayName ?? "Home",
@@ -162,34 +157,72 @@ function parseEspnScheduleEvents(events =[]) {
     .filter(Boolean);
 }
 
-async function fetchTeamGamesSeasonToDate(teamAbbr, year = getNFLSeasonYear()) {
+// ---------------------------------------------------------------------------
+// Promise-level schedule cache.
+//
+// Why this exists: a single rival-impact request fans out to 31 teams, each
+// of which calls computeTSI(), which in turn fetches each opponent's full
+// schedule for SOS. Without dedup, the same schedules get fetched dozens of
+// times in one request. ESPN rate-limits us, the request takes 30+ seconds,
+// and timeouts cascade.
+//
+// Caching the *promise* (not just the result) means concurrent callers
+// requesting the same team:year share a single in-flight HTTP call.
+//
+// TTL is short (5 min) because completed game scores can update for
+// late-night corrections and live games tick every play.
+// ---------------------------------------------------------------------------
+const _scheduleCache = new Map();
+const SCHEDULE_TTL_MS = 5 * 60 * 1000;
+
+async function _doFetchSchedule(abbr, year) {
   try {
     const fetch = (await import("node-fetch")).default;
     const map = await getNflTeamIdMap();
-    const abbr = String(teamAbbr || "").toUpperCase();
     const teamId = map[abbr]?.id;
 
-    // fallback: old style teams/dal (works for DAL, sometimes others)
     if (!teamId) {
       const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${abbr.toLowerCase()}/schedule?season=${year}`;
       const res = await fetch(url);
-      if (!res.ok) return[];
+      if (!res.ok) return [];
       const data = await res.json();
-      return parseEspnScheduleEvents(data.events ||[]);
+      return parseEspnScheduleEvents(data.events || []);
     }
 
     const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${teamId}/schedule?season=${year}`;
     const res = await fetch(url);
-    if (!res.ok) return[];
+    if (!res.ok) return [];
     const data = await res.json();
-    return parseEspnScheduleEvents(data.events ||[]);
+    return parseEspnScheduleEvents(data.events || []);
   } catch (err) {
     console.error("ESPN fetch error:", err);
-    return[];
+    return [];
   }
 }
 
-async function fetchCowboysGamesSeasonToDate(year = getNFLSeasonYear()) {
+function fetchTeamGamesSeasonToDate(teamAbbr, year = getNFLSeasonYear()) {
+  const abbr = String(teamAbbr || "").toUpperCase();
+  if (!abbr) return Promise.resolve([]);
+
+  const resolvedYear = year || getNFLSeasonYear();
+  const cacheKey = `${abbr}:${resolvedYear}`;
+  const cached = _scheduleCache.get(cacheKey);
+
+  if (cached && Date.now() - cached.ts < SCHEDULE_TTL_MS) {
+    return cached.promise;
+  }
+
+  const promise = _doFetchSchedule(abbr, resolvedYear);
+  _scheduleCache.set(cacheKey, { promise, ts: Date.now() });
+
+  promise.catch(() => {
+    _scheduleCache.delete(cacheKey);
+  });
+
+  return promise;
+}
+
+function fetchCowboysGamesSeasonToDate(year = getNFLSeasonYear()) {
   return fetchTeamGamesSeasonToDate("DAL", year);
 }
 
@@ -228,7 +261,7 @@ function computeRecordFromGames(games, teamAbbr = "DAL") {
 
 function computeTeamAveragesFromGames(teamAbbr, games) {
   const abbr = String(teamAbbr || "").toUpperCase();
-  const completed = (games ||[]).filter((g) => g.completed);
+  const completed = (games || []).filter((g) => g.completed);
 
   let pf = 0;
   let pa = 0;
@@ -250,6 +283,10 @@ function computeTeamAveragesFromGames(teamAbbr, games) {
   };
 }
 
+function _resetScheduleCache() {
+  _scheduleCache.clear();
+}
+
 module.exports = {
   getNFLSeasonYear,
   fetchTeamGamesSeasonToDate,
@@ -260,4 +297,5 @@ module.exports = {
   getNFLTeamCatalog: () => NFL_TEAM_CATALOG,
   getNFLTeamMetadata: getNFLCatalogItem,
   normalizeTeamAbbr,
+  _resetScheduleCache,
 };
