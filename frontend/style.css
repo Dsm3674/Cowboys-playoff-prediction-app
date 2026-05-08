@@ -6343,3 +6343,414 @@ tbody tr:hover {
 }
 
 /* End Trust Engine stylesheet */
+
+/* ============================================================
+   ORGANIZED WORKSPACE + MOTION PASS
+   Adds clearer section hierarchy, staggered load, and tactile
+   micro-interactions across the Trust Engine dashboard.
+   ============================================================ */
+
+.dashboard-page,
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--s-6), 3vw, var(--s-10));
+  padding: clamp(var(--s-5), 3vw, var(--s-8));
+}
+
+.page-body {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--s-5), 2.4vw, var(--s-8));
+  min-width: 0;
+}
+
+.page-hero__copy {
+  position: relative;
+  z-index: 2;
+  max-width: 760px;
+}
+
+.page-hero__kicker,
+.workspace-section__kicker,
+.workspace-section__meta,
+.dashboard-quickbar {
+  font-family: var(--font-mono);
+  font-size: var(--fz-eyebrow);
+  font-weight: 500;
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+}
+
+.page-hero__kicker {
+  width: fit-content;
+  margin-bottom: var(--s-4);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-pill);
+  color: var(--fg-muted);
+  background: rgba(244, 239, 230, 0.035);
+}
+
+.dashboard-quickbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-5);
+}
+
+.dashboard-quickbar span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-pill);
+  color: var(--cream);
+  background: rgba(244, 239, 230, 0.045);
+}
+
+.dashboard-quickbar span::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  margin-right: var(--s-2);
+  border-radius: 50%;
+  background: var(--electric-hi);
+  box-shadow: 0 0 12px rgba(31, 43, 255, 0.7);
+}
+
+.workspace-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-width: 0;
+  padding-top: clamp(var(--s-4), 2vw, var(--s-6));
+  border-top: 1px solid var(--rule);
+}
+
+.workspace-section__head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--s-5);
+}
+
+.workspace-section__head h2 {
+  margin: var(--s-2) 0 0;
+  color: var(--cream);
+  font-size: clamp(1.4rem, 2.2vw, 2rem);
+  letter-spacing: var(--tracking-tight);
+}
+
+.workspace-section__kicker,
+.workspace-section__meta {
+  color: var(--fg-muted);
+}
+
+.workspace-section__meta {
+  flex: 0 0 auto;
+  padding-bottom: 0.2rem;
+}
+
+.dashboard-signal-grid,
+.dashboard-decision-grid {
+  min-width: 0;
+}
+
+.dashboard-signal-grid {
+  margin-bottom: 0 !important;
+}
+
+.dashboard-decision-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(420px, 1.28fr);
+  gap: var(--s-5);
+  align-items: stretch;
+}
+
+.dashboard-decision-grid > * {
+  min-width: 0;
+}
+
+.dashboard-table-wrap {
+  min-width: 0;
+}
+
+.live-ticker-wrap::after,
+.cowboys-banner::after,
+.page-hero::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.live-ticker-wrap::after {
+  inset: 0;
+  width: 28%;
+  background: linear-gradient(90deg, transparent, rgba(244, 239, 230, 0.08), transparent);
+  transform: translateX(-120%);
+  animation: trustTickerSheen 7.5s var(--ease-in-out) infinite;
+}
+
+.cowboys-banner::after,
+.page-hero::after {
+  display: block;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.48;
+  background-image:
+    linear-gradient(to right, rgba(244, 239, 230, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(244, 239, 230, 0.025) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.72) 48%, transparent 92%);
+}
+
+.reveal-up,
+.workspace-section,
+.page-hero,
+.cowboys-banner {
+  animation: trustRevealUp 640ms var(--ease-out) both;
+}
+
+.stagger-1 {
+  animation-delay: 70ms;
+}
+
+.stagger-2 {
+  animation-delay: 150ms;
+}
+
+.stagger-3 {
+  animation-delay: 240ms;
+}
+
+.stagger-4 {
+  animation-delay: 340ms;
+}
+
+.card,
+.cowboys-card,
+.tsi-card,
+.must-win-card,
+.intel-panel,
+.intel-metric-card,
+.intel-insight-card,
+.metric-tile,
+.scoreboard-card,
+.data-table-wrap,
+.rival-card,
+.panel,
+.chart-card,
+.sim-card,
+.player-radar-detail,
+.theme-option-copy {
+  overflow: hidden;
+}
+
+.card::after,
+.cowboys-card::after,
+.tsi-card::after,
+.must-win-card::after,
+.intel-panel::after,
+.metric-tile::after,
+.scoreboard-card::after,
+.data-table-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at var(--mx, 50%) var(--my, 0%), rgba(31, 43, 255, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(244, 239, 230, 0.04), transparent 42%);
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.card:hover,
+.cowboys-card:hover,
+.tsi-card:hover,
+.must-win-card:hover,
+.intel-panel:hover,
+.metric-tile:hover,
+.scoreboard-card:hover,
+.data-table-wrap:hover,
+.rival-card:hover,
+.panel:hover,
+.chart-card:hover,
+.sim-card:hover {
+  transform: translateY(-2px);
+}
+
+.card:hover::after,
+.cowboys-card:hover::after,
+.tsi-card:hover::after,
+.must-win-card:hover::after,
+.intel-panel:hover::after,
+.metric-tile:hover::after,
+.scoreboard-card:hover::after,
+.data-table-wrap:hover::after {
+  opacity: 1;
+}
+
+.metric-value,
+.stat-value,
+.intel-big-number,
+.intel-stat__value,
+.intel-metric-card__value,
+.player-radar-detail__score {
+  animation: trustNumberSettle 720ms var(--ease-out) both;
+}
+
+.bar-fill,
+.strength-bar__fill,
+.mini-fill,
+.fill,
+.player-radar-metric__track::after,
+.player-radar-mini__track::after {
+  transform-origin: left;
+  animation: trustBarGrow 820ms var(--ease-out) both;
+}
+
+.sub-tab {
+  position: relative;
+}
+
+.sub-tab::after {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 5px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+
+.sub-tab:hover::after,
+.sub-tab.active::after {
+  opacity: 0.42;
+  transform: scaleX(1);
+}
+
+.cmd-k-overlay.visible {
+  animation: trustFadeIn 180ms var(--ease-out) both;
+}
+
+.cmd-k-modal {
+  animation: trustModalIn 240ms var(--ease-out) both;
+}
+
+@keyframes trustRevealUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes trustFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes trustModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes trustTickerSheen {
+  0%,
+  46% {
+    transform: translateX(-120%);
+  }
+  68%,
+  100% {
+    transform: translateX(390%);
+  }
+}
+
+@keyframes trustNumberSettle {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes trustBarGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (max-width: 1100px) {
+  .dashboard-decision-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-page,
+  .page-shell {
+    padding: var(--s-4);
+  }
+
+  .workspace-section__head {
+    align-items: start;
+    flex-direction: column;
+    gap: var(--s-2);
+  }
+
+  .dashboard-quickbar {
+    gap: var(--s-1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up,
+  .workspace-section,
+  .page-hero,
+  .cowboys-banner,
+  .metric-value,
+  .stat-value,
+  .intel-big-number,
+  .intel-stat__value,
+  .intel-metric-card__value,
+  .player-radar-detail__score,
+  .bar-fill,
+  .strength-bar__fill,
+  .mini-fill,
+  .fill,
+  .player-radar-metric__track::after,
+  .player-radar-mini__track::after,
+  .live-ticker-wrap::after,
+  .cmd-k-overlay.visible,
+  .cmd-k-modal {
+    animation: none !important;
+  }
+}
