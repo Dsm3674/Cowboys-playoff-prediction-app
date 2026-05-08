@@ -16,6 +16,7 @@ import LeagueInsightsPage from "./components/LeagueInsightsPage";
 import LiveWinProbTool from "./components/LiveWinProbTool";
 import MatchupSimulatorPage from "./components/MatchupSimulatorPage";
 import MustWinCard from "./components/MustWinCard";
+import OrbitalDiamond from "./components/OrbitalDiamond";
 import PlayerRadar from "./components/PlayerRadar";
 import PlayoffGauge from "./components/PlayoffGauge";
 import PlayoffPulsePage from "./components/PlayoffPulsePage";
@@ -178,6 +179,14 @@ function PageShell({ title, subtitle, insight, children }) {
   return (
     <div style={{ padding: "1.5rem" }}>
       <div className="page-hero">
+        <OrbitalDiamond
+          className="page-hero__orbital"
+          size={520}
+          labels={["Record", "Schedule", "Power"]}
+          glow="electric"
+          ringColor="cream"
+          labelColor="muted"
+        />
         <h1>{title}</h1>
         {subtitle && <p className="page-subtitle">{subtitle}</p>}
         {insight && <div className="key-insight">{insight}</div>}
@@ -222,6 +231,14 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
             Built like a film-room dashboard: fewer gimmicks, clearer signals, and faster reads.
           </p>
         </div>
+        <OrbitalDiamond
+          className="cowboys-banner__orbital"
+          size={640}
+          labels={["Record", "Schedule", "Power"]}
+          glow="navy"
+          ringColor="cream"
+          labelColor="cream"
+        />
       </div>
 
       <div className="data-grid three-col" style={{ marginBottom: "1.5rem" }}>

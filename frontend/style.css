@@ -5314,3 +5314,92 @@ thead th,
     border-radius: 10px;
   }
 }
+
+/* ============================================================
+   ORBITAL DIAMOND HERO ILLUSTRATION
+   WGB-inspired trust-engine orbit, scoped to hero surfaces.
+   ============================================================ */
+
+.cowboys-banner,
+.page-hero {
+  isolation: isolate;
+}
+
+.banner-content,
+.page-hero > h1,
+.page-hero > .page-subtitle,
+.page-hero > .key-insight {
+  position: relative;
+  z-index: 1;
+}
+
+.orbital-diamond {
+  overflow: visible;
+  pointer-events: none;
+  user-select: none;
+}
+
+.cowboys-banner__orbital,
+.page-hero__orbital {
+  position: absolute;
+  top: 50%;
+  right: clamp(-210px, -10vw, -72px);
+  z-index: 0;
+  width: min(58vw, 720px);
+  height: auto;
+  opacity: 0.54;
+  transform: translateY(-50%);
+  filter: saturate(1.08);
+}
+
+.page-hero__orbital {
+  right: clamp(-190px, -12vw, -88px);
+  width: min(48vw, 560px);
+  opacity: 0.38;
+}
+
+.orbital-diamond__orbit {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.orbital-diamond.is-animated .orbital-diamond__orbit {
+  animation: orbitalDiamondSpin 80s linear infinite;
+}
+
+.orbital-diamond__sparkles {
+  font-family: var(--font-ui);
+}
+
+@keyframes orbitalDiamondSpin {
+  from {
+    transform: rotate(-20deg);
+  }
+  to {
+    transform: rotate(340deg);
+  }
+}
+
+@media (max-width: 960px) {
+  .cowboys-banner__orbital,
+  .page-hero__orbital {
+    right: -260px;
+    width: 720px;
+    opacity: 0.18;
+  }
+}
+
+@media (max-width: 640px) {
+  .cowboys-banner__orbital,
+  .page-hero__orbital {
+    right: -320px;
+    width: 660px;
+    opacity: 0.12;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbital-diamond.is-animated .orbital-diamond__orbit {
+    animation: none;
+  }
+}
