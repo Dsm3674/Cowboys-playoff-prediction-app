@@ -121,7 +121,7 @@ function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "D
             <select
               value={firstTeam}
               onChange={(e) => setFirstTeam(e.target.value)}
-              style={{ width: "100%", padding: "0.85rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+              style={{ width: "100%", padding: "0.85rem", borderRadius: "8px" }}
             >
               {teams.map((team) => (
                 <option key={team.code} value={team.code}>{team.code} — {team.name}</option>
@@ -133,7 +133,7 @@ function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "D
             <select
               value={secondTeam}
               onChange={(e) => setSecondTeam(e.target.value)}
-              style={{ width: "100%", padding: "0.85rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+              style={{ width: "100%", padding: "0.85rem", borderRadius: "8px" }}
             >
               {teams.map((team) => (
                 <option key={team.code} value={team.code}>{team.code} — {team.name}</option>
@@ -151,15 +151,15 @@ function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "D
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <h3 style={{ marginTop: 0 }}>Comparison Summary</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "1rem" }}>
-          <div style={{ padding: "1rem", background: "#f8fafc", borderRadius: "10px" }}>
+          <div className="comparison-stat">
             <strong>TSI Gap</strong>
             <div>{comparison?.difference?.tsiDifference}</div>
           </div>
-          <div style={{ padding: "1rem", background: "#f8fafc", borderRadius: "10px" }}>
+          <div className="comparison-stat">
             <strong>Win % Gap</strong>
             <div>{(comparison?.difference?.winPctDifference * 100).toFixed(1)}%</div>
           </div>
-          <div style={{ padding: "1rem", background: "#f8fafc", borderRadius: "10px" }}>
+          <div className="comparison-stat">
             <strong>Point Diff Gap</strong>
             <div>{comparison?.difference?.pointDiffDifference.toFixed(1)}</div>
           </div>
