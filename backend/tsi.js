@@ -15,39 +15,54 @@ async function computeTSI({ teamAbbr, year }) {
   const abbr = String(teamAbbr || "DAL").toUpperCase();
 
   const games = await fetchTeamGamesSeasonToDate(abbr, seasonYear);
-  // FIX: pass abbr so we get this team's record, not always the Cowboys' record
   const record = computeRecordFromGames(games, abbr);
   const avg = computeTeamAveragesFromGames(abbr, games);
 
-  // SOS: average opponent win% from completed games only
-  const completed = games.filter((g) => g.completed);
-  let oppWinPctSum = 0;
-  let oppCount = 0;
+  // ---------------------------------------------------------------------
+  // SOS: average opponent win% across completed games.
+  //
+  // OLD: sequential `for (const g of completed) { await fetchTeamGames... }`
+  //      For 17 completed games this is 17 round-trips serialized end to end.
+  // NEW: derive the list of opponent abbreviations, then Promise.all the
+  //      schedule fetches. ESPN-side this is one round-trip wide.
+  //      Pairs with the promise-level memo cache in services/espn.js so
+  //      duplicate opponents (or concurrent rivalimpact requests) don't
+  //      re-fetch the same schedule.
+  // ---------------------------------------------------------------------
+  const opponentAbbrs = games
+    .filter((g) => g.completed)
+    .map((g) =>
+      (g.homeTeamAbbr || "").toUpperCase() === abbr
+        ? g.awayTeamAbbr
+        : g.homeTeamAbbr
+    )
+    .filter(Boolean);
 
-  for (const g of completed) {
-    const oppAbbr = (g.homeTeamAbbr || "").toUpperCase() === abbr
-      ? g.awayTeamAbbr
-      : g.homeTeamAbbr;
-    const oppGames = await fetchTeamGamesSeasonToDate(oppAbbr, seasonYear);
-    // FIX: pass oppAbbr so each opponent's own record is computed correctly
-    const oppRec = computeRecordFromGames(oppGames, oppAbbr);
-    oppWinPctSum += Number(oppRec.winPct || 0.5);
-    oppCount++;
+  let sos = 0.5;
+  if (opponentAbbrs.length > 0) {
+    const oppSchedules = await Promise.all(
+      opponentAbbrs.map((opp) => fetchTeamGamesSeasonToDate(opp, seasonYear))
+    );
+
+    let oppWinPctSum = 0;
+    opponentAbbrs.forEach((opp, i) => {
+      const oppRec = computeRecordFromGames(oppSchedules[i], opp);
+      oppWinPctSum += Number(oppRec.winPct || 0.5);
+    });
+
+    sos = oppWinPctSum / opponentAbbrs.length;
   }
 
-  const sos = oppCount ? oppWinPctSum / oppCount : 0.5;
-
   // Components scaled to 0..100
-  const offense   = clamp(50 + (avg.avgFor - 21) * 3.0, 0, 100);     // 21 baseline
-  const defense   = clamp(50 + (21 - avg.avgAgainst) * 3.0, 0, 100); // lower PA = better
-  const pointDiff = clamp(50 + avg.pointDiffPerGame * 5.0, 0, 100);
+  const offense    = clamp(50 + (avg.avgFor - 21) * 3.0,    0, 100); // 21 baseline
+  const defense    = clamp(50 + (21 - avg.avgAgainst) * 3.0, 0, 100); // lower PA = better
+  const pointDiff  = clamp(50 + avg.pointDiffPerGame * 5.0,  0, 100);
   const winQuality = clamp(50 + (record.winPct - 0.5) * 120, 0, 100);
-  const schedule  = clamp(50 + (sos - 0.5) * 120, 0, 100);
+  const schedule   = clamp(50 + (sos - 0.5) * 120,           0, 100);
 
  
   const qbAdj = clamp(0.55 * winQuality + 0.45 * offense, 0, 100);
 
-  // Final composite (weights you can tweak)
   const tsi =
     0.22 * offense +
     0.22 * defense +
@@ -60,12 +75,12 @@ async function computeTSI({ teamAbbr, year }) {
     year: seasonYear,
     tsi: Number(tsi.toFixed(1)),
     components: {
-      offense:    Number(offense.toFixed(1)),
-      defense:    Number(defense.toFixed(1)),
-      pointDiff:  Number(pointDiff.toFixed(1)),
-      qbAdj:      Number(qbAdj.toFixed(1)),
-      schedule:   Number(schedule.toFixed(1)),
-      sosWinPct:  Number(sos.toFixed(3)),
+      offense:   Number(offense.toFixed(1)),
+      defense:   Number(defense.toFixed(1)),
+      pointDiff: Number(pointDiff.toFixed(1)),
+      qbAdj:     Number(qbAdj.toFixed(1)),
+      schedule:  Number(schedule.toFixed(1)),
+      sosWinPct: Number(sos.toFixed(3)),
     },
     meta: {
       gamesPlayed: avg.gamesPlayed,
