@@ -177,7 +177,7 @@ function SkeletonLoader() {
 
 function PageShell({ title, subtitle, insight, children }) {
   return (
-    <div style={{ padding: "1.5rem" }}>
+    <div className="page-shell">
       <div className="page-hero">
         <OrbitalDiamond
           className="page-hero__orbital"
@@ -187,11 +187,14 @@ function PageShell({ title, subtitle, insight, children }) {
           ringColor="cream"
           labelColor="muted"
         />
-        <h1>{title}</h1>
-        {subtitle && <p className="page-subtitle">{subtitle}</p>}
-        {insight && <div className="key-insight">{insight}</div>}
+        <div className="page-hero__copy">
+          <div className="page-hero__kicker">Workspace / {title}</div>
+          <h1>{title}</h1>
+          {subtitle && <p className="page-subtitle">{subtitle}</p>}
+          {insight && <div className="key-insight">{insight}</div>}
+        </div>
       </div>
-      {children}
+      <div className="page-body">{children}</div>
     </div>
   );
 }
@@ -218,9 +221,10 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
   const teamInfo = NFL_TEAMS.find((t) => t.code === selectedTeam) || { name: selectedTeam };
 
   return (
-    <div style={{ padding: "1.5rem" }}>
+    <div className="dashboard-page">
       <div className="cowboys-banner war-room-banner">
         <div className="banner-content">
+          <div className="page-hero__kicker">Trust Engine / Live Desk</div>
           <h1 className="hero-title">
             {teamInfo.name} <span>Postseason Desk</span>
           </h1>
@@ -230,6 +234,11 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
           <p className="intel-note">
             Built like a film-room dashboard: fewer gimmicks, clearer signals, and faster reads.
           </p>
+          <div className="dashboard-quickbar" aria-label="Dashboard signals">
+            <span>100k sims</span>
+            <span>Quantum v4.6</span>
+            <span>NFC leverage</span>
+          </div>
         </div>
         <OrbitalDiamond
           className="cowboys-banner__orbital"
@@ -241,20 +250,30 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
         />
       </div>
 
-      <div className="data-grid three-col" style={{ marginBottom: "1.5rem" }}>
-        <div className="reveal-up stagger-1">
+      <section className="workspace-section reveal-up stagger-1">
+        <div className="workspace-section__head">
+          <div>
+            <div className="workspace-section__kicker">Primary Signals</div>
+            <h2>Current playoff posture</h2>
+          </div>
+          <span className="workspace-section__meta">Updated live</span>
+        </div>
+        <div className="data-grid three-col dashboard-signal-grid">
           <RecordCard year={year} team={selectedTeam} />
-        </div>
-        <div className="reveal-up stagger-2">
           <TSICard year={year} team={selectedTeam} />
-        </div>
-        <div className="reveal-up stagger-3">
           <MustWinCard year={year} team={selectedTeam} />
         </div>
-      </div>
+      </section>
 
-      <div className="data-grid">
-        <div className="reveal-up stagger-3">
+      <section className="workspace-section reveal-up stagger-2">
+        <div className="workspace-section__head">
+          <div>
+            <div className="workspace-section__kicker">Decision Board</div>
+            <h2>Leverage and live probability</h2>
+          </div>
+          <span className="workspace-section__meta">Scenario ready</span>
+        </div>
+        <div className="dashboard-decision-grid">
           <div className="card cowboys-card">
             <div className="eyebrow">Playoff Snapshot</div>
             <h3>Playoff Outlook</h3>
@@ -264,10 +283,20 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
           </div>
           <LiveWinProbTool />
         </div>
-        <div className="reveal-up stagger-4">
+      </section>
+
+      <section className="workspace-section reveal-up stagger-3">
+        <div className="workspace-section__head">
+          <div>
+            <div className="workspace-section__kicker">Schedule Map</div>
+            <h2>Remaining path</h2>
+          </div>
+          <span className="workspace-section__meta">{year}</span>
+        </div>
+        <div className="dashboard-table-wrap">
           <GameTable year={year} team={selectedTeam} />
         </div>
-      </div>
+      </section>
     </div>
   );
 }
