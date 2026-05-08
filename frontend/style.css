@@ -4642,7 +4642,7 @@ tbody tr:hover {
 
 .page-hero h1,
 .hero-title {
-  max-width: 15ch;
+  max-width: 100%;
 }
 
 .page-subtitle,
@@ -5901,7 +5901,7 @@ h6 {
 .hero-title,
 .intel-title,
 .page-hero h1 {
-  max-width: 15ch;
+  max-width: 100%;
   margin: 0 0 var(--s-6);
   color: var(--cream);
   font-family: var(--font-display);
@@ -6352,11 +6352,7 @@ tbody tr:hover {
   }
 }
 
-@media (min-width: 1281px) {
-  .app-container > div:not(.live-ticker-wrap):not(.linear-inspector):not(.cmd-k-overlay) {
-    padding-right: clamp(296px, 22vw, 320px);
-  }
-}
+/* Grid layout naturally accommodates the inspector */
 
 @media (max-width: 900px) {
   .hero-title,
