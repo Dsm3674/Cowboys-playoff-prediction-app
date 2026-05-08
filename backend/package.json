@@ -1,0 +1,42 @@
+{
+  "name": "cowboys-playoff-predictor",
+  "version": "1.0.0",
+  "description": "Dallas Cowboys Playoff Prediction API",
+  "main": "server.js",
+  "scripts": {
+    "test": "jest --detectOpenHandles",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "build": "echo \"No backend build step required\"",
+    "start": "node migrate_player_events.js && node server.js",
+    "init-db": "node initDatabase.js",
+    "dev": "nodemon server.js",
+    "seed": "node initDatabase.js",
+    "migrate": "node migrate_player_events.js"
+  },
+  "keywords": [
+    "nfl",
+    "cowboys",
+    "api",
+    "prediction"
+  ],
+  "author": "Divyanshu & Aniketh",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "ioredis": "^5.3.2",
+    "node-fetch": "^2.7.0",
+    "pg": "^8.11.3",
+    "express-rate-limit": "^8.3.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-mock-extended": "^3.0.5",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}

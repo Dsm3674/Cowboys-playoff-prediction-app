@@ -1,0 +1,12 @@
+{
+  "name": "cowboys-playoff-prediction-app",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npm ci --prefix frontend && npm run build --prefix frontend && npm install --prefix backend --omit=dev",
+    "start": "npm start --prefix backend"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}
