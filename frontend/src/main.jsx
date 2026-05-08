@@ -367,6 +367,49 @@ function InsightsPage({ year, selectedTeam }) {
   );
 }
 
+function LinearInspector({ currentPage, selectedTeam, year }) {
+  const pageLabel = currentPage
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+  const teamInfo = NFL_TEAMS.find((team) => team.code === selectedTeam);
+  const issueCode = `${selectedTeam}-${String(pageLabel.length + year).slice(-3)}`;
+
+  return (
+    <aside className="linear-inspector" aria-label="Dashboard context">
+      <div className="linear-inspector__top">
+        <span className="linear-inspector__code">{issueCode}</span>
+        <span className="linear-inspector__dot" />
+      </div>
+
+      <dl className="linear-inspector__list">
+        <div>
+          <dt>Status</dt>
+          <dd><span className="linear-status-dot" /> Tracking</dd>
+        </div>
+        <div>
+          <dt>Workspace</dt>
+          <dd>{teamInfo?.name || selectedTeam}</dd>
+        </div>
+        <div>
+          <dt>View</dt>
+          <dd>{pageLabel}</dd>
+        </div>
+        <div>
+          <dt>Season</dt>
+          <dd>{year}</dd>
+        </div>
+      </dl>
+
+      <div className="linear-inspector__block">
+        <div className="linear-inspector__label">Model</div>
+        <div className="linear-inspector__pill">Quantum v4.6</div>
+      </div>
+    </aside>
+  );
+}
+
 /* ── Router ─────────────────────────────────────────────────── */
 
 function useAppRouter() {
@@ -503,6 +546,7 @@ function App() {
     <div className="app-container">
       <LiveTicker />
       {renderPage()}
+      <LinearInspector currentPage={currentPage} selectedTeam={selectedTeam} year={currentYear} />
       <CommandPalette 
         isOpen={paletteOpen} 
         onClose={() => setPaletteOpen(false)} 
