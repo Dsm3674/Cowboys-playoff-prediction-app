@@ -57,16 +57,18 @@
   --font-ui:       'Inter', system-ui, sans-serif;
 
   /* Sidebar dimensions */
-  --sidebar-w:     220px;
+  --sidebar-w:     260px;
 
   /* Animation Tokens */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out:      cubic-bezier(0, 0, 0.2, 1);
   --ease-in:       cubic-bezier(0.4, 0, 1, 1);
   --ease-snappy:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring:   cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --duration-sm:   150ms;
   --duration-md:   300ms;
   --duration-lg:   500ms;
+  --duration-xl:   800ms;
 }
 
 * {
@@ -225,16 +227,29 @@ img, canvas, svg, video { max-width: 100%; height: auto; }
 .dashboard-header {
   position: sticky;
   top: 0;
-  height: 64px;
-  background: var(--header-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  height: 72px;
+  background: rgba(11,15,20,0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
   z-index: 200;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
+  padding: 0 3rem;
+  transition: all var(--duration-md) var(--ease-standard);
+}
+
+.page-container {
+  padding: 3rem 4rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+@media (max-width: 768px) {
+  .page-container {
+    padding: 1.5rem;
+  }
 }
 
 /* ── MOBILE MENU TOGGLE ────────────────────────────────────── */
@@ -668,17 +683,19 @@ img, canvas, svg, video { max-width: 100%; height: auto; }
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1.5rem;
+  border-radius: 12px;
+  padding: 2rem;
   box-shadow: var(--shadow-soft);
   position: relative;
   overflow: hidden;
-  margin-bottom: 1.25rem;
-  transition: border-color 0.3s ease;
+  margin-bottom: 1.5rem;
+  transition: all var(--duration-lg) var(--ease-spring);
 }
 
 .card:hover {
   border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
 }
 
 .card.cowboys-card { border-top: 2px solid var(--accent); }
@@ -934,21 +951,21 @@ input[type="range"] {
 
 thead th {
   font-family: var(--font-ui);
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
   font-weight: 600;
   border-bottom: 1px solid var(--border-hover);
-  padding: 0.7rem 0.85rem;
+  padding: 1rem 1.25rem;
   text-align: left;
 }
 
 tbody td {
-  padding: 0.65rem 0.85rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
   color: var(--fg-dim);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
 }
 
 tbody tr:hover { background: rgba(255,255,255,0.02); }
@@ -1214,28 +1231,52 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 /* ── LAYOUT UTILITIES ─────────────────────────────────────── */
 .data-grid {
   display: grid;
-  gap: 1rem;
+  gap: 2rem;
 }
 .data-grid.three-col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.data-grid.auto-fit { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.data-grid.auto-fit { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 @media (max-width: 900px) {
-  .data-grid.three-col { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .data-grid.three-col { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+}
+
+.layout-dashboard {
+  grid-template-columns: 1fr 2fr;
+}
+@media (max-width: 1200px) {
+  .layout-dashboard {
+    grid-template-columns: 1fr;
+  }
 }
 
 .metric-tile {
   background: var(--card-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1rem;
+  border-radius: 12px;
+  padding: 1.75rem;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  transition: all var(--duration-md) var(--ease-standard);
-  animation: fadeUpIn 0.5s ease backwards;
+  transition: all var(--duration-lg) var(--ease-spring);
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.06), transparent 40%);
+  opacity: 0;
+  transition: opacity var(--duration-md);
+  pointer-events: none;
+}
+
+.metric-tile:hover::after {
+  opacity: 1;
 }
 
 .metric-tile:hover {
   border-color: var(--border-hover);
-  box-shadow: var(--shadow-glow);
-  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,212,170,0.1);
+  transform: translateY(-4px) scale(1.02);
 }
 
 .metric-value {
@@ -1306,8 +1347,8 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 
 /* ── CSS MICRO-ANIMATIONS ──────────────────────────────────── */
 @keyframes fadeUpIn {
-  0% { opacity: 0; transform: translateY(10px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; transform: translateY(30px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes shimmer {
@@ -1315,6 +1356,19 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   100% { background-position: 200% 0; }
 }
 
+.reveal-up {
+  animation: fadeUpIn 0.8s var(--ease-spring) both;
+}
+
+.stagger-1 { animation-delay: 100ms; }
+.stagger-2 { animation-delay: 200ms; }
+.stagger-3 { animation-delay: 300ms; }
+.stagger-4 { animation-delay: 400ms; }
+.stagger-5 { animation-delay: 500ms; }
+
+.data-grid .metric-tile {
+  animation: fadeUpIn 0.8s var(--ease-spring) backwards;
+}
 .data-grid .metric-tile:nth-child(1) { animation-delay: 0.05s; }
 .data-grid .metric-tile:nth-child(2) { animation-delay: 0.1s; }
 .data-grid .metric-tile:nth-child(3) { animation-delay: 0.15s; }
