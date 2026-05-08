@@ -6804,3 +6804,173 @@ tbody tr:hover {
     animation: none !important;
   }
 }
+
+/* ============================================================
+   STYLE ADDITIONS — append to the bottom of frontend/style.css
+   ------------------------------------------------------------
+   Adds: site footer, fixed comparison summary cards.
+   Removes nothing. Uses your existing CSS variables so it
+   adopts whatever color scheme your style.css already defines.
+   ============================================================ */
+
+/* ─── Site footer ─────────────────────────────────────────── */
+
+.site-footer {
+  margin-top: 4rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  color: var(--fg-dim, #8b97ad);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.site-footer__inner {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 2fr;
+  gap: 2.5rem;
+  padding: 0 1rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.site-footer__brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.site-footer__mark {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--bg-elevated, #0e1826);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  color: var(--accent, #49b3ff);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.site-footer__brand-name {
+  color: var(--fg-strong, #f3f6fb);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin-bottom: 0.25rem;
+}
+
+.site-footer__brand-tag {
+  font-size: 0.82rem;
+  color: var(--fg-faint, #5d6779);
+  max-width: 32ch;
+  line-height: 1.55;
+}
+
+.site-footer__nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+.site-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.site-footer__heading {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-faint, #5d6779);
+}
+
+.site-footer__col a {
+  color: var(--fg-dim, #8b97ad);
+  text-decoration: none;
+  font-size: 0.88rem;
+  transition: color 150ms ease;
+  align-self: flex-start;
+}
+
+.site-footer__col a:hover,
+.site-footer__col a:focus-visible {
+  color: var(--fg-strong, #f3f6fb);
+  outline: none;
+}
+
+.site-footer__bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 1rem;
+  border-top: 1px solid var(--border-soft, rgba(255, 255, 255, 0.04));
+  max-width: 1400px;
+  margin: 0 auto;
+  font-size: 0.78rem;
+  color: var(--fg-faint, #5d6779);
+}
+
+.site-footer__copyright {
+  letter-spacing: 0.01em;
+}
+
+.site-footer__meta {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 760px) {
+  .site-footer__inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .site-footer__nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+  .site-footer__bar {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+/* ─── Comparison Summary stat tiles ──────────────────────── */
+/* Replaces the white-background inline styles that made the
+   numbers invisible in dark mode. */
+
+.comparison-stat {
+  padding: 1rem 1.1rem;
+  border-radius: 10px;
+  background: var(--bg-elevated, #131e2e);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  color: var(--fg, #d6dde9);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.comparison-stat strong {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-faint, #5d6779);
+}
+
+.comparison-stat > div {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--fg-strong, #f3f6fb);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}

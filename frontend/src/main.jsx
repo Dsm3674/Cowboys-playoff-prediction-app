@@ -9,6 +9,7 @@ import ConferenceRacePage from "./components/ConferenceRacePage";
 import DetailedTeamProfilePage from "./components/DetailedTeamProfilePage";
 import DivisionPowerPage from "./components/DivisionPowerPage";
 import EventsAdmin from "./components/EventsAdmin";
+import Footer from "./components/Footer";
 import GameTable from "./components/GameTable";
 import HistoryPage from "./components/HistoryPage";
 import LeagueForecastPage from "./components/LeagueForecastPage";
@@ -35,6 +36,7 @@ import "./styles/global.css";
 import "../style.css";
 import "./styles/EventsAdmin.css";
 import "./styles/Timeline.css";
+import "./styles/MotionPolish.css";
 
 const CATEGORY_MAP = {
   dashboard: 'Core',
@@ -598,6 +600,7 @@ function App() {
         onClose={() => setPaletteOpen(false)} 
         onNavigate={(page) => window.setPage(page)} 
       />
+      <Footer />
     </div>
   );
 }
