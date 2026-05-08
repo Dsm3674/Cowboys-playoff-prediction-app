@@ -161,7 +161,7 @@ function CommandPalette({ isOpen, onClose, onNavigate }) {
 
 function SkeletonLoader() {
   return (
-    <div style={{ padding: "1.5rem" }}>
+    <div className="page-container">
       <div className="skeleton-block skeleton-row h-lg w-60"></div>
       <div className="skeleton-block skeleton-row w-80"></div>
       <div className="skeleton-block skeleton-row w-40"></div>
@@ -177,8 +177,8 @@ function SkeletonLoader() {
 
 function PageShell({ title, subtitle, insight, children }) {
   return (
-    <div className="page-shell">
-      <div className="page-hero">
+    <div className="page-container page-shell">
+      <div className="page-hero reveal-up">
         <OrbitalDiamond
           className="page-hero__orbital"
           size={520}
@@ -221,8 +221,8 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
   const teamInfo = NFL_TEAMS.find((t) => t.code === selectedTeam) || { name: selectedTeam };
 
   return (
-    <div className="dashboard-page">
-      <div className="cowboys-banner war-room-banner">
+    <div className="page-container dashboard-page">
+      <div className="cowboys-banner war-room-banner reveal-up">
         <div className="banner-content">
           <div className="page-hero__kicker">Trust Engine / Live Desk</div>
           <h1 className="hero-title">
@@ -250,7 +250,7 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
         />
       </div>
 
-      <section className="workspace-section reveal-up stagger-1">
+      <section className="workspace-section reveal-up stagger-1" style={{ marginBottom: "2.5rem" }}>
         <div className="workspace-section__head">
           <div>
             <div className="workspace-section__kicker">Primary Signals</div>
@@ -265,7 +265,7 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
         </div>
       </section>
 
-      <section className="workspace-section reveal-up stagger-2">
+      <section className="workspace-section reveal-up stagger-2" style={{ marginBottom: "2.5rem" }}>
         <div className="workspace-section__head">
           <div>
             <div className="workspace-section__kicker">Decision Board</div>
@@ -274,8 +274,8 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
           <span className="workspace-section__meta">Scenario ready</span>
         </div>
         <div className="dashboard-decision-grid">
-          <div className="card cowboys-card">
-            <div className="eyebrow">Playoff Snapshot</div>
+          <div className="card cowboys-card animated-card">
+            <div className="eyebrow">Tactical Overview</div>
             <h3>Playoff Outlook</h3>
             <p className="text-muted">
               Live team metrics, cleaner hierarchy, and what-if analysis at a glance.
@@ -285,7 +285,7 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
         </div>
       </section>
 
-      <section className="workspace-section reveal-up stagger-3">
+      <section className="workspace-section reveal-up stagger-3" style={{ marginBottom: "2.5rem" }}>
         <div className="workspace-section__head">
           <div>
             <div className="workspace-section__kicker">Schedule Map</div>
