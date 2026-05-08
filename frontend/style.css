@@ -4302,3 +4302,396 @@ tbody tr:hover {
     animation-duration: 46s;
   }
 }
+
+/* ============================================================
+   PLAYER RADAR SCOUTING BOARD POLISH
+   Scoped CSS-only pass for tighter text fit, tab ergonomics,
+   and production-grade responsive hierarchy.
+   ============================================================ */
+
+.intel-page {
+  max-width: min(100%, 1320px);
+}
+
+.intel-grid--main {
+  grid-template-columns: minmax(320px, 0.88fr) minmax(420px, 1.12fr);
+  align-items: start;
+}
+
+.intel-panel {
+  min-width: 0;
+}
+
+.intel-panel--primary {
+  border-color: rgba(122, 168, 255, 0.28);
+  background:
+    linear-gradient(180deg, rgba(74, 134, 255, 0.1), rgba(7, 11, 19, 0.96) 42%),
+    var(--card);
+}
+
+.intel-hero {
+  min-width: 0;
+}
+
+.intel-title,
+.intel-subtitle,
+.intel-section-title,
+.player-radar-card__name,
+.player-radar-detail__name,
+.player-radar-card__meta,
+.player-radar-detail__meta,
+.player-radar-mini__label,
+.player-radar-metric__header span {
+  overflow-wrap: anywhere;
+}
+
+.intel-title,
+.intel-section-title,
+.player-radar-card__name,
+.player-radar-detail__name {
+  text-wrap: balance;
+}
+
+.intel-chip,
+.intel-badge,
+.sub-tab,
+.tab-btn,
+.pill-button {
+  white-space: nowrap;
+}
+
+.sub-tabs,
+.tabbar,
+.filter-tabs {
+  display: flex;
+  gap: 0.25rem;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sub-tab,
+.tab-btn,
+.pill-button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding-inline: 0.95rem;
+}
+
+.player-radar-list {
+  max-height: min(68vh, 760px);
+  overflow-y: auto;
+  padding-right: 0.15rem;
+  scrollbar-gutter: stable;
+}
+
+.player-radar-card {
+  display: grid;
+  gap: 0.95rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 1rem 1.05rem;
+}
+
+.player-radar-card__top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.player-radar-card__top > div:first-child {
+  min-width: 0;
+}
+
+.player-radar-card__name {
+  font-size: clamp(0.98rem, 1.5vw, 1.12rem);
+  line-height: 1.05;
+}
+
+.player-radar-card__meta,
+.player-radar-detail__meta {
+  margin-top: 0.25rem;
+  line-height: 1.35;
+}
+
+.player-radar-score-row {
+  margin-top: 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(176, 187, 207, 0.12);
+}
+
+.player-radar-score,
+.player-radar-detail__score {
+  color: #ede6d6;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-radar-mini-bars {
+  gap: 0.55rem;
+}
+
+.player-radar-mini {
+  grid-template-columns: minmax(84px, 0.34fr) minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.player-radar-mini__label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.player-radar-mini__track,
+.player-radar-metric__track {
+  min-width: 0;
+  background: rgba(242, 240, 234, 0.09);
+}
+
+.player-radar-detail {
+  gap: 1.25rem;
+}
+
+.player-radar-detail__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+  padding: 1rem;
+  border: 1px solid rgba(176, 187, 207, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(74, 134, 255, 0.12), rgba(233, 185, 73, 0.06)),
+    rgba(255, 255, 255, 0.025);
+}
+
+.player-radar-detail__name {
+  font-size: clamp(1.55rem, 3vw, 2.45rem);
+  line-height: 0.95;
+}
+
+.player-radar-detail__score-wrap {
+  min-width: 112px;
+  padding-left: 1rem;
+  border-left: 1px solid rgba(176, 187, 207, 0.16);
+}
+
+.player-radar-metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.player-radar-metric {
+  min-width: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+    var(--card-2);
+}
+
+.player-radar-metric__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+}
+
+.player-radar-metric__header span {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.player-radar-metric__header strong {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1180px) {
+  .intel-grid--main {
+    grid-template-columns: 1fr;
+  }
+
+  .player-radar-list {
+    max-height: none;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .intel-page {
+    padding-inline: 0.85rem;
+  }
+
+  .intel-panel {
+    padding: 1rem;
+  }
+
+  .intel-hero__meta,
+  .intel-chip {
+    width: 100%;
+  }
+
+  .intel-chip {
+    justify-content: center;
+  }
+
+  .player-radar-list,
+  .player-radar-metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .player-radar-card__top,
+  .player-radar-detail__hero {
+    grid-template-columns: 1fr;
+  }
+
+  .player-radar-detail__score-wrap {
+    min-width: 0;
+    padding-left: 0;
+    border-left: 0;
+    text-align: left;
+  }
+
+  .player-radar-mini {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+}
+
+/* ============================================================
+   APP-WIDE SCOUTING DESK FINISH
+   Final polish pass for shell rhythm, long text safety, and
+   dense football-ops screens across the dashboard.
+   ============================================================ */
+
+.app-container > :not(.live-ticker-wrap):not(.cmd-k-overlay) {
+  padding-inline: clamp(0.9rem, 2.2vw, 1.75rem);
+}
+
+.page-hero,
+.cowboys-banner {
+  min-height: clamp(180px, 24vw, 250px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.page-hero {
+  margin-block: clamp(1rem, 2.4vw, 1.8rem) clamp(1.15rem, 2.2vw, 1.7rem);
+  padding: clamp(1.45rem, 3.2vw, 2.45rem);
+}
+
+.page-hero h1,
+.hero-title {
+  max-width: 15ch;
+}
+
+.page-subtitle,
+.hero-kicker,
+.intel-subtitle {
+  max-width: 72ch;
+}
+
+.live-ticker-wrap {
+  min-width: 0;
+}
+
+.ticker-content {
+  min-width: max-content;
+  padding-left: clamp(1rem, 5vw, 5.5rem);
+}
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: max-content;
+}
+
+.intel-empty {
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  border: 1px dashed rgba(176, 187, 207, 0.2);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(233, 185, 73, 0.05), rgba(74, 134, 255, 0.045)),
+    rgba(255, 255, 255, 0.018);
+  color: #b6c4d8;
+  line-height: 1.55;
+}
+
+.card,
+.intel-panel,
+.scoreboard-card,
+.rival-card,
+.metric-tile,
+.data-table-wrap {
+  min-width: 0;
+}
+
+.data-grid {
+  min-width: 0;
+}
+
+.data-grid > *,
+.intel-grid > * {
+  min-width: 0;
+}
+
+.intel-badge {
+  min-height: 28px;
+  padding-inline: 0.62rem;
+}
+
+.player-radar-card__top .intel-badge {
+  align-self: start;
+}
+
+@media (max-width: 960px) {
+  .app-container > :not(.live-ticker-wrap):not(.cmd-k-overlay) {
+    padding-inline: clamp(0.75rem, 3vw, 1rem);
+  }
+
+  .page-hero,
+  .cowboys-banner {
+    min-height: 0;
+  }
+
+  .page-hero h1,
+  .hero-title {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .sub-tabs,
+  .tabbar,
+  .filter-tabs {
+    border-radius: 8px;
+    padding: 0.35rem;
+  }
+
+  .sub-tab,
+  .tab-btn,
+  .pill-button {
+    min-height: 44px;
+    padding-inline: 0.85rem;
+  }
+
+  .ticker-label {
+    padding-inline: 0.8rem;
+  }
+
+  .ticker-content {
+    padding-left: 1rem;
+  }
+
+  .intel-empty {
+    min-height: 92px;
+    padding: 1rem;
+  }
+}
