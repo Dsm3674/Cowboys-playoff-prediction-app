@@ -14,7 +14,6 @@ function PlayerRadar() {
       try {
         setLoading(true);
         setError("");
-        const api = api;
         if (!api?.getPlayerRadar) {
           throw new Error("Player radar API is unavailable.");
         }
