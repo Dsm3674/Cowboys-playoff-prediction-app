@@ -54,9 +54,9 @@ class Prediction {
     return result.rows;
   }
 
-  static async getAll(limit = 20) {
-    const query = 'SELECT * FROM predictions ORDER BY prediction_date DESC LIMIT $1';
-    const result = await pool.query(query, [limit]);
+  static async getAll() {
+    const query = 'SELECT * FROM predictions ORDER BY prediction_date DESC';
+    const result = await pool.query(query);
     return result.rows;
   }
 }
