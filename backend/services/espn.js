@@ -58,7 +58,7 @@ async function getNflTeamIdMap() {
     return _teamMapCache;
   }
 
-  const fetch = (await import("node-fetch")).default;
+  const fetch = require("node-fetch");
   const url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams";
   const res = await fetch(url);
   if (!res.ok) {
@@ -177,7 +177,7 @@ const SCHEDULE_TTL_MS = 5 * 60 * 1000;
 
 async function _doFetchSchedule(abbr, year) {
   try {
-    const fetch = (await import("node-fetch")).default;
+    const fetch = require("node-fetch");
     const map = await getNflTeamIdMap();
     const teamId = map[abbr]?.id;
 
