@@ -5,41 +5,10 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const rateLimit = require("express-rate-limit");
-const { apiLimiter } = require("./middleware/RateLimiter");
 
 const app = express();
 
-const configuredOrigins = [
-  process.env.FRONTEND_URL,
-  process.env.FRONTEND_URLS
-]
-  .filter(Boolean)
-  .flatMap((value) => value.split(","))
-  .map((value) => value.trim())
-  .filter(Boolean);
-
-const allowedOrigins = new Set([
-  ...configuredOrigins,
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://localhost:4173",
-  "http://127.0.0.1:4173",
-]);
-
-if (process.env.NODE_ENV !== "production" || process.env.ALLOW_FILE_ORIGIN === "true") {
-  allowedOrigins.add("null");
-}
-
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    callback(new Error(`CORS blocked origin: ${origin}`));
-  }
-}));
+app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
 const generalLimiter = rateLimit({
@@ -74,14 +43,11 @@ const analyticsRoutes = require("./routes/analytics");
 const playersRoutes = require("./routes/players");
 const timelineRoutes = require("./routes/timeline");
 
-app.use("/api", apiLimiter);
-
 app.use("/api/auth", authRoutes);
 app.use("/api/billing", billingRoutes);
 app.use("/api/teams", teamsRoutes);
 app.use("/api/cowboys", cowboysRoutes);
 app.use("/api/prediction", predictionRoutes);
-app.use("/api/predictions", predictionRoutes);
 app.use("/api/simulation", simulationRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/players", playersRoutes);
