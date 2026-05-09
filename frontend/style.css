@@ -7146,22 +7146,192 @@ tbody tr:hover {
   padding: 0;
 }
 
-/* ─── 9. Footer — extend to fill workspace ───────────────── */
-.app-container > .site-footer,
-.workspace-surface ~ .site-footer,
-.app-container .site-footer {
-  width: 100%;
-  max-width: none;
+/* ─── 9. Footer — structured, premium layout ────────────── */
+.site-footer {
+  margin-top: 3rem;
+  padding: 0;
+  border-top: none;
+  background: transparent;
+  color: var(--fg-dim, #aaaab2);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.site-footer__rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border, rgba(255,255,255,0.075)) 20%, var(--border, rgba(255,255,255,0.075)) 80%, transparent);
+  margin-bottom: 2.5rem;
 }
 
 .site-footer__inner {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.1fr) minmax(0, 1.9fr);
+  gap: clamp(2rem, 5vw, 4rem);
   max-width: none;
-  padding-inline: clamp(1.1rem, 3vw, 2.5rem);
+  padding: 0 clamp(1.1rem, 3vw, 2.5rem) 2.5rem;
 }
 
+/* ── Brand column ── */
+.site-footer__brand-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.site-footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.site-footer__mark {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--card, #151516);
+  border: 1px solid var(--border, rgba(255,255,255,0.075));
+  color: var(--accent, #e0c24f);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.site-footer__brand-name {
+  color: var(--fg, #d7d7dc);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.site-footer__brand-tag {
+  color: var(--muted, #73737c);
+  font-size: 0.82rem;
+  margin-top: 0.15rem;
+  line-height: 1.4;
+}
+
+.site-footer__disclaimer {
+  margin: 0;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--border, rgba(255,255,255,0.075));
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.075));
+  color: var(--muted, #73737c);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  max-width: 32ch;
+}
+
+.site-footer__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.site-footer__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--border, rgba(255,255,255,0.075));
+  background: var(--card, #151516);
+  color: var(--fg-dim, #aaaab2);
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* ── Link columns ── */
+.site-footer__nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.site-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.site-footer__heading {
+  margin: 0 0 0.35rem;
+  color: var(--fg, #d7d7dc);
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.site-footer__col a {
+  color: var(--muted, #73737c);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: color 150ms ease;
+  width: fit-content;
+}
+
+.site-footer__col a:hover,
+.site-footer__col a:focus-visible {
+  color: var(--fg, #d7d7dc);
+  outline: none;
+}
+
+/* ── Bottom bar ── */
 .site-footer__bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0;
+  padding: 1.1rem clamp(1.1rem, 3vw, 2.5rem);
+  border-top: 1px solid var(--border, rgba(255,255,255,0.075));
   max-width: none;
-  padding-inline: clamp(1.1rem, 3vw, 2.5rem);
+  font-size: 0.74rem;
+  color: var(--muted, #73737c);
+}
+
+.site-footer__copyright {
+  letter-spacing: 0.01em;
+  font-weight: 600;
+}
+
+.site-footer__meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  font-weight: 600;
+}
+
+.site-footer__meta-dot {
+  opacity: 0.4;
+}
+
+@media (max-width: 760px) {
+  .site-footer__inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .site-footer__nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+  .site-footer__disclaimer {
+    max-width: none;
+  }
+  .site-footer__bar {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
 }
 
 /* ─── 10. Orbital diamond — hide in small banners ────────── */
