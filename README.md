@@ -65,8 +65,13 @@ DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require
 # Server Configuration
 PORT=3001
 
-# Frontend URL for CORS
+# Frontend URL for CORS. Use FRONTEND_URLS for multiple comma-separated origins.
 FRONTEND_URL=http://localhost:5173
+FRONTEND_URLS=https://your-frontend.example.com,https://your-preview.example.com
+
+# Optional local file:// landing preview support. Do not enable in production
+# unless you intentionally want browser Origin:null requests to hit the API.
+ALLOW_FILE_ORIGIN=false
 
 # Vite Environment Variables (for React frontend)
 VITE_API_URL=http://localhost:3001
@@ -119,9 +124,11 @@ The frontend will typically run on `http://localhost:5173`
 ## API Endpoints
 
 ### Predictions
-- `GET /api/predictions/current` - Get current season data and latest prediction
-- `POST /api/predictions/generate` - Generate a new prediction
-- `GET /api/predictions/history?limit=20` - Get prediction history
+- `GET /api/prediction/current` - Get current season data and latest cached prediction
+- `POST /api/prediction/generate` - Generate a new prediction
+- `GET /api/prediction/history?limit=20` - Get prediction history
+
+Plural `/api/predictions/*` routes are also mounted as compatibility aliases, but new clients should use the singular `/api/prediction/*` contract.
 
 ### Teams
 - `GET /api/teams/:teamId/seasons?limit=10` - Get team's season history
