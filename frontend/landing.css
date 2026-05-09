@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    COWBOYS IQ - LANDING OVERRIDE
-   Editorial sportsbook direction for the file-preview landing page.
+   Cowboys navy, royal blue, silver, and cream direction.
    Scoped to lp-* markup so the React dashboard keeps its own system.
 ------------------------------------------------------------------------ */
 
@@ -12,11 +12,11 @@ body.lp-locked {
   --lp-ink-muted: #869397;
   --lp-line: rgba(4, 30, 66, 0.12);
   --lp-line-soft: rgba(4, 30, 66, 0.08);
-  --lp-cowboys-blue: #041e42;
+  --lp-cowboys-blue: #003594;
   --lp-cowboys-nav: #041e42;
   --lp-silver: #869397;
   --lp-silver-bright: #f5f1e8;
-  --lp-gold: #ff6b35;
+  --lp-gold: #b0b7bc;
   --lp-success: #1f8c4a;
   --lp-danger: #c0392b;
   --lp-display: "Instrument Serif", "Times New Roman", Georgia, serif;
@@ -38,7 +38,7 @@ body.lp-locked {
 .lp-stage {
   background:
     radial-gradient(1100px 620px at 18% -4%, rgba(4, 30, 66, 0.62), transparent 62%),
-    radial-gradient(880px 520px at 96% 26%, rgba(255, 107, 53, 0.18), transparent 68%),
+    radial-gradient(880px 520px at 96% 26%, rgba(0, 53, 148, 0.18), transparent 68%),
     #0a0a0a;
   color: #f5f1e8;
 }
@@ -70,10 +70,10 @@ body.lp-locked {
 }
 
 .lp-logo__star {
-  background: #ff6b35;
+  background: #003594;
   color: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 10px 24px -18px rgba(255, 107, 53, 0.65);
+  box-shadow: 0 10px 24px -18px rgba(0, 53, 148, 0.65);
 }
 
 .lp-logo__text {
@@ -85,10 +85,19 @@ body.lp-locked {
 
 .lp-logo__text em,
 .lp-headline em,
-.lp-features__title em,
 .lp-story__title em {
   background: none;
-  color: #ff6b35;
+  color: #b0b7bc;
+  font-style: italic;
+  font-weight: 400;
+  animation: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+}
+
+.lp-features__title em {
+  background: none;
+  color: #003594;
   font-style: italic;
   font-weight: 400;
   animation: none;
@@ -104,8 +113,8 @@ body.lp-locked {
 }
 
 .lp-nav__link:hover {
-  color: #ff6b35;
-  border-bottom-color: #ff6b35;
+  color: #b0b7bc;
+  border-bottom-color: #b0b7bc;
 }
 
 .lp-link-btn {
@@ -123,15 +132,15 @@ body.lp-locked {
 }
 
 .lp-btn--primary {
-  background: #ff6b35;
+  background: #003594;
   color: #ffffff;
-  box-shadow: 0 14px 28px -16px rgba(255, 107, 53, 0.75);
+  box-shadow: 0 14px 28px -16px rgba(0, 53, 148, 0.75);
 }
 
 .lp-btn--primary:hover {
   background: #ffffff;
   color: #041e42;
-  box-shadow: 0 20px 34px -20px rgba(255, 107, 53, 0.7);
+  box-shadow: 0 20px 34px -20px rgba(0, 53, 148, 0.7);
 }
 
 .lp-btn--ghost,
@@ -142,8 +151,8 @@ body.lp-locked {
 
 .lp-btn--ghost:hover,
 .lp-guest-link:hover {
-  color: #ff6b35;
-  border-color: #ff6b35;
+  color: #b0b7bc;
+  border-color: #b0b7bc;
   background: transparent;
 }
 
@@ -157,22 +166,22 @@ body.lp-locked {
 .lp-eyebrow {
   border-color: rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.04);
-  color: #ff6b35;
+  color: #b0b7bc;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
 }
 
 .lp-eyebrow__pulse {
-  background: #ff6b35;
-  box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.7);
+  background: #b0b7bc;
+  box-shadow: 0 0 0 0 rgba(0, 53, 148, 0.7);
   animation: lp-live-pulse 1.6s infinite;
 }
 
 @keyframes lp-live-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 107, 53, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 107, 53, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(0, 53, 148, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 53, 148, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 53, 148, 0); }
 }
 
 .lp-headline {
@@ -184,7 +193,7 @@ body.lp-locked {
 }
 
 .lp-headline__period {
-  color: #ff6b35;
+  color: #b0b7bc;
 }
 
 .lp-subhead {
@@ -203,9 +212,9 @@ body.lp-locked {
 }
 
 .lp-check {
-  background: #ff6b35;
+  background: #003594;
   color: #ffffff;
-  box-shadow: 0 8px 18px -14px rgba(255, 107, 53, 0.75);
+  box-shadow: 0 8px 18px -14px rgba(0, 53, 148, 0.75);
 }
 
 .lp-agent-console {
@@ -227,8 +236,8 @@ body.lp-locked {
 }
 
 .lp-agent-card__pulse {
-  background: #ff6b35;
-  box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.58);
+  background: #b0b7bc;
+  box-shadow: 0 0 0 0 rgba(0, 53, 148, 0.58);
 }
 
 .lp-visual {
@@ -245,7 +254,7 @@ body.lp-locked {
 }
 
 .lp-mockup::before {
-  background: radial-gradient(420px 220px at 80% 0%, rgba(255, 107, 53, 0.19), transparent 70%);
+  background: radial-gradient(420px 220px at 80% 0%, rgba(0, 53, 148, 0.19), transparent 70%);
 }
 
 .lp-mockup__top,
@@ -269,7 +278,7 @@ body.lp-locked {
 }
 
 .lp-gauge__num {
-  color: #ff6b35;
+  color: #b0b7bc;
   background: none;
   -webkit-background-clip: initial;
   background-clip: initial;
@@ -292,7 +301,7 @@ body.lp-locked {
 }
 
 .lp-stat-card:hover {
-  border-color: rgba(255, 107, 53, 0.45);
+  border-color: rgba(176, 183, 188, 0.45);
 }
 
 .lp-stat-card__value {
@@ -350,7 +359,7 @@ body.lp-locked {
 
 .lp-rail__dot,
 .lp-rail__val {
-  color: #ff6b35;
+  color: #003594;
 }
 
 .lp-rail__item:hover {
@@ -382,16 +391,16 @@ body.lp-locked {
 }
 
 .lp-feature:hover {
-  border-color: rgba(255, 107, 53, 0.35);
+  border-color: rgba(0, 53, 148, 0.35);
   box-shadow: 0 30px 60px -30px rgba(4, 30, 66, 0.25);
 }
 
 .lp-feature::before {
-  background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255, 107, 53, 0.12), transparent 34%);
+  background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(0, 53, 148, 0.12), transparent 34%);
 }
 
 .lp-feature__no {
-  color: #ff6b35;
+  color: #003594;
 }
 
 .lp-feature__title {
@@ -411,12 +420,12 @@ body.lp-locked {
 
 .lp-feature__bars span,
 .lp-feature__gauge path:nth-of-type(2) {
-  background: #ff6b35;
-  stroke: #ff6b35;
+  background: #003594;
+  stroke: #003594;
 }
 
 .lp-feature__stars i {
-  color: #ff6b35;
+  color: #003594;
 }
 
 .lp-pricing {
@@ -446,7 +455,7 @@ body.lp-locked {
 }
 
 .lp-pricing__kicker {
-  color: #ff6b35;
+  color: #b0b7bc;
 }
 
 .lp-pricing__title {
@@ -476,8 +485,8 @@ body.lp-locked {
 
 .lp-price-card--featured {
   background: linear-gradient(160deg, #041e42 0%, #062850 100%);
-  border-color: #ff6b35;
-  box-shadow: 0 30px 60px -30px rgba(255, 107, 53, 0.45);
+  border-color: #b0b7bc;
+  box-shadow: 0 30px 60px -30px rgba(0, 53, 148, 0.45);
 }
 
 .lp-price-card--featured::before {
@@ -486,7 +495,7 @@ body.lp-locked {
   top: -13px;
   left: 50%;
   transform: translateX(-50%);
-  background: #ff6b35;
+  background: #b0b7bc;
   color: #ffffff;
   font: 700 10px/1 var(--lp-mono);
   letter-spacing: 0.14em;
@@ -497,7 +506,7 @@ body.lp-locked {
 
 .lp-price-card__tag,
 .lp-price-card--featured .lp-price-card__tag {
-  color: #ff6b35;
+  color: #b0b7bc;
 }
 
 .lp-price-card__name,
@@ -520,17 +529,17 @@ body.lp-locked {
 }
 
 .lp-price-card__list li::before {
-  color: #ff6b35;
+  color: #003594;
 }
 
 .lp-price-card__lock {
-  background: rgba(255, 107, 53, 0.09);
-  color: #ff9f43;
+  background: rgba(0, 53, 148, 0.09);
+  color: #b0b7bc;
 }
 
 .lp-price-card--featured .lp-price-card__lock {
   background: rgba(255, 255, 255, 0.08);
-  color: #ff9f43;
+  color: #b0b7bc;
 }
 
 .lp-price-card .lp-btn--ghost {
@@ -595,12 +604,12 @@ body.lp-locked {
 
 .lp-meter-circle {
   background:
-    radial-gradient(circle at 50% 45%, #ffffff 0 38%, rgba(255, 107, 53, 0.1) 39% 62%, transparent 63%),
-    conic-gradient(#ff6b35 0 65%, rgba(4, 30, 66, 0.08) 65% 100%);
+    radial-gradient(circle at 50% 45%, #ffffff 0 38%, rgba(0, 53, 148, 0.1) 39% 62%, transparent 63%),
+    conic-gradient(#003594 0 65%, rgba(4, 30, 66, 0.08) 65% 100%);
 }
 
 .lp-meter-value {
-  color: #ff6b35;
+  color: #003594;
   font-weight: 400;
   letter-spacing: 0;
 }
@@ -610,7 +619,7 @@ body.lp-locked {
 }
 
 .lp-meter-fill {
-  background: linear-gradient(90deg, #ff6b35, #ff9f43);
+  background: linear-gradient(90deg, #003594, #b0b7bc);
   transition: width 1s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -647,7 +656,7 @@ body.lp-locked {
 }
 
 .lp-story-card em {
-  color: #ff6b35;
+  color: #b0b7bc;
   font-family: var(--lp-display);
 }
 
@@ -670,7 +679,7 @@ body.lp-locked {
 
 .lp-foot__links a:hover,
 .lp-foot__links .lp-nav__link:hover {
-  color: #ff6b35;
+  color: #b0b7bc;
 }
 
 .lp-modal {
@@ -686,7 +695,7 @@ body.lp-locked {
 }
 
 .lp-signout {
-  background: #ff6b35;
+  background: #003594;
 }
 
 @media (max-width: 980px) {
