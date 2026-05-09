@@ -84,7 +84,7 @@ const ROSTER_MAP =[
 
 
 async function fetchRealCowboysDeepStats(year) {
-  const fetch = global.fetch;
+  const fetch = require("node-fetch");
 
   let games = await espn.fetchCowboysGamesSeasonToDate(year);
   let completedGames = games.filter(g => g.completed && g.id);
@@ -93,7 +93,6 @@ async function fetchRealCowboysDeepStats(year) {
     games = await espn.fetchCowboysGamesSeasonToDate(year - 1);
     completedGames = games.filter(g => g.completed && g.id);
   }
-  if (completedGames.length === 0) throw new Error("No completed games found.");
 
   // 1. Initialize High-Fidelity Data Matrix
   const statsMatrix = {};
@@ -332,12 +331,11 @@ function safeArray(value) { return Array.isArray(value) ? value : []; }
 router.get("/maps", async (req, res) => {
   try {
     const season = normalizeSeason(req.query.season);
-    // Cache the immense matrix compilation to prevent ESPN rate-limits
-    const playersData = await cache.getOrCompute(`MAPS_MATRIX_${season}`, async () => {
-      return await fetchRealCowboysDeepStats(season);
+    const result = await cache.getOrCompute(`MAPS_FINAL_${season}`, async () => {
+      const playersData = await fetchRealCowboysDeepStats(season);
+      return computeConsistencyExplosiveness(playersData);
     }, { ttl: 3600 }); 
 
-    const result = computeConsistencyExplosiveness(playersData);
     res.json(result);
   } catch (error) {
     console.error("Maps matrix error:", error);
@@ -348,19 +346,18 @@ router.get("/maps", async (req, res) => {
 router.get("/radar", async (req, res) => {
   try {
     const season = normalizeSeason(req.query.season);
-    const playersData = await cache.getOrCompute(`RADAR_MATRIX_${season}`, async () => {
-      return await fetchRealCowboysDeepStats(season);
+    const result = await cache.getOrCompute(`RADAR_FINAL_${season}`, async () => {
+      const playersData = await fetchRealCowboysDeepStats(season);
+      const topPerformers = playersData
+        .sort((a,b) => (b.metrics.offense + b.metrics.explosiveness + b.metrics.consistency) - (a.metrics.offense + a.metrics.explosiveness + a.metrics.consistency))
+        .slice(0, 10);
+      return {
+        labels: ["Offense", "Explosiveness", "Consistency", "Clutch", "Durability"],
+        players: topPerformers
+      };
     }, { ttl: 3600 });
 
-    // Radar specifically isolates the top 10 impact players dynamically
-    const topPerformers = playersData
-      .sort((a,b) => (b.metrics.offense + b.metrics.explosiveness + b.metrics.consistency) - (a.metrics.offense + a.metrics.explosiveness + a.metrics.consistency))
-      .slice(0, 10);
-
-    res.json({
-      labels: ["Offense", "Explosiveness", "Consistency", "Clutch", "Durability"],
-      players: topPerformers
-    });
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -369,11 +366,11 @@ router.get("/radar", async (req, res) => {
 router.get("/clutch", async (req, res) => {
   try {
     const season = normalizeSeason(req.query.season);
-    const playersData = await cache.getOrCompute(`CLUTCH_MATRIX_${season}`, async () => {
-      return await fetchRealCowboysDeepStats(season);
+    const result = await cache.getOrCompute(`CLUTCH_FINAL_${season}`, async () => {
+      const playersData = await fetchRealCowboysDeepStats(season);
+      return computeClutchIndex(playersData, { season });
     }, { ttl: 3600 }); 
 
-    const result = computeClutchIndex(playersData, { season });
     res.json(result);
   } catch (error) {
     console.error("Clutch matrix error:", error);

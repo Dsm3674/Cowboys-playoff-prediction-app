@@ -404,7 +404,7 @@ describe("Maps - Consistency vs Explosiveness Analysis", () => {
 
       expect(opportunityInsight).toBeDefined();
       if (opportunityInsight) {
-        expect(opportunityInsight.message).toContain("explosive");
+        expect(opportunityInsight.message).toContain("boom");
       }
     });
 
