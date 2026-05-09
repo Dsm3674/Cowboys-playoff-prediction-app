@@ -2,12 +2,12 @@
    COWBOYS IQ - LANDING SCRIPT
 
    Backend contract:
-     GET  /api/predictions/current    -> latest cached prediction, if present
-     POST /api/predictions/generate   -> fresh prediction, if present
+     GET  /api/prediction/current     -> latest cached prediction, if present
+     POST /api/prediction/generate    -> fresh prediction, if present
      GET  /health                     -> up/down
 
-   The deployed backend currently uses the singular /api/prediction prefix,
-   so this script tries both plural and singular endpoint variants.
+   The backend uses the singular /api/prediction prefix. Plural endpoints are
+   kept as compatibility fallbacks only.
 ------------------------------------------------------------------------ */
 
 const APP_URL = "https://cowboys-playoff-prediction-app-production.up.railway.app";
@@ -22,8 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
 async function initializeLandingPrediction() {
   showMockData();
 
-  const currentEndpoints = ["/predictions/current", "/prediction/current"];
-  const generateEndpoints = ["/predictions/generate", "/prediction/generate"];
+  const currentEndpoints = ["/prediction/current", "/predictions/current"];
+  const generateEndpoints = ["/prediction/generate", "/predictions/generate"];
 
   for (const endpoint of currentEndpoints) {
     try {
