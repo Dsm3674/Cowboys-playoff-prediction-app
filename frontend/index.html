@@ -87,8 +87,11 @@
       "use strict";
 
       var AUTH_KEY = "cowboys_iq_auth_v3";
+      var IS_FILE = location.protocol === "file:";
+      var IS_DIST_FILE = IS_FILE && /\/dist\/index\.html$/i.test(location.pathname);
+      var IS_SOURCE_FILE_PREVIEW = IS_FILE && !IS_DIST_FILE;
       var AUTH_BASE =
-        location.protocol === "file:"
+        IS_FILE
           ? "http://localhost:3001"
           : (location.hostname === "localhost" || location.hostname === "127.0.0.1") && location.port !== "3001"
           ? "http://localhost:3001"
@@ -114,6 +117,17 @@
       var selectedAccessRequest = null;
 
       try {
+        var fileUser = new URLSearchParams(location.search).get("cowboys_iq_file_user");
+        if (IS_DIST_FILE && isGmail(fileUser)) {
+          localStorage.setItem(AUTH_KEY, JSON.stringify({
+            method: "gmail",
+            user: fileUser.trim().toLowerCase(),
+            sessionToken: "file-preview",
+            ts: Date.now()
+          }));
+          history.replaceState(null, "", location.pathname + "#dashboard");
+        }
+
         localStorage.removeItem("cowboys_iq_auth_v1");
         var stored = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
         if (stored && stored.method === "gmail" && isGmail(stored.user)) {
@@ -135,6 +149,14 @@
         modalError.classList.add("is-visible");
       }
 
+      function getFileAppUrl(user) {
+        return "./dist/index.html?cowboys_iq_file_user=" + encodeURIComponent(user || "") + "#dashboard";
+      }
+
+      function openFileApp(user) {
+        location.href = getFileAppUrl(user);
+      }
+
       async function postAuth(path, payload) {
         var res = await fetch(AUTH_BASE + path, {
           method: "POST",
@@ -149,6 +171,7 @@
       }
 
       async function postAccessRequest(email) {
+        if (IS_FILE) return null;
         if (!selectedAccessRequest) return null;
         var res = await fetch(AUTH_BASE + "/api/billing/access-request", {
           method: "POST",
@@ -168,6 +191,14 @@
       }
 
       async function createSession(email, password) {
+        if (IS_FILE) {
+          return {
+            ok: true,
+            user: email,
+            sessionToken: "file-preview"
+          };
+        }
+
         return postAuth("/api/auth/session", {
           email: email,
           password: password,
@@ -263,6 +294,10 @@
             } catch (e) {}
           }
           closeModal();
+          if (IS_SOURCE_FILE_PREVIEW) {
+            openFileApp(opts.user);
+            return;
+          }
           body.classList.remove("lp-locked");
           if (stage) stage.classList.remove("is-exiting");
           injectSignOut();

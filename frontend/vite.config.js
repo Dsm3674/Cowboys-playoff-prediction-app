@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 // In production, your backend is at a different origin — api.js handles that
 // by reading window.location.hostname.
 export default defineConfig({
+  base: "./",
   plugins: [react()],
   // Vite expects .js files to use ES modules. Our .jsx files include JSX,
   // so allow the React plugin to handle them automatically.
