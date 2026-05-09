@@ -593,14 +593,16 @@ function App() {
   return (
     <div className="app-container">
       <LiveTicker />
-      {renderPage()}
-      <LinearInspector currentPage={currentPage} selectedTeam={selectedTeam} year={currentYear} />
-      <CommandPalette 
-        isOpen={paletteOpen} 
-        onClose={() => setPaletteOpen(false)} 
-        onNavigate={(page) => window.setPage(page)} 
-      />
+      <div className="workspace-surface">
+        <div className="workspace-main">{renderPage()}</div>
+        <LinearInspector currentPage={currentPage} selectedTeam={selectedTeam} year={currentYear} />
+      </div>
       <Footer />
+      <CommandPalette
+        isOpen={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onNavigate={(page) => window.setPage(page)}
+      />
     </div>
   );
 }
