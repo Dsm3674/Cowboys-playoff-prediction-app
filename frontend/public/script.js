@@ -147,7 +147,7 @@ function setText(id, text) {
 
   if (id === "playoff-prob") {
     const num = String(text).replace("%", "");
-    el.innerHTML = `${num}<span style="font-size:18px">%</span>`;
+    el.innerHTML = `${num}<i>%</i>`;
     return;
   }
 
