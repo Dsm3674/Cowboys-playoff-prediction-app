@@ -7306,3 +7306,377 @@ tbody tr:hover {
   height: 100%;
   margin-bottom: 0;
 }
+
+/* ============================================================
+   PROFESSIONAL LAYOUT PASS  (post-login workspace)
+   Goal: tighter hierarchy, sticky chrome, calmer hero,
+   consistent rhythm, denser inspector. CSS-only.
+   ============================================================ */
+
+:root {
+  --shell-header-h: 60px;
+  --shell-ticker-h: 38px;
+  --shell-content-max: 1240px;
+  --shell-pad-x: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+/* 1 ─ Sticky workspace chrome (header + ticker stack) */
+.main-stage > .app-shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 220;
+  height: var(--shell-header-h);
+  padding: 0 var(--shell-pad-x);
+  background: rgba(13, 13, 14, 0.92);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--rule, var(--border));
+}
+
+.app-shell-header__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.app-shell-header__label,
+.app-shell-header__divider {
+  color: var(--fg-muted, #888892);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.app-shell-header__divider { opacity: 0.45; }
+
+.app-shell-header__page {
+  color: var(--cream, #ededf1);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-shell-header__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 28px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--rule, var(--border));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--fg-muted, #aaaab2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex: 0 0 auto;
+}
+
+/* Sticky ticker right beneath header */
+.app-container > .live-ticker-wrap {
+  position: sticky;
+  top: var(--shell-header-h);
+  z-index: 210;
+  height: var(--shell-ticker-h);
+  border-radius: 0;
+  border-top: 0;
+}
+
+/* 2 ─ Workspace surface: refined two-column grid */
+.workspace-surface {
+  position: relative;
+}
+
+@media (min-width: 1240px) {
+  .workspace-surface {
+    grid-template-columns: minmax(0, 1fr) 304px;
+  }
+
+  .workspace-main {
+    padding: 1.5rem var(--shell-pad-x) 3rem;
+  }
+
+  .workspace-main > * {
+    max-width: var(--shell-content-max);
+    margin-inline: 0;
+  }
+
+  .linear-inspector {
+    top: calc(var(--shell-header-h) + var(--shell-ticker-h) + 12px);
+    min-height: min(calc(100vh - var(--shell-header-h) - var(--shell-ticker-h) - 24px), 760px);
+    padding: 1.5rem 1.4rem 2rem;
+    background: rgba(16, 16, 17, 0.92);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-left: 1px solid var(--rule, var(--border));
+  }
+}
+
+@media (max-width: 1239px) {
+  .workspace-main {
+    padding: 1.25rem var(--shell-pad-x) 2.5rem;
+  }
+}
+
+/* 3 ─ Page hero: calmer, denser, less marketing */
+.page-shell > .page-hero,
+.page-container.page-shell > .page-hero {
+  min-height: 0;
+  padding: 1.6rem 1.75rem 1.5rem;
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse 520px 220px at 92% 50%, rgba(0, 53, 148, 0.22), transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0) 60%),
+    var(--ink, #0d0d0e);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.page-shell > .page-hero::after { display: none; }
+
+.page-shell .page-hero__orbital {
+  position: absolute;
+  right: -120px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 360px;
+  height: 360px;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.page-shell .page-hero__copy {
+  max-width: 720px;
+}
+
+.page-shell .page-hero h1 {
+  margin: 0.35rem 0 0.55rem;
+  font-size: clamp(1.65rem, 2.6vw, 2.25rem);
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.page-shell .page-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.page-shell .page-hero__kicker {
+  margin-bottom: 0.5rem;
+  padding: 0.28rem 0.6rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+}
+
+/* Dashboard hero stays large but better balanced */
+.cowboys-banner.war-room-banner {
+  padding: clamp(1.8rem, 3vw, 2.6rem) clamp(1.6rem, 3vw, 2.4rem);
+  border-radius: 16px;
+}
+
+.cowboys-banner.war-room-banner .hero-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin-bottom: 0.85rem;
+}
+
+.cowboys-banner.war-room-banner .hero-kicker {
+  font-size: 1rem;
+  margin-bottom: 0.65rem;
+}
+
+/* 4 ─ Workspace section rhythm */
+.workspace-section {
+  gap: 1rem;
+  padding-top: 1.5rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--rule, var(--border));
+}
+
+.workspace-section:first-of-type {
+  border-top: 0;
+  padding-top: 0.25rem;
+}
+
+.workspace-section__head {
+  align-items: center;
+  padding-bottom: 0.15rem;
+}
+
+.workspace-section__head h2 {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.1rem, 1.6vw, 1.35rem);
+  letter-spacing: -0.015em;
+  font-weight: 600;
+}
+
+.workspace-section__kicker {
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  color: var(--fg-muted, #888892);
+}
+
+.workspace-section__meta {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 0.65rem;
+  border: 1px solid var(--rule, var(--border));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  color: var(--fg-muted, #aaaab2);
+}
+
+/* 5 ─ Sub-tabs: align to a section bar */
+.sub-tabs {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0;
+  margin-bottom: 0.5rem;
+  border: 0;
+  border-bottom: 1px solid var(--rule, var(--border));
+  border-radius: 0;
+  background: transparent;
+}
+
+.sub-tab {
+  position: relative;
+  padding: 0.65rem 1rem;
+  border-radius: 0;
+  font-size: 0.82rem;
+  color: var(--fg-muted, #888892);
+}
+
+.sub-tab.active {
+  color: var(--cream, #ededf1);
+  background: transparent;
+}
+
+.sub-tab.active::after {
+  content: "";
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: -1px;
+  height: 2px;
+  background: var(--electric-hi, #1f2bff);
+  border-radius: 2px;
+}
+
+.sub-tab:hover { background: transparent; color: var(--cream, #ededf1); }
+
+/* 6 ─ Sidebar polish */
+.sidebar__logo {
+  height: var(--shell-header-h);
+  padding: 0 1.1rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--rule, var(--border));
+}
+
+.sidebar__nav {
+  padding: 0.5rem 0.5rem 1.5rem;
+}
+
+.nav-group { margin-bottom: 1rem; }
+
+.nav-header {
+  padding: 0 0.85rem 0.45rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  color: var(--fg-muted, #6a6a73);
+}
+
+.nav-header::after { background: var(--rule, var(--border)); opacity: 0.6; }
+
+.nav-link {
+  padding: 0.5rem 0.85rem;
+  margin: 1px 0;
+  min-height: 32px;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  border-radius: 6px;
+}
+
+.nav-link::after { display: none; }
+
+.nav-link.active {
+  background: rgba(31, 43, 255, 0.10);
+  color: var(--cream, #ededf1);
+  border-color: transparent;
+  box-shadow: inset 2px 0 0 var(--electric-hi, #1f2bff);
+}
+
+/* 7 ─ Linear inspector cleanup */
+.linear-inspector__top { margin-bottom: 1.4rem; }
+.linear-inspector__list { gap: 0.95rem; }
+
+.linear-inspector dt,
+.linear-inspector__label {
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  color: var(--fg-muted, #6a6a73);
+  text-transform: uppercase;
+}
+
+.linear-inspector dd {
+  font-size: 0.82rem;
+  color: var(--cream, #ededf1);
+  font-weight: 600;
+}
+
+.linear-inspector__block {
+  margin-top: 1.6rem;
+  padding-top: 1rem;
+}
+
+/* 8 ─ Cards: consistent elevation in workspace */
+.workspace-main .card,
+.workspace-main .cowboys-card,
+.workspace-main .tsi-card,
+.workspace-main .must-win-card {
+  border-radius: 12px;
+  border: 1px solid var(--rule, var(--border));
+  background: rgba(255, 255, 255, 0.018);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.workspace-main .card:hover,
+.workspace-main .cowboys-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.028);
+}
+
+/* 9 ─ Page-container reset for workspace consistency */
+.workspace-main .page-container,
+.workspace-main .page-shell,
+.workspace-main .dashboard-page {
+  padding: 0;
+  gap: 1.75rem;
+}
+
+/* 10 ─ Mobile: collapse inspector + tighten chrome */
+@media (max-width: 900px) {
+  :root {
+    --shell-header-h: 56px;
+    --shell-ticker-h: 36px;
+  }
+
+  .workspace-main {
+    padding: 1rem 1rem 2rem;
+  }
+
+  .page-shell > .page-hero { padding: 1.25rem 1.1rem; }
+  .page-shell .page-hero__orbital { display: none; }
+}
+
