@@ -137,10 +137,10 @@ function RivalTeamImpactPage({ year = 2025, selectedTeam = "DAL" }) {
       </section>
 
       {/* MAIN GRID */}
-      <section className="intel-grid intel-grid--main">
+      <section className="intel-grid intel-grid--main rival-rankings-grid">
 
         {/* TABLE */}
-        <article className="intel-panel intel-panel--primary">
+        <article className="intel-panel intel-panel--primary rival-rankings-panel">
           <div className="intel-panel__header">
             <h2 className="intel-section-title">Rival Rankings</h2>
 
