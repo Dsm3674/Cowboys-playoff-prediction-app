@@ -7665,6 +7665,27 @@ tbody tr:hover {
   gap: 1.75rem;
 }
 
+/* 9b ─ Rival Rankings: full-width table (don't squeeze teams) */
+.rival-rankings-grid {
+  grid-template-columns: 1fr !important;
+  gap: 1.25rem;
+}
+
+.rival-rankings-panel .intel-table-wrap {
+  overflow-x: auto;
+}
+
+.rival-rankings-panel .intel-table {
+  width: 100%;
+  min-width: 560px;
+  table-layout: auto;
+}
+
+.rival-rankings-panel .intel-table th,
+.rival-rankings-panel .intel-table td {
+  white-space: nowrap;
+}
+
 /* 10 ─ Mobile: collapse inspector + tighten chrome */
 @media (max-width: 900px) {
   :root {
