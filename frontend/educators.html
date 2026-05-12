@@ -81,7 +81,7 @@
       </p>
     </div>
 
-    <div class="edu-card-grid">
+    <div class="edu-card-grid edu-reveal">
       <div class="edu-card">
         <div class="edu-card__icon">⚡</div>
         <h3>Built on real probability</h3>
@@ -150,7 +150,7 @@
       </p>
     </div>
 
-    <div class="edu-outcomes">
+    <div class="edu-outcomes edu-reveal">
       <div class="edu-outcome">
         <div class="edu-outcome__num">01</div>
         <div>
@@ -207,7 +207,7 @@
       </p>
     </div>
 
-    <div class="edu-activities">
+    <div class="edu-activities edu-reveal">
       <article class="edu-activity">
         <div class="edu-activity__tag">Activity 01 · Probability</div>
         <h3>"Is 67% actually a lot?"</h3>
@@ -291,7 +291,7 @@
       </p>
     </div>
 
-    <div class="edu-steps">
+    <div class="edu-steps edu-reveal">
       <div class="edu-step">
         <div class="edu-step__num">1</div>
         <h3>Email the creator</h3>
@@ -322,7 +322,7 @@
       <h2 class="edu-section__title">Questions teachers actually ask.</h2>
     </div>
 
-    <div class="edu-faq">
+    <div class="edu-faq edu-reveal">
       <details class="edu-faq__item">
         <summary>Is this really free?</summary>
         <p>Yes. The Classroom Lab pilot is free for the foreseeable future. There's no credit card, trial period, or hidden tier. The only ask is honest feedback so the tool gets better.</p>
@@ -393,6 +393,37 @@
   </div>
   <div class="edu-footer__copy">© Cowboys IQ · Classroom Lab pilot. Not affiliated with the NFL or Dallas Cowboys.</div>
 </footer>
+
+<script>
+  (function () {
+    var reveals = document.querySelectorAll(".edu-reveal");
+    if (!("IntersectionObserver" in window) || !reveals.length) {
+      reveals.forEach(function (el) { el.classList.add("is-visible"); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+    reveals.forEach(function (el) { io.observe(el); });
+
+    // Smooth scroll for in-page nav links
+    document.querySelectorAll('a[href^="#"]').forEach(function (link) {
+      link.addEventListener("click", function (e) {
+        var id = link.getAttribute("href");
+        if (id.length < 2) return;
+        var target = document.querySelector(id);
+        if (!target) return;
+        e.preventDefault();
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  })();
+</script>
 
 </body>
 </html>
