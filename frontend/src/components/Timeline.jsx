@@ -1,6 +1,39 @@
 import React from "react";
 import { api } from "../api";
 
+function toTitleCase(str) {
+  if (!str) return str;
+  return str
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function getEventBadgeClass(event) {
+  const raw = (
+    event.type ||
+    event.eventType ||
+    event.category ||
+    event.title ||
+    event.name ||
+    event.label ||
+    event.event ||
+    ""
+  ).toLowerCase();
+
+  if (raw.includes("win") || raw.includes("victory")) return "intel-badge--success";
+  if (raw.includes("loss") || raw.includes("blowout") || raw.includes("defeat")) return "intel-badge--danger";
+  if (raw.includes("injury") || raw.includes("suspend")) return "intel-badge--warning";
+  return "intel-badge--neutral";
+}
+
+function getFeedAccentStyle(event) {
+  const cls = getEventBadgeClass(event);
+  if (cls === "intel-badge--success") return { borderLeft: "3px solid rgba(120,225,191,0.5)" };
+  if (cls === "intel-badge--danger") return { borderLeft: "3px solid rgba(255,123,135,0.5)" };
+  if (cls === "intel-badge--warning") return { borderLeft: "3px solid rgba(245,198,105,0.5)" };
+  return { borderLeft: "3px solid rgba(138,168,209,0.35)" };
+}
+
 function Timeline() {
   const [season, setSeason] = React.useState(2025);
   const [events, setEvents] = React.useState([]);
@@ -167,10 +200,15 @@ function Timeline() {
                       key={`${getEventTitle(event)}-${index}`}
                       type="button"
                       className={`intel-feed-item ${isActive ? "active" : ""}`}
+                      style={getFeedAccentStyle(event)}
                       onClick={() => setSelectedEvent(event)}
                     >
                       <div className="intel-feed-main">
-                        <div className="intel-feed-title">{getEventTitle(event)}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <span className={`intel-badge ${getEventBadgeClass(event)}`} style={{ fontSize: "0.65rem", padding: "0.2rem 0.45rem" }}>
+                            {toTitleCase(getEventTitle(event))}
+                          </span>
+                        </div>
                         <div className="intel-feed-meta">
                           {formatShortDate(getEventDate(event))}
                         </div>
@@ -190,10 +228,14 @@ function Timeline() {
             {!selectedEvent ? (
               <div className="intel-empty">Select an event to view details.</div>
             ) : (
-              <div className="intel-stack">
-                <div className="intel-badge">{getEventTitle(selectedEvent)}</div>
-                <div className="intel-note">
-                  {formatShortDate(getEventDate(selectedEvent))}
+              <div className="intel-stack" style={{ gap: "1rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                  <span className={`intel-badge ${getEventBadgeClass(selectedEvent)}`}>
+                    {toTitleCase(getEventTitle(selectedEvent))}
+                  </span>
+                  <span style={{ color: "#99abc1", fontSize: "0.85rem" }}>
+                    {formatShortDate(getEventDate(selectedEvent))}
+                  </span>
                 </div>
                 <div className="intel-story-panel">{getEventBody(selectedEvent)}</div>
               </div>
