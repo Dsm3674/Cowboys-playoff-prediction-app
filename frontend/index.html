@@ -332,6 +332,10 @@
             window.location.href = "./educators.html";
             return;
           }
+          if (btn.dataset.plan === "War Room Pro") {
+            window.location.href = "./pro.html";
+            return;
+          }
           openCheckout(btn.dataset.plan, btn.dataset.price);
         });
       });

@@ -1,0 +1,175 @@
+/* ============================================================
+   War Room Pro — overlay styles on top of educators.css
+   Reuses .edu-* utilities; adds Pro-specific accents.
+   ============================================================ */
+
+.pro-body {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(78, 160, 255, 0.18), transparent 50%),
+    radial-gradient(circle at 82% 90%, rgba(43, 92, 170, 0.18), transparent 55%),
+    #050912;
+}
+
+/* Hero gets a slightly bigger glow */
+.pro-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(78, 160, 255, 0.16), transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(245, 198, 105, 0.07), transparent 50%);
+  z-index: -1;
+}
+
+.pro-hero {
+  position: relative;
+}
+
+/* ---------- Pricing comparison grid ---------- */
+
+.pro-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.4rem;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.pro-pricing-card {
+  position: relative;
+  padding: 2.2rem 1.8rem 2rem;
+  border-radius: 22px;
+  border: 1px solid rgba(190, 202, 219, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0));
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  transition: transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1), border-color 240ms ease;
+}
+
+.pro-pricing-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(190, 202, 219, 0.28);
+}
+
+.pro-pricing-card--current {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+}
+
+.pro-pricing-card--featured {
+  background:
+    linear-gradient(160deg, rgba(31, 71, 142, 0.55), rgba(13, 32, 70, 0.85));
+  border-color: rgba(78, 160, 255, 0.45);
+  box-shadow: 0 30px 70px -30px rgba(78, 160, 255, 0.45);
+}
+
+.pro-pricing-card--featured:hover {
+  border-color: rgba(78, 160, 255, 0.7);
+  box-shadow: 0 40px 90px -30px rgba(78, 160, 255, 0.6);
+}
+
+.pro-pricing-card__ribbon {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.35rem 0.95rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f5c669, #e8a93b);
+  color: #2a1b00;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  box-shadow: 0 14px 30px -10px rgba(245, 198, 105, 0.55);
+}
+
+.pro-pricing-card__tag {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #99abc1;
+}
+
+.pro-pricing-card--featured .pro-pricing-card__tag {
+  color: #cfe1ff;
+}
+
+.pro-pricing-card h3 {
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: 1.7rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: #f4f7fb;
+}
+
+.pro-pricing-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: "Fraunces", serif;
+}
+
+.pro-pricing-card__price strong {
+  font-size: 2.6rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: #f4f7fb;
+}
+
+.pro-pricing-card__price span {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85rem;
+  color: #99abc1;
+  letter-spacing: 0.04em;
+}
+
+.pro-pricing-card__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.pro-pricing-card__list li {
+  position: relative;
+  padding-left: 1.4rem;
+  color: #d9e1ec;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.pro-pricing-card__list li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #4ea0ff;
+  font-weight: 700;
+}
+
+.pro-pricing-card--featured .pro-pricing-card__list li::before {
+  color: #f5c669;
+}
+
+.pro-pricing-card__cta {
+  margin-top: auto;
+  width: 100%;
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 720px) {
+  .pro-pricing-card {
+    padding: 1.8rem 1.4rem;
+  }
+  .pro-pricing-card__price strong {
+    font-size: 2.2rem;
+  }
+}
