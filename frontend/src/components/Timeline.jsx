@@ -192,7 +192,7 @@ function Timeline() {
             {!events.length ? (
               <div className="intel-empty">No timeline events available.</div>
             ) : (
-              <div className="intel-feed timeline-events">
+              <div className="intel-feed timeline-events" style={{ maxHeight: "520px", overflowY: "auto", paddingRight: "0.25rem" }}>
                 {events.map((event, index) => {
                   const isActive = selectedEvent === event;
                   return (
