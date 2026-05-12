@@ -328,6 +328,10 @@
       });
       document.querySelectorAll(".lp-checkout-btn").forEach(function (btn) {
         btn.addEventListener("click", function () {
+          if (btn.dataset.plan === "Educator pilot") {
+            window.location.href = "./educators.html";
+            return;
+          }
           openCheckout(btn.dataset.plan, btn.dataset.price);
         });
       });
