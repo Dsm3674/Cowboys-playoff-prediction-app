@@ -18,7 +18,6 @@ function Timeline() {
       setTimelineReason("");
 
       try {
-        const api = api;
         if (!api?.getTimelineFull && !api?.getTimelinePoints) {
           throw new Error("Timeline API is unavailable.");
         }
