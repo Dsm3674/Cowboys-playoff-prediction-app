@@ -43,6 +43,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, "index.html"),
         educators: resolve(__dirname, "educators.html"),
+        pro: resolve(__dirname, "pro.html"),
       },
     },
   },
