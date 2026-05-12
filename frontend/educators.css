@@ -2,6 +2,81 @@
    Cowboys IQ · Classroom Lab — Educators Page
    ============================================================ */
 
+/* ----------------- ANIMATIONS ----------------- */
+
+@keyframes edu-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes edu-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes edu-gradient-sweep {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+@keyframes edu-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes edu-pulse-glow {
+  0%, 100% { box-shadow: 0 16px 40px -16px rgba(78, 160, 255, 0.6); }
+  50%      { box-shadow: 0 22px 55px -16px rgba(78, 160, 255, 0.9); }
+}
+
+@keyframes edu-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes edu-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+/* Scroll-revealed elements start hidden, animate in when .is-visible is added */
+.edu-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 700ms ease, transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+.edu-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger delays for grid children */
+.edu-reveal.is-visible > *:nth-child(1) { animation: edu-fade-up 600ms 0ms both; }
+.edu-reveal.is-visible > *:nth-child(2) { animation: edu-fade-up 600ms 80ms both; }
+.edu-reveal.is-visible > *:nth-child(3) { animation: edu-fade-up 600ms 160ms both; }
+.edu-reveal.is-visible > *:nth-child(4) { animation: edu-fade-up 600ms 240ms both; }
+.edu-reveal.is-visible > *:nth-child(5) { animation: edu-fade-up 600ms 320ms both; }
+.edu-reveal.is-visible > *:nth-child(6) { animation: edu-fade-up 600ms 400ms both; }
+.edu-reveal.is-visible > *:nth-child(7) { animation: edu-fade-up 600ms 480ms both; }
+.edu-reveal.is-visible > *:nth-child(8) { animation: edu-fade-up 600ms 560ms both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .edu-reveal,
+  .edu-reveal.is-visible > * {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}
+
 :root {
   --edu-bg: #060a14;
   --edu-bg-soft: #0b1322;
@@ -80,6 +155,8 @@ a:hover {
 .edu-nav__star {
   color: var(--edu-gold);
   margin-right: 0.2rem;
+  display: inline-block;
+  animation: edu-float 3.4s ease-in-out infinite;
 }
 
 .edu-nav__links {
@@ -133,6 +210,15 @@ a:hover {
   text-transform: uppercase;
   color: var(--edu-fg-dim);
   margin-bottom: 1.6rem;
+  animation: edu-fade-up 700ms 100ms both;
+}
+
+.edu-hero__kicker::before {
+  content: "●";
+  color: var(--edu-green);
+  margin-right: 0.4rem;
+  display: inline-block;
+  animation: edu-blink 2.2s ease-in-out infinite;
 }
 
 .edu-hero__title {
@@ -143,14 +229,23 @@ a:hover {
   letter-spacing: -0.025em;
   margin: 0 0 1.4rem;
   color: var(--edu-fg);
+  animation: edu-fade-up 800ms 220ms both;
 }
 
 .edu-hero__title-accent {
   font-style: italic;
-  background: linear-gradient(135deg, var(--edu-accent), var(--edu-gold));
+  background: linear-gradient(
+    100deg,
+    var(--edu-accent) 0%,
+    var(--edu-gold) 40%,
+    var(--edu-green) 60%,
+    var(--edu-accent) 100%
+  );
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: edu-gradient-sweep 7s ease-in-out infinite;
 }
 
 .edu-hero__copy {
@@ -159,6 +254,7 @@ a:hover {
   color: var(--edu-fg-dim);
   margin: 0 0 2rem;
   line-height: 1.65;
+  animation: edu-fade-up 800ms 380ms both;
 }
 
 .edu-hero__cta-row {
@@ -166,6 +262,7 @@ a:hover {
   gap: 0.85rem;
   flex-wrap: wrap;
   margin-bottom: 3.5rem;
+  animation: edu-fade-up 800ms 520ms both;
 }
 
 .edu-btn {
@@ -193,6 +290,7 @@ a:hover {
   border-color: rgba(78, 160, 255, 0.5);
   color: white;
   box-shadow: 0 16px 40px -16px rgba(78, 160, 255, 0.6);
+  animation: edu-pulse-glow 3.5s ease-in-out infinite;
 }
 
 .edu-btn--primary:hover {
@@ -215,6 +313,23 @@ a:hover {
   gap: 1rem;
   padding-top: 2rem;
   border-top: 1px solid var(--edu-border);
+  animation: edu-fade-up 800ms 700ms both;
+}
+
+.edu-hero__stats .edu-stat {
+  transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.edu-hero__stats .edu-stat:hover {
+  transform: translateY(-4px);
+}
+
+.edu-hero__stats .edu-stat:hover strong {
+  color: var(--edu-accent);
+}
+
+.edu-stat strong {
+  transition: color 220ms ease;
 }
 
 .edu-stat strong {
@@ -308,6 +423,12 @@ a:hover {
 .edu-card__icon {
   font-size: 1.6rem;
   margin-bottom: 0.8rem;
+  display: inline-block;
+  transition: transform 320ms cubic-bezier(0.2, 0.9, 0.2, 1.3);
+}
+
+.edu-card:hover .edu-card__icon {
+  transform: scale(1.18) rotate(-6deg);
 }
 
 .edu-card h3 {
@@ -452,6 +573,12 @@ a:hover {
   font-weight: 700;
   font-size: 0.95rem;
   margin-bottom: 1rem;
+  transition: transform 250ms cubic-bezier(0.2, 0.9, 0.2, 1.4), background 250ms ease;
+}
+
+.edu-step:hover .edu-step__num {
+  transform: scale(1.15);
+  background: rgba(78, 160, 255, 0.28);
 }
 
 .edu-step h3 {
@@ -581,6 +708,26 @@ a:hover {
 .edu-contact__email:hover {
   transform: translateY(-2px);
   box-shadow: 0 22px 55px -16px rgba(78, 160, 255, 0.75);
+}
+
+.edu-contact__email {
+  position: relative;
+  overflow: hidden;
+}
+
+.edu-contact__email::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: edu-shimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .edu-contact__note {
