@@ -79,10 +79,18 @@ function sendFrontendIndex(res) {
 }
 
 if (fs.existsSync(frontendIndexPath)) {
-  app.use(express.static(frontendPath, { index: false }));
+  app.use(express.static(frontendPath, { index: false, extensions: ["html"] }));
 
   app.get("/", generalLimiter, (_req, res) => sendFrontendIndex(res));
-  app.get("*", generalLimiter, (_req, res) => sendFrontendIndex(res));
+  app.get("*", generalLimiter, (req, res) => {
+    // If the URL looks like a real file (.html, .css, .js, .png, etc.) and
+    // express.static didn't already serve it, return 404 rather than masking
+    // it with the SPA index.
+    if (/\.[a-zA-Z0-9]{1,6}$/.test(req.path)) {
+      return res.status(404).send("Not found");
+    }
+    sendFrontendIndex(res);
+  });
 } else {
   app.get("/", generalLimiter, (_req, res) => {
     res.json({

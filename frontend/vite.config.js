@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { resolve } from "path";
 
 // During `npm run dev`, requests to localhost:5173 with a path matching
 // the patterns below get proxied to the backend running on :3001.
@@ -38,5 +39,11 @@ export default defineConfig({
     outDir: "dist",
     minify: false,
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+        educators: resolve(__dirname, "educators.html"),
+      },
+    },
   },
 });
