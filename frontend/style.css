@@ -7967,3 +7967,296 @@ tbody tr:hover {
     align-items: flex-start;
   }
 }
+
+/* ============================================================
+   DASHBOARD SIGNAL CARDS — unified hero/header/list rhythm
+   Targets RecordCard, TSICard, MustWinCard inside the
+   dashboard-signal-grid so all three feel like siblings.
+   ============================================================ */
+
+.dashboard-signal-grid > .card,
+.dashboard-signal-grid > .tsi-card,
+.dashboard-signal-grid > .must-win-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1.5rem 1.4rem 1.4rem;
+  border-radius: 14px;
+  border: 1px solid var(--rule, rgba(255, 255, 255, 0.06));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 55%), var(--ink, #0d0d0e);
+  overflow: hidden;
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.dashboard-signal-grid > .card:hover,
+.dashboard-signal-grid > .tsi-card:hover,
+.dashboard-signal-grid > .must-win-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+/* Kill the star watermark / decorative noise inside signal cards */
+.dashboard-signal-grid > .card::before,
+.dashboard-signal-grid > .card::after,
+.dashboard-signal-grid > .tsi-card::before,
+.dashboard-signal-grid > .tsi-card::after,
+.dashboard-signal-grid > .must-win-card::before,
+.dashboard-signal-grid > .must-win-card::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Unified card heading */
+.dashboard-signal-grid > .card > h3,
+.dashboard-signal-grid > .tsi-card .tsi-card__title,
+.dashboard-signal-grid > .must-win-card .must-win-card__title {
+  margin: 0;
+  color: var(--cream, #ededf1);
+  font-family: var(--font-display, var(--font-ui));
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+/* Eyebrow (kicker) - small mono uppercase above the title */
+.dashboard-signal-grid > .tsi-card .eyebrow {
+  display: block;
+  margin: 0 0 0.15rem;
+  color: var(--fg-muted, #888892);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* Add a synthetic eyebrow to RecordCard + MustWinCard for consistency */
+.dashboard-signal-grid > .card:not(.tsi-card):not(.must-win-card) > h3::before {
+  content: "Record";
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--fg-muted, #888892);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.dashboard-signal-grid > .must-win-card .must-win-card__title::before {
+  content: "High Leverage";
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--fg-muted, #888892);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* ─── RecordCard hero — refined 0-0-0 display */
+.dashboard-signal-grid .stat-box.primary {
+  position: relative;
+  margin: 0;
+  padding: 1.1rem 1.2rem;
+  border-radius: 12px;
+  border: 1px solid var(--rule, rgba(255, 255, 255, 0.05));
+  background: rgba(255, 255, 255, 0.015);
+  box-shadow: inset 3px 0 0 var(--electric-hi, #7aa8ff);
+}
+
+.dashboard-signal-grid .stat-box.primary .stat-value {
+  margin: 0 !important;
+  color: var(--cream, #ededf1);
+  font-family: var(--font-display, var(--font-ui));
+  font-size: clamp(2.4rem, 4.5vw, 3.2rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-signal-grid .stat-box.primary .text-small {
+  display: inline-block;
+  margin: 0.85rem 0 0;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(31, 43, 255, 0.1);
+  color: var(--fg-muted, #aaaab2);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.dashboard-signal-grid .stat-box.primary .text-small strong {
+  color: var(--electric-hi, #7aa8ff);
+  font-weight: 600;
+}
+
+/* ─── TSICard hero — bigger number, calmer scale */
+.dashboard-signal-grid .tsi-card__hero {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-signal-grid .tsi-card__hero > div:first-child {
+  font-size: clamp(2.4rem, 4.5vw, 3.2rem) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1 !important;
+  font-family: var(--font-display, var(--font-ui)) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-signal-grid .tsi-card__scale {
+  color: var(--fg-muted, #888892);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+
+.dashboard-signal-grid .tsi-card__scale br {
+  display: none;
+}
+
+.dashboard-signal-grid .tsi-card__scale::before {
+  content: "/ 100";
+  display: inline;
+}
+
+.dashboard-signal-grid .tsi-card__scale {
+  font-size: 0;
+}
+
+.dashboard-signal-grid .tsi-card__scale::before {
+  font-size: 0.72rem;
+}
+
+/* TSICard 4-metric grid — flatten the bumpy sub-cards into a clean list */
+.dashboard-signal-grid .tsi-card__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 0;
+  border-top: 1px solid var(--rule, rgba(255, 255, 255, 0.05));
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.dashboard-signal-grid .tsi-card__metric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.7rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule, rgba(255, 255, 255, 0.04));
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--cream, #ededf1);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-signal-grid .tsi-card__metric:nth-child(odd) {
+  padding-right: 0.85rem;
+  border-right: 1px solid var(--rule, rgba(255, 255, 255, 0.04));
+}
+
+.dashboard-signal-grid .tsi-card__metric:nth-child(even) {
+  padding-left: 0.85rem;
+}
+
+.dashboard-signal-grid .tsi-card__metric:nth-last-child(-n+2) {
+  border-bottom: 0;
+}
+
+.dashboard-signal-grid .tsi-card__metric strong {
+  color: var(--fg-muted, #888892);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ─── MustWinCard — refine the row layout */
+.dashboard-signal-grid .must-win-card__intro {
+  margin: 0;
+  color: var(--fg-muted, #888892);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  max-width: 38ch;
+}
+
+.dashboard-signal-grid .must-win-card__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-signal-grid .must-win-card__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--rule, rgba(255, 255, 255, 0.05));
+  background: rgba(255, 255, 255, 0.018);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.dashboard-signal-grid .must-win-card__item:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dashboard-signal-grid .must-win-card__opp {
+  color: var(--cream, #ededf1);
+  font-family: var(--font-display, var(--font-ui));
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.dashboard-signal-grid .must-win-card__date {
+  margin-top: 0.2rem;
+  color: var(--fg-muted, #888892);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.dashboard-signal-grid .must-win-card__badge {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  background: rgba(31, 43, 255, 0.14);
+  border: 1px solid rgba(31, 43, 255, 0.32);
+  color: var(--electric-hi, #7aa8ff);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
