@@ -130,7 +130,11 @@ function GameTable({ year, team = "DAL" }) {
                   <td>{gameDate}</td>
                   <td>
                     <div className="intel-team">
-                      <span className="intel-team__code">
+                      <span
+                        className={`intel-team__code intel-team__code--${
+                          isHomeTeam ? "home" : "away"
+                        }`}
+                      >
                         {isHomeTeam ? "vs" : "@"}
                       </span>
                       <span className="intel-team__name">{opponentName}</span>
