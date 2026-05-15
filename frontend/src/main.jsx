@@ -592,7 +592,6 @@ function App() {
 
   return (
     <div className="app-container">
-      <LiveTicker />
       <div className="workspace-surface">
         <div className="workspace-main">{renderPage()}</div>
         <LinearInspector currentPage={currentPage} selectedTeam={selectedTeam} year={currentYear} />
