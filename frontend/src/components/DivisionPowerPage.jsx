@@ -248,7 +248,7 @@ function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DA
             <h2 className="intel-section-title">Division Strength Table</h2>
           </div>
 
-          <div className="intel-table-wrap">
+          <div className="intel-table-wrap division-strength-scroll">
             <table className="intel-table">
               <thead>
                 <tr>
@@ -279,7 +279,14 @@ function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DA
         </article>
       </section>
 
-      <section style={{ display: "grid", gap: "18px" }}>
+      <section
+        className="division-summary-grid"
+        style={{
+          display: "grid",
+          gap: "18px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))",
+        }}
+      >
         {divisions.map((division) => (
           <article key={`${division.conference}-${division.division}`} className="intel-panel">
             <div className="intel-panel__header">
