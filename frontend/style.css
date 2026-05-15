@@ -7789,3 +7789,181 @@ tbody tr:hover {
   .page-shell .page-hero__orbital { display: none; }
 }
 
+
+/* ============================================================
+   FOOTER REDESIGN  — refined brand block, tighter columns,
+   cleaner bottom bar. Wins by cascade order.
+   ============================================================ */
+
+.site-footer {
+  position: relative;
+  margin-top: 3rem;
+  padding: 0;
+  border-top: 1px solid var(--rule, rgba(255, 255, 255, 0.06));
+  background:
+    radial-gradient(ellipse 60% 80% at 0% 0%, rgba(31, 43, 255, 0.06), transparent 60%),
+    transparent;
+}
+
+.site-footer::before {
+  content: none;
+}
+
+.site-footer__inner {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.1fr) minmax(0, 2.6fr);
+  gap: clamp(2.5rem, 5vw, 4rem);
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2.5rem clamp(1.5rem, 3vw, 2.5rem) 2rem;
+  border-top: 0;
+}
+
+/* Brand block */
+.site-footer__brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.site-footer__mark {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(31, 43, 255, 0.18), rgba(31, 43, 255, 0.04));
+  border: 1px solid rgba(122, 168, 255, 0.28);
+  color: var(--electric-hi, #7aa8ff);
+  font-size: 1.05rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 24px rgba(31, 43, 255, 0.18);
+}
+
+.site-footer__brand-name {
+  color: var(--cream, #ededf1);
+  font-family: var(--font-display, var(--font-ui));
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+}
+
+.site-footer__brand-tag {
+  margin-top: 0.45rem;
+  color: var(--fg-muted, #888892);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.55;
+  max-width: 34ch;
+  letter-spacing: 0;
+}
+
+/* Nav columns */
+.site-footer__nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1.5rem, 3vw, 3rem);
+}
+
+.site-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.site-footer__heading {
+  margin: 0 0 0.4rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--rule, rgba(255, 255, 255, 0.06));
+  color: var(--fg-muted, #888892);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.site-footer__col a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0;
+  color: var(--ink-2, #cfcfd5);
+  font-family: var(--font-sans, var(--font-ui));
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.site-footer__col a:hover,
+.site-footer__col a:focus-visible {
+  color: var(--electric-hi, #7aa8ff);
+  transform: translateX(2px);
+  outline: none;
+}
+
+/* Bottom bar — single tidy row */
+.site-footer__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem clamp(1.5rem, 3vw, 2.5rem) 1.5rem;
+  border-top: 1px solid var(--rule, rgba(255, 255, 255, 0.05));
+  color: var(--fg-muted, #888892);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.site-footer__copyright {
+  color: var(--fg-muted, #888892);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.site-footer__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--fg-faint, #6a6a73);
+}
+
+.site-footer__meta span[aria-hidden="true"] {
+  opacity: 0.5;
+}
+
+@media (max-width: 860px) {
+  .site-footer__inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding-top: 2rem;
+  }
+
+  .site-footer__nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.75rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .site-footer__nav {
+    grid-template-columns: 1fr;
+  }
+
+  .site-footer__bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
