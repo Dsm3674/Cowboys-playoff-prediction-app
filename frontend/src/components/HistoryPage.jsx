@@ -51,7 +51,11 @@ function HistoryPage() {
 
         {/* FIX: defensive rendering */}
         {!loading && !error && rows.length > 0 && (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div className="history-table-wrap">
+            <div className="history-table-meta">
+              {rows.length} prediction{rows.length === 1 ? "" : "s"} logged
+            </div>
+            <table className="history-table" style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 <th style={{ borderBottom: "1px solid #ddd", padding: "8px" }}>
@@ -114,6 +118,7 @@ function HistoryPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
