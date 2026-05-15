@@ -7686,6 +7686,94 @@ tbody tr:hover {
   white-space: nowrap;
 }
 
+/* 9c ─ Schedule table: separate @/vs prefix, structured matchup cell */
+.intel-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.intel-team__code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 0.45rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--rule, var(--border));
+  color: var(--fg-muted, #888892);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex: 0 0 auto;
+}
+
+/* Home (vs) — electric tint; Away (@) — neutral */
+.intel-team__code--home {
+  background: rgba(31, 43, 255, 0.12);
+  border-color: rgba(31, 43, 255, 0.35);
+  color: var(--electric-hi, #7aa8ff);
+}
+
+.intel-team__code--away {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--rule, var(--border));
+  color: var(--fg-muted, #888892);
+}
+.intel-team__name {
+  color: var(--cream, #ededf1);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Schedule table: tighter, structured columns */
+.dashboard-table-wrap .intel-table th:nth-child(1),
+.dashboard-table-wrap .intel-table td:nth-child(1) {
+  width: 110px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-table-wrap .intel-table th:nth-child(3),
+.dashboard-table-wrap .intel-table td:nth-child(3) {
+  width: 130px;
+}
+
+.dashboard-table-wrap .intel-table th:nth-child(4),
+.dashboard-table-wrap .intel-table td:nth-child(4) {
+  width: 90px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-table-wrap .intel-table tbody tr {
+  transition: background 140ms ease;
+}
+
+.dashboard-table-wrap .intel-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+/* Status badge sizing inside schedule */
+.intel-table .intel-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 /* 10 ─ Mobile: collapse inspector + tighten chrome */
 @media (max-width: 900px) {
   :root {
