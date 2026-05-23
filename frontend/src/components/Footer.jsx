@@ -57,10 +57,10 @@ function Footer() {
 
           <div className="site-footer__col">
             <h4 className="site-footer__heading">Legal</h4>
-            <a href="#privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a>
-            <a href="#terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>
-            <a href="#cookies" onClick={(e) => e.preventDefault()}>Cookie Policy</a>
-            <a href="#disclaimer" onClick={(e) => e.preventDefault()}>Disclaimer</a>
+            <a href="/privacy.html">Privacy Policy</a>
+            <a href="/terms.html">Terms of Service</a>
+            <a href="/cookies.html">Cookie Policy</a>
+            <a href="/disclaimer.html">Disclaimer</a>
           </div>
         </nav>
       </div>
