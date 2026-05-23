@@ -10,7 +10,7 @@ const { buildSeasonPaths, computeMustWinGames } = require("../seasonPath");
 const { computeRivalImpact } = require("../rivalAnalysis");
 const {
   getNFLTeamList,
-  getNFLTeamCatalog,
+  getNFLTeamMetadata,
   fetchTeamGamesSeasonToDate,
   computeRecordFromGames,
   computeTeamAveragesFromGames,
@@ -104,7 +104,7 @@ async function fetchTeamSummary(teamCode, year) {
   const record = computeRecordFromGames(games, teamCode);
   const averages = computeTeamAveragesFromGames(teamCode, games);
   const tsi = await computeTSI({ teamAbbr: teamCode, year }).catch(() => ({ tsi: 0, components: {} }));
-  const metadata = getNFLTeamCatalog().find((team) => team.abbreviation === teamCode) || {};
+  const metadata = getNFLTeamMetadata(teamCode) || {};
 
   return {
     code: teamCode,
