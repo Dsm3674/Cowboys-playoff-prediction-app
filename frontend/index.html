@@ -362,6 +362,10 @@
             window.location.href = "./pro.html";
             return;
           }
+          if (btn.dataset.plan === "Investor inquiry") {
+            window.location.href = "./investors.html";
+            return;
+          }
           openCheckout(btn.dataset.plan, btn.dataset.price);
         });
       });
