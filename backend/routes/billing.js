@@ -65,7 +65,7 @@ router.post("/access-request", requestLimiter, async (req, res) => {
     }
 
     if (!PLAN_ALLOWLIST.has(plan)) {
-      return res.status(400).json({ error: "Choose a valid Cowboys IQ plan." });
+      return res.status(400).json({ error: "Choose a valid LoneStar AI plan." });
     }
 
     if (!price || price.length > 40) {
