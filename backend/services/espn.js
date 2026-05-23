@@ -39,6 +39,10 @@ const NFL_TEAM_CATALOG = [
   { abbreviation: "WAS", displayName: "Washington Commanders", conference: "NFC", division: "NFC East" }
 ];
 
+const NFL_TEAM_ALIASES = {
+  WSH: "WAS"
+};
+
 function normalizeTeamAbbr(teamAbbr, fallback = "DAL") {
   const raw = String(teamAbbr || "").trim().toUpperCase();
   return raw || fallback;
@@ -46,7 +50,8 @@ function normalizeTeamAbbr(teamAbbr, fallback = "DAL") {
 
 function getNFLCatalogItem(teamAbbr) {
   const abbr = normalizeTeamAbbr(teamAbbr);
-  return NFL_TEAM_CATALOG.find((item) => item.abbreviation === abbr) || null;
+  const canonical = NFL_TEAM_ALIASES[abbr] || abbr;
+  return NFL_TEAM_CATALOG.find((item) => item.abbreviation === canonical) || null;
 }
 
 let _teamMapCache = null;
