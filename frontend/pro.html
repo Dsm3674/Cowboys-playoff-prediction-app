@@ -45,7 +45,7 @@
       tools to back any take you make in a group chat.
     </p>
     <div class="edu-hero__cta-row">
-      <a href="#access" class="edu-btn edu-btn--primary">Request Pro access</a>
+      <a href="#" class="edu-btn edu-btn--primary pro-checkout-btn">Subscribe — $9/month</a>
       <a href="#features" class="edu-btn edu-btn--ghost">See what's inside</a>
     </div>
 
@@ -229,8 +229,8 @@
       <div class="edu-section__kicker">Pricing</div>
       <h2 class="edu-section__title">Nine dollars. No contract. Cancel any Tuesday.</h2>
       <p class="edu-section__sub">
-        War Room Pro is priced like a streaming service, not an enterprise tool. Payments aren't
-        live yet — request access below and you'll be first in line when they turn on.
+        War Room Pro is priced like a streaming service, not an enterprise tool. Subscribe in one
+        click below — no contract, cancel anytime.
       </p>
     </div>
 
@@ -278,7 +278,7 @@
     <div class="edu-faq edu-reveal">
       <details class="edu-faq__item">
         <summary>Is Pro live right now?</summary>
-        <p>Payments aren't connected yet — the team is finishing the billing layer. Requesting access today gets you on the early-access list. When Pro flips on, early-access requesters get the first month free.</p>
+        <p>Yes. Subscribe with a card via Stripe and Pro features unlock immediately. Cancel anytime from the link in your receipt email.</p>
       </details>
       <details class="edu-faq__item">
         <summary>Do I have to be a Cowboys fan?</summary>
@@ -314,17 +314,15 @@
   <!-- ACCESS -->
   <section class="edu-section edu-section--alt" id="access">
     <div class="edu-contact">
-      <div class="edu-contact__kicker">Early-access list</div>
-      <h2 class="edu-contact__title">Get Pro when it opens. First month free.</h2>
+      <div class="edu-contact__kicker">Subscribe</div>
+      <h2 class="edu-contact__title">Unlock Pro in under a minute.</h2>
       <p class="edu-contact__copy">
-        Payments aren't live yet, but the early-access list is. Email and you'll be on the list
-        when War Room Pro opens — with the first month on the house as a thank-you for being early.
+        Secure checkout via Stripe. $9/month, cancel anytime. You'll get an email receipt and
+        access to every Pro feature the moment your subscription starts.
       </p>
-      <a href="mailto:divyanshusomasekhar1@gmail.com?subject=Cowboys%20IQ%20War%20Room%20Pro%20-%20Early%20Access" class="edu-contact__email">
-        divyanshusomasekhar1@gmail.com
-      </a>
+      <a href="#" class="edu-btn edu-btn--primary pro-checkout-btn">Subscribe — $9/month</a>
       <div class="edu-contact__note">
-        Mention "War Room Pro" in your subject line so it lands in the right inbox.
+        Questions? Email <a href="mailto:divyanshusomasekhar1@gmail.com">divyanshusomasekhar1@gmail.com</a>.
       </div>
     </div>
   </section>
@@ -372,6 +370,32 @@
         if (!target) return;
         e.preventDefault();
         target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    document.querySelectorAll(".pro-checkout-btn").forEach(function (btn) {
+      btn.addEventListener("click", async function (e) {
+        e.preventDefault();
+        var original = btn.textContent;
+        btn.textContent = "Redirecting to checkout...";
+        btn.style.pointerEvents = "none";
+        try {
+          var res = await fetch("/api/billing/create-checkout-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ plan: "War Room Pro" })
+          });
+          var data = await res.json();
+          if (res.ok && data.url) {
+            window.location.href = data.url;
+            return;
+          }
+          alert(data.error || "Unable to start checkout. Please try again.");
+        } catch (err) {
+          alert("Network error. Please try again.");
+        }
+        btn.textContent = original;
+        btn.style.pointerEvents = "";
       });
     });
   })();

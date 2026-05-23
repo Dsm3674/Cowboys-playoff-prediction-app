@@ -9,6 +9,11 @@ const rateLimit = require("express-rate-limit");
 const app = express();
 
 app.use(cors());
+
+// Stripe webhook needs the raw request body for signature verification.
+// Apply raw parser only on that exact path; express.json() will skip it because
+// the body parser sets req._body once parsing has happened.
+app.use("/api/billing/webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "1mb" }));
 
 const generalLimiter = rateLimit({
