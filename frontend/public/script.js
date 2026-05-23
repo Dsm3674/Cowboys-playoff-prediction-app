@@ -131,7 +131,7 @@ async function fetchJSON(url, options = {}) {
 }
 
 function logApiError(endpoint, err) {
-  console.warn(`[Cowboys IQ] ${endpoint} failed:`, err.message || err);
+  console.warn(`[LoneStar AI] ${endpoint} failed:`, err.message || err);
 }
 
 function pick(obj, keys) {
