@@ -8,6 +8,24 @@ const rateLimit = require("express-rate-limit");
 
 const app = express();
 
+// Railway terminates TLS at its edge, so the x-forwarded-proto header tells us
+// the original client protocol. Trust the proxy so Express reads it correctly.
+app.set("trust proxy", 1);
+
+// Force HTTPS in production. When the request arrived over plain HTTP, redirect
+// the visitor to the same URL on https. Skips localhost and the health probe
+// so platform health checks never get a redirect they can't follow.
+app.use((req, res, next) => {
+  if (req.path === "/health") return next();
+  const isHttp = req.headers["x-forwarded-proto"] === "http";
+  const isLocal =
+    req.hostname === "localhost" || req.hostname === "127.0.0.1";
+  if (isHttp && !isLocal) {
+    return res.redirect(301, `https://${req.headers.host}${req.originalUrl}`);
+  }
+  next();
+});
+
 app.use(cors());
 
 // Stripe webhook needs the raw request body for signature verification.
