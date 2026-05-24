@@ -1,20 +1,31 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
+const fetch = require("node-fetch");
 const db = require("../databases");
 
 const router = express.Router();
 
-const stripeSecret = process.env.STRIPE_SECRET_KEY || "";
-const stripe = stripeSecret ? require("stripe")(stripeSecret) : null;
-const PRO_PRICE_ID = process.env.STRIPE_PRICE_ID_WAR_ROOM_PRO || "";
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
+// ---------------------------------------------------------------------------
+// PayPal configuration
+// ---------------------------------------------------------------------------
+// Set these on Railway:
+//   PAYPAL_CLIENT_ID
+//   PAYPAL_CLIENT_SECRET
+//   PAYPAL_PLAN_ID_WAR_ROOM_PRO   (created in PayPal dashboard, P-XXXX...)
+//   PAYPAL_WEBHOOK_ID             (created when adding the webhook endpoint)
+//   PAYPAL_MODE                   ("live" or "sandbox", default "live")
+// ---------------------------------------------------------------------------
 
-function publicBaseUrl(req) {
-  if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/+$/, "");
-  const proto = (req.headers["x-forwarded-proto"] || req.protocol || "https").split(",")[0].trim();
-  const host = req.headers["x-forwarded-host"] || req.get("host");
-  return `${proto}://${host}`;
-}
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "";
+const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || "";
+const PAYPAL_PLAN_ID = process.env.PAYPAL_PLAN_ID_WAR_ROOM_PRO || "";
+const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || "";
+const PAYPAL_MODE = (process.env.PAYPAL_MODE || "live").toLowerCase();
+
+const PAYPAL_API_BASE =
+  PAYPAL_MODE === "sandbox"
+    ? "https://api-m.sandbox.paypal.com"
+    : "https://api-m.paypal.com";
 
 const requestLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -31,6 +42,7 @@ const PLAN_ALLOWLIST = new Set([
 ]);
 
 let tableReady = false;
+let subscriptionsTableReady = false;
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -39,8 +51,6 @@ function normalizeEmail(email) {
 function isGmail(email) {
   return /^[^@\s]+@gmail\.com$/i.test(email);
 }
-
-let subscriptionsTableReady = false;
 
 async function ensureSubscriptionsTable() {
   if (subscriptionsTableReady) return;
@@ -56,6 +66,12 @@ async function ensureSubscriptionsTable() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
+  `);
+  // Provider column is optional history — added defensively so a future
+  // multi-provider setup (e.g. PayPal + Stripe) doesn't need a migration.
+  await db.query(`
+    ALTER TABLE subscriptions
+    ADD COLUMN IF NOT EXISTS provider VARCHAR(20) DEFAULT 'paypal'
   `);
   await db.query(`
     CREATE INDEX IF NOT EXISTS idx_subscriptions_email
@@ -89,6 +105,123 @@ async function ensureAccessRequestsTable() {
   tableReady = true;
 }
 
+// ---------------------------------------------------------------------------
+// PayPal helpers — token, subscription lookup, webhook verification
+// ---------------------------------------------------------------------------
+
+let cachedToken = null;
+let cachedTokenExpiresAt = 0;
+
+async function getPayPalAccessToken() {
+  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
+    throw new Error("PayPal credentials are not configured.");
+  }
+  // Reuse the cached token until 60s before expiry.
+  if (cachedToken && Date.now() < cachedTokenExpiresAt - 60_000) {
+    return cachedToken;
+  }
+  const basic = Buffer.from(
+    `${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`
+  ).toString("base64");
+  const res = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: "grant_type=client_credentials"
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`PayPal OAuth failed: ${res.status} ${text}`);
+  }
+  const data = await res.json();
+  cachedToken = data.access_token;
+  cachedTokenExpiresAt = Date.now() + (Number(data.expires_in) || 0) * 1000;
+  return cachedToken;
+}
+
+async function fetchPayPalSubscription(subscriptionId) {
+  const token = await getPayPalAccessToken();
+  const res = await fetch(
+    `${PAYPAL_API_BASE}/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`PayPal subscription fetch failed: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
+async function verifyPayPalWebhookSignature(req) {
+  if (!PAYPAL_WEBHOOK_ID) {
+    throw new Error("PAYPAL_WEBHOOK_ID is not configured.");
+  }
+  const token = await getPayPalAccessToken();
+  const verifyBody = {
+    auth_algo: req.headers["paypal-auth-algo"],
+    cert_url: req.headers["paypal-cert-url"],
+    transmission_id: req.headers["paypal-transmission-id"],
+    transmission_sig: req.headers["paypal-transmission-sig"],
+    transmission_time: req.headers["paypal-transmission-time"],
+    webhook_id: PAYPAL_WEBHOOK_ID,
+    webhook_event: req.body
+  };
+  const res = await fetch(
+    `${PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(verifyBody)
+    }
+  );
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.verification_status === "SUCCESS";
+}
+
+async function upsertSubscription(sub, emailHint) {
+  const periodEnd = sub.billing_info?.next_billing_time
+    ? new Date(sub.billing_info.next_billing_time)
+    : null;
+  const email =
+    sub.subscriber?.email_address || emailHint || "";
+  const customerId =
+    sub.subscriber?.payer_id || sub.subscriber?.merchant_id || "";
+
+  await db.query(
+    `
+      INSERT INTO subscriptions
+        (subscription_id, customer_id, email, plan, status, current_period_end, raw, provider, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'paypal', CURRENT_TIMESTAMP)
+      ON CONFLICT (subscription_id) DO UPDATE SET
+        status = EXCLUDED.status,
+        current_period_end = EXCLUDED.current_period_end,
+        email = COALESCE(NULLIF(EXCLUDED.email, ''), subscriptions.email),
+        raw = EXCLUDED.raw,
+        updated_at = CURRENT_TIMESTAMP
+    `,
+    [
+      sub.id,
+      customerId,
+      normalizeEmail(email),
+      "War Room Pro",
+      String(sub.status || "UNKNOWN"),
+      periodEnd,
+      sub
+    ]
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
+
+// Access-request endpoint (educators / investors / pre-launch interest)
 router.post("/access-request", requestLimiter, async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
@@ -141,112 +274,97 @@ router.post("/access-request", requestLimiter, async (req, res) => {
   }
 });
 
-// Stripe Checkout — creates a hosted-checkout session for War Room Pro
-// and returns the URL the client should redirect to.
-router.post("/create-checkout-session", requestLimiter, async (req, res) => {
-  if (!stripe || !PRO_PRICE_ID) {
+// Frontend boot-config — what the page needs to render the PayPal button.
+// Client ID and plan ID are non-secret and safe to expose.
+router.get("/paypal/config", (_req, res) => {
+  if (!PAYPAL_CLIENT_ID || !PAYPAL_PLAN_ID) {
     return res.status(503).json({
-      error: "Payments are not configured. Set STRIPE_SECRET_KEY and STRIPE_PRICE_ID_WAR_ROOM_PRO."
+      error: "PayPal is not configured. Set PAYPAL_CLIENT_ID and PAYPAL_PLAN_ID_WAR_ROOM_PRO."
     });
   }
+  res.json({
+    clientId: PAYPAL_CLIENT_ID,
+    planId: PAYPAL_PLAN_ID,
+    mode: PAYPAL_MODE
+  });
+});
 
-  const plan = String(req.body.plan || "War Room Pro").trim();
-  if (plan !== "War Room Pro") {
-    return res.status(400).json({ error: "Only War Room Pro is available for checkout." });
+// Called by the frontend after the PayPal Smart Button reports onApprove.
+// We re-fetch the subscription from PayPal (don't trust the client) and
+// write it to the database.
+router.post("/paypal/subscription-approved", requestLimiter, async (req, res) => {
+  const subscriptionId = String(req.body.subscriptionID || req.body.subscription_id || "").trim();
+  if (!subscriptionId) {
+    return res.status(400).json({ error: "Missing subscriptionID." });
   }
-
-  const email = normalizeEmail(req.body.email);
-  const base = publicBaseUrl(req);
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      line_items: [{ price: PRO_PRICE_ID, quantity: 1 }],
-      customer_email: email || undefined,
-      allow_promotion_codes: true,
-      success_url: `${base}/pro-success.html?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${base}/pro.html?checkout=cancelled`,
-      metadata: { plan }
+    const sub = await fetchPayPalSubscription(subscriptionId);
+    await ensureSubscriptionsTable();
+    await upsertSubscription(sub);
+    return res.json({
+      ok: true,
+      status: sub.status,
+      subscriptionId: sub.id
     });
-    return res.json({ url: session.url });
   } catch (error) {
-    console.error("[billing] checkout session failed:", error);
-    return res.status(500).json({ error: "Unable to start checkout." });
+    console.error("[billing] paypal subscription verify failed:", error);
+    return res.status(500).json({
+      error: "Unable to verify subscription. Please contact support."
+    });
   }
 });
 
-// Stripe webhook — receives subscription lifecycle events. Mounted with raw
-// body parsing in server.js so signature verification works.
-router.post("/webhook", async (req, res) => {
-  if (!stripe || !STRIPE_WEBHOOK_SECRET) {
+// PayPal webhook — receives subscription lifecycle events. Verified against
+// PayPal's verification endpoint using the configured webhook id.
+router.post("/paypal/webhook", async (req, res) => {
+  if (!PAYPAL_WEBHOOK_ID) {
     return res.status(503).send("Webhook not configured");
   }
 
-  const signature = req.headers["stripe-signature"];
-  let event;
   try {
-    event = stripe.webhooks.constructEvent(req.body, signature, STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error("[billing] webhook signature failed:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
+    const ok = await verifyPayPalWebhookSignature(req);
+    if (!ok) {
+      console.warn("[billing] paypal webhook signature verification failed");
+      return res.status(400).send("Invalid signature");
+    }
 
-  try {
+    const event = req.body || {};
+    const eventType = String(event.event_type || "");
+
     await ensureSubscriptionsTable();
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
-      if (session.subscription) {
-        const sub = await stripe.subscriptions.retrieve(session.subscription);
-        await upsertSubscription(sub, session.customer_details?.email || session.customer_email);
-      }
-    } else if (
-      event.type === "customer.subscription.created" ||
-      event.type === "customer.subscription.updated" ||
-      event.type === "customer.subscription.deleted"
+    if (
+      eventType === "BILLING.SUBSCRIPTION.CREATED" ||
+      eventType === "BILLING.SUBSCRIPTION.ACTIVATED" ||
+      eventType === "BILLING.SUBSCRIPTION.UPDATED" ||
+      eventType === "BILLING.SUBSCRIPTION.CANCELLED" ||
+      eventType === "BILLING.SUBSCRIPTION.SUSPENDED" ||
+      eventType === "BILLING.SUBSCRIPTION.EXPIRED" ||
+      eventType === "BILLING.SUBSCRIPTION.PAYMENT.FAILED"
     ) {
-      const sub = event.data.object;
-      let email = null;
-      try {
-        const customer = await stripe.customers.retrieve(sub.customer);
-        email = customer.email || null;
-      } catch (_) {}
-      await upsertSubscription(sub, email);
+      const subId =
+        event.resource?.id ||
+        event.resource?.billing_agreement_id ||
+        event.resource?.subscription_id;
+      if (subId) {
+        try {
+          const sub = await fetchPayPalSubscription(subId);
+          await upsertSubscription(sub);
+        } catch (err) {
+          console.error(
+            "[billing] paypal webhook subscription fetch failed:",
+            err.message
+          );
+        }
+      }
     }
 
     return res.json({ received: true });
   } catch (error) {
-    console.error("[billing] webhook handler failed:", error);
+    console.error("[billing] paypal webhook handler failed:", error);
     return res.status(500).send("Webhook handler error");
   }
 });
-
-async function upsertSubscription(sub, email) {
-  const periodEnd = sub.current_period_end
-    ? new Date(sub.current_period_end * 1000)
-    : null;
-  await db.query(
-    `
-      INSERT INTO subscriptions
-        (subscription_id, customer_id, email, plan, status, current_period_end, raw, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
-      ON CONFLICT (subscription_id) DO UPDATE SET
-        status = EXCLUDED.status,
-        current_period_end = EXCLUDED.current_period_end,
-        email = COALESCE(EXCLUDED.email, subscriptions.email),
-        raw = EXCLUDED.raw,
-        updated_at = CURRENT_TIMESTAMP
-    `,
-    [
-      sub.id,
-      sub.customer,
-      normalizeEmail(email),
-      "War Room Pro",
-      sub.status,
-      periodEnd,
-      sub
-    ]
-  );
-}
 
 module.exports = router;
