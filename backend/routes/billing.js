@@ -1,8 +1,83 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
+const fetch = require("node-fetch");
 const db = require("../databases");
 
 const router = express.Router();
+
+// ---------------------------------------------------------------------------
+// Email notifications via Resend
+// When a new access request lands, fire-and-forget an email to the team so
+// they can follow up manually. Falls back silently if Resend isn't configured.
+// ---------------------------------------------------------------------------
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+const NOTIFICATION_EMAIL_TO =
+  process.env.NOTIFICATION_EMAIL_TO || "divyanshusomasekhar1@gmail.com";
+const NOTIFICATION_EMAIL_FROM =
+  process.env.NOTIFICATION_EMAIL_FROM || "LoneStar AI <onboarding@resend.dev>";
+
+async function notifyAccessRequest(record) {
+  if (!RESEND_API_KEY) return; // Not configured — skip silently.
+
+  const subject = `[LoneStar AI] New ${record.plan} from ${record.email}`;
+  const lines = [
+    `Plan:    ${record.plan}`,
+    `Email:   ${record.email}`,
+    `Name:    ${record.name || "(not provided)"}`,
+    `Price:   ${record.price}`,
+    `When:    ${record.created_at || new Date().toISOString()}`,
+    `ID:      ${record.request_id || "(unknown)"}`
+  ];
+  const text = lines.join("\n");
+  const html =
+    `<div style="font-family: -apple-system, system-ui, sans-serif; font-size: 14px; line-height: 1.6;">` +
+    `<h2 style="margin: 0 0 16px;">New access request — ${escapeHtml(record.plan)}</h2>` +
+    `<table style="border-collapse: collapse;">` +
+    lines
+      .map((line) => {
+        const idx = line.indexOf(":");
+        const label = line.slice(0, idx).trim();
+        const value = line.slice(idx + 1).trim();
+        return `<tr><td style="padding: 4px 16px 4px 0; color: #666; vertical-align: top;">${escapeHtml(label)}</td><td style="padding: 4px 0;"><strong>${escapeHtml(value)}</strong></td></tr>`;
+      })
+      .join("") +
+    `</table>` +
+    `<p style="margin-top: 20px;"><a href="mailto:${encodeURIComponent(record.email)}">Reply to ${escapeHtml(record.email)}</a></p>` +
+    `</div>`;
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        from: NOTIFICATION_EMAIL_FROM,
+        to: [NOTIFICATION_EMAIL_TO],
+        reply_to: record.email,
+        subject,
+        text,
+        html
+      })
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("[billing] resend send failed:", res.status, body);
+    }
+  } catch (err) {
+    console.error("[billing] resend send threw:", err.message);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 // ---------------------------------------------------------------------------
 // Access-request endpoint only. Payment provider integration is intentionally
@@ -98,9 +173,19 @@ router.post("/access-request", requestLimiter, async (req, res) => {
       ]
     );
 
+    const saved = result.rows[0];
+
+    // Fire-and-forget email notification — don't block the response on it.
+    notifyAccessRequest({
+      ...saved,
+      name: name || null
+    }).catch((err) => {
+      console.error("[billing] notifyAccessRequest unhandled:", err.message);
+    });
+
     return res.status(201).json({
       ok: true,
-      request: result.rows[0],
+      request: saved,
       message: "Access request saved. No card data was collected or stored."
     });
   } catch (error) {
