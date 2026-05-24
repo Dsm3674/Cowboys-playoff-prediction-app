@@ -26,6 +26,24 @@ app.use((req, res, next) => {
   next();
 });
 
+// Extra browser security for custom domains. Railway handles the TLS
+// certificate, but these headers make browsers consistently prefer HTTPS and
+// upgrade any accidental insecure asset URLs.
+app.use((req, res, next) => {
+  const isHttps = req.secure || req.headers["x-forwarded-proto"] === "https";
+  if (isHttps) {
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload"
+    );
+  }
+  res.setHeader("Content-Security-Policy", "upgrade-insecure-requests");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  next();
+});
+
 app.use(cors());
 
 app.use(express.json({ limit: "1mb" }));
