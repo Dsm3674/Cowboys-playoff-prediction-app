@@ -28,8 +28,6 @@ app.use((req, res, next) => {
 
 app.use(cors());
 
-// PayPal webhooks are verified via PayPal's signature-verification API, which
-// works against the parsed JSON body — no raw-body middleware needed.
 app.use(express.json({ limit: "1mb" }));
 
 const generalLimiter = rateLimit({
