@@ -6,6 +6,14 @@
   <title>LoneStar AI · Playoff Intelligence</title>
   <meta name="description" content="A playoff intelligence platform for the Dallas Cowboys. Live win probability, clutch analytics, and 100,000-simulation forecasts updated for Cowboys Nation." />
   <link rel="icon" href="https://static.www.nfl.com/t_q-best/league/api/clubs/logos/DAL" type="image/png" />
+  <script>
+    if (
+      location.protocol === "http:" &&
+      !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+    ) {
+      location.replace("https://" + location.host + location.pathname + location.search + location.hash);
+    }
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

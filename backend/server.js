@@ -17,11 +17,24 @@ app.set("trust proxy", 1);
 // so platform health checks never get a redirect they can't follow.
 app.use((req, res, next) => {
   if (req.path === "/health") return next();
-  const isHttp = req.headers["x-forwarded-proto"] === "http";
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "")
+    .split(",")[0]
+    .trim();
+  const isHttps = req.secure || forwardedProto === "https";
   const isLocal =
     req.hostname === "localhost" || req.hostname === "127.0.0.1";
-  if (isHttp && !isLocal) {
+  if (!isHttps && !isLocal) {
     return res.redirect(301, `https://${req.headers.host}${req.originalUrl}`);
+  }
+  next();
+});
+
+// Keep the public site on one canonical HTTPS host. This avoids browsers
+// keeping separate security/certificate state for lstar.one and www.lstar.one.
+app.use((req, res, next) => {
+  if (req.path === "/health") return next();
+  if (req.hostname === "lstar.one") {
+    return res.redirect(301, `https://www.lstar.one${req.originalUrl}`);
   }
   next();
 });
