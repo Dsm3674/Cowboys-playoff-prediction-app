@@ -173,3 +173,29 @@
     font-size: 2.2rem;
   }
 }
+
+/* ---------- PayPal Smart Button mount ---------- */
+
+.pro-paypal-mount {
+  max-width: 420px;
+  margin: 18px auto 0;
+  min-height: 56px;
+}
+
+.pro-paypal-status {
+  margin: 14px auto 0;
+  max-width: 480px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(231, 236, 248, 0.7);
+  text-align: center;
+  min-height: 18px;
+}
+
+.pro-paypal-status.is-error {
+  color: #ff9d9d;
+}
+
+.pro-paypal-status.is-success {
+  color: #6ee7a4;
+}

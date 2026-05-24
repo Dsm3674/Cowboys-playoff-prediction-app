@@ -45,7 +45,7 @@
       tools to back any take you make in a group chat.
     </p>
     <div class="edu-hero__cta-row">
-      <a href="#" class="edu-btn edu-btn--primary pro-checkout-btn">Subscribe — $9/month</a>
+      <a href="#access" class="edu-btn edu-btn--primary pro-checkout-scroll">Subscribe — $9/month</a>
       <a href="#features" class="edu-btn edu-btn--ghost">See what's inside</a>
     </div>
 
@@ -317,10 +317,11 @@
       <div class="edu-contact__kicker">Subscribe</div>
       <h2 class="edu-contact__title">Unlock Pro in under a minute.</h2>
       <p class="edu-contact__copy">
-        Secure checkout via Stripe. $9/month, cancel anytime. You'll get an email receipt and
-        access to every Pro feature the moment your subscription starts.
+        Secure checkout via PayPal. $9/month, cancel anytime from your PayPal account.
+        Pro features unlock the moment your subscription activates.
       </p>
-      <a href="#" class="edu-btn edu-btn--primary pro-checkout-btn">Subscribe — $9/month</a>
+      <div id="paypal-button-container" class="pro-paypal-mount"></div>
+      <div class="pro-paypal-status" id="pro-paypal-status" aria-live="polite"></div>
       <div class="edu-contact__note">
         Questions? Email <a href="mailto:divyanshusomasekhar1@gmail.com">divyanshusomasekhar1@gmail.com</a>.
       </div>
@@ -373,31 +374,93 @@
       });
     });
 
-    document.querySelectorAll(".pro-checkout-btn").forEach(function (btn) {
-      btn.addEventListener("click", async function (e) {
-        e.preventDefault();
-        var original = btn.textContent;
-        btn.textContent = "Redirecting to checkout...";
-        btn.style.pointerEvents = "none";
-        try {
-          var res = await fetch("/api/billing/create-checkout-session", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plan: "War Room Pro" })
-          });
-          var data = await res.json();
-          if (res.ok && data.url) {
-            window.location.href = data.url;
-            return;
-          }
-          alert(data.error || "Unable to start checkout. Please try again.");
-        } catch (err) {
-          alert("Network error. Please try again.");
-        }
-        btn.textContent = original;
-        btn.style.pointerEvents = "";
+    // ----- PayPal Smart Button -----
+    var mount = document.getElementById("paypal-button-container");
+    var statusEl = document.getElementById("pro-paypal-status");
+
+    function setStatus(msg, kind) {
+      if (!statusEl) return;
+      statusEl.textContent = msg || "";
+      statusEl.className = "pro-paypal-status" + (kind ? " is-" + kind : "");
+    }
+
+    function loadPayPalSdk(clientId) {
+      return new Promise(function (resolve, reject) {
+        if (window.paypal) return resolve(window.paypal);
+        var s = document.createElement("script");
+        s.src =
+          "https://www.paypal.com/sdk/js?client-id=" +
+          encodeURIComponent(clientId) +
+          "&vault=true&intent=subscription&components=buttons";
+        s.async = true;
+        s.onload = function () {
+          if (window.paypal) resolve(window.paypal);
+          else reject(new Error("PayPal SDK loaded but window.paypal missing"));
+        };
+        s.onerror = function () { reject(new Error("Failed to load PayPal SDK")); };
+        document.head.appendChild(s);
       });
-    });
+    }
+
+    async function initPayPal() {
+      if (!mount) return;
+      setStatus("Loading secure checkout...");
+      try {
+        var cfgRes = await fetch("/api/billing/paypal/config");
+        var cfg = await cfgRes.json();
+        if (!cfgRes.ok || !cfg.clientId || !cfg.planId) {
+          setStatus(cfg.error || "Payments are not configured yet.", "error");
+          return;
+        }
+        var paypal = await loadPayPalSdk(cfg.clientId);
+        setStatus("");
+        paypal
+          .Buttons({
+            style: {
+              shape: "pill",
+              color: "gold",
+              layout: "vertical",
+              label: "subscribe"
+            },
+            createSubscription: function (data, actions) {
+              return actions.subscription.create({ plan_id: cfg.planId });
+            },
+            onApprove: async function (data) {
+              setStatus("Activating your subscription...");
+              try {
+                var res = await fetch("/api/billing/paypal/subscription-approved", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ subscriptionID: data.subscriptionID })
+                });
+                var body = await res.json();
+                if (res.ok) {
+                  window.location.href =
+                    "/pro-success.html?subscription_id=" +
+                    encodeURIComponent(data.subscriptionID);
+                  return;
+                }
+                setStatus(body.error || "Could not activate subscription.", "error");
+              } catch (err) {
+                setStatus("Network error finalizing subscription. Email us — we'll fix it.", "error");
+              }
+            },
+            onError: function (err) {
+              console.error("[paypal] button error", err);
+              setStatus("Something went wrong with PayPal. Try again or use a different browser.", "error");
+            },
+            onCancel: function () {
+              setStatus("");
+            }
+          })
+          .render(mount);
+      } catch (err) {
+        console.error("[paypal] init failed", err);
+        setStatus("Could not load secure checkout. Refresh and try again.", "error");
+      }
+    }
+
+    initPayPal();
   })();
 </script>
 
