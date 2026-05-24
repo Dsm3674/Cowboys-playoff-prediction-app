@@ -45,7 +45,7 @@
       tools to back any take you make in a group chat.
     </p>
     <div class="edu-hero__cta-row">
-      <a href="#access" class="edu-btn edu-btn--primary pro-checkout-scroll">Subscribe — $9/month</a>
+      <a href="#access" class="edu-btn edu-btn--primary pro-checkout-scroll">Join the waitlist</a>
       <a href="#features" class="edu-btn edu-btn--ghost">See what's inside</a>
     </div>
 
@@ -278,7 +278,7 @@
     <div class="edu-faq edu-reveal">
       <details class="edu-faq__item">
         <summary>Is Pro live right now?</summary>
-        <p>Yes. Subscribe via PayPal — Pro features unlock immediately. Cancel anytime from your PayPal account, no email back-and-forth required.</p>
+        <p>Not yet. We're finalizing onboarding and the payment flow. Email us to join the early-access list — first subscribers get the first month free when Pro turns on.</p>
       </details>
       <details class="edu-faq__item">
         <summary>Do I have to be a Cowboys fan?</summary>
@@ -302,7 +302,7 @@
       </details>
       <details class="edu-faq__item">
         <summary>What payment methods will you accept?</summary>
-        <p>PayPal balance, linked bank, or any major credit/debit card through PayPal's checkout. A PayPal account isn't strictly required — guest checkout works in most regions.</p>
+        <p>To be confirmed. We'll announce supported payment methods (card, PayPal, Apple Pay, etc.) when War Room Pro opens for subscriptions.</p>
       </details>
       <details class="edu-faq__item">
         <summary>What if I have a feature request?</summary>
@@ -314,16 +314,17 @@
   <!-- ACCESS -->
   <section class="edu-section edu-section--alt" id="access">
     <div class="edu-contact">
-      <div class="edu-contact__kicker">Subscribe</div>
-      <h2 class="edu-contact__title">Unlock Pro in under a minute.</h2>
+      <div class="edu-contact__kicker">Coming soon</div>
+      <h2 class="edu-contact__title">War Room Pro launches soon.</h2>
       <p class="edu-contact__copy">
-        Secure checkout via PayPal. $9/month, cancel anytime from your PayPal account.
-        Pro features unlock the moment your subscription activates.
+        We're finalizing the Pro tier and onboarding. Email the team to get on the early-access
+        list — first subscribers get the first month free when Pro turns on.
       </p>
-      <div id="paypal-button-container" class="pro-paypal-mount"></div>
-      <div class="pro-paypal-status" id="pro-paypal-status" aria-live="polite"></div>
+      <a href="mailto:divyanshusomasekhar1@gmail.com?subject=LoneStar%20AI%20%E2%80%94%20War%20Room%20Pro%20early%20access" class="edu-btn edu-btn--primary">
+        divyanshusomasekhar1@gmail.com
+      </a>
       <div class="edu-contact__note">
-        Questions? Email <a href="mailto:divyanshusomasekhar1@gmail.com">divyanshusomasekhar1@gmail.com</a>.
+        Mention "War Room Pro" in your subject so it lands in the right inbox.
       </div>
     </div>
   </section>
@@ -374,93 +375,6 @@
       });
     });
 
-    // ----- PayPal Smart Button -----
-    var mount = document.getElementById("paypal-button-container");
-    var statusEl = document.getElementById("pro-paypal-status");
-
-    function setStatus(msg, kind) {
-      if (!statusEl) return;
-      statusEl.textContent = msg || "";
-      statusEl.className = "pro-paypal-status" + (kind ? " is-" + kind : "");
-    }
-
-    function loadPayPalSdk(clientId) {
-      return new Promise(function (resolve, reject) {
-        if (window.paypal) return resolve(window.paypal);
-        var s = document.createElement("script");
-        s.src =
-          "https://www.paypal.com/sdk/js?client-id=" +
-          encodeURIComponent(clientId) +
-          "&vault=true&intent=subscription&components=buttons";
-        s.async = true;
-        s.onload = function () {
-          if (window.paypal) resolve(window.paypal);
-          else reject(new Error("PayPal SDK loaded but window.paypal missing"));
-        };
-        s.onerror = function () { reject(new Error("Failed to load PayPal SDK")); };
-        document.head.appendChild(s);
-      });
-    }
-
-    async function initPayPal() {
-      if (!mount) return;
-      setStatus("Loading secure checkout...");
-      try {
-        var cfgRes = await fetch("/api/billing/paypal/config");
-        var cfg = await cfgRes.json();
-        if (!cfgRes.ok || !cfg.clientId || !cfg.planId) {
-          setStatus(cfg.error || "Payments are not configured yet.", "error");
-          return;
-        }
-        var paypal = await loadPayPalSdk(cfg.clientId);
-        setStatus("");
-        paypal
-          .Buttons({
-            style: {
-              shape: "pill",
-              color: "gold",
-              layout: "vertical",
-              label: "subscribe"
-            },
-            createSubscription: function (data, actions) {
-              return actions.subscription.create({ plan_id: cfg.planId });
-            },
-            onApprove: async function (data) {
-              setStatus("Activating your subscription...");
-              try {
-                var res = await fetch("/api/billing/paypal/subscription-approved", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ subscriptionID: data.subscriptionID })
-                });
-                var body = await res.json();
-                if (res.ok) {
-                  window.location.href =
-                    "/pro-success.html?subscription_id=" +
-                    encodeURIComponent(data.subscriptionID);
-                  return;
-                }
-                setStatus(body.error || "Could not activate subscription.", "error");
-              } catch (err) {
-                setStatus("Network error finalizing subscription. Email us — we'll fix it.", "error");
-              }
-            },
-            onError: function (err) {
-              console.error("[paypal] button error", err);
-              setStatus("Something went wrong with PayPal. Try again or use a different browser.", "error");
-            },
-            onCancel: function () {
-              setStatus("");
-            }
-          })
-          .render(mount);
-      } catch (err) {
-        console.error("[paypal] init failed", err);
-        setStatus("Could not load secure checkout. Refresh and try again.", "error");
-      }
-    }
-
-    initPayPal();
   })();
 </script>
 
