@@ -495,6 +495,114 @@
   }
 }
 
+/* ------- Team grid ------- */
+
+.inv-team-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.inv-team-card {
+  position: relative;
+  padding: 24px 22px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.inv-team-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(116, 213, 223, 0.32);
+  box-shadow: 0 30px 60px -40px rgba(116, 213, 223, 0.5);
+}
+
+.inv-team-card--lead {
+  background: linear-gradient(160deg, rgba(40, 135, 150, 0.18), rgba(0, 53, 148, 0.16));
+  border-color: rgba(116, 213, 223, 0.32);
+}
+
+.inv-team-card__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #003594, #288796);
+  color: #fff;
+  font: 800 18px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0.04em;
+  box-shadow: 0 18px 40px -24px rgba(40, 135, 150, 0.85);
+}
+
+.inv-team-card--lead .inv-team-card__avatar {
+  background: linear-gradient(135deg, #74d5df, #6ee7a4);
+  color: #07142f;
+}
+
+.inv-team-card h3 {
+  font-family: "Fraunces", serif;
+  font-size: 22px;
+  color: #fff;
+  margin: 4px 0 0;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.inv-team-card__role {
+  font: 800 11px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #9af2fb;
+  margin: 0;
+}
+
+.inv-team-card__bio {
+  margin: 6px 0 0;
+  color: rgba(231, 236, 248, 0.74);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.inv-team-contact {
+  margin-top: 24px;
+  font-size: 14px;
+  color: rgba(231, 236, 248, 0.62);
+}
+
+.inv-team-contact a {
+  color: #9af2fb;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(154, 242, 251, 0.4);
+  font-weight: 600;
+}
+
+.inv-team-contact a:hover {
+  color: #fff;
+  border-bottom-color: #fff;
+}
+
+.inv-team-contact span {
+  margin: 0 10px;
+  color: rgba(231, 236, 248, 0.35);
+}
+
+@media (max-width: 960px) {
+  .inv-team-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .inv-team-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ------- Ask / form ------- */
 
 .inv-ask {
