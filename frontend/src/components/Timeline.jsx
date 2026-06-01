@@ -101,7 +101,7 @@ function areaPath(pts, zeroY) {
 /* ── main component ──────────────────────────────────────────── */
 
 export default function Timeline() {
-  const [season, setSeason]     = React.useState(2024);
+  const [season, setSeason]     = React.useState(2026);
   const [events, setEvents]     = React.useState([]);
   const [selected, setSelected] = React.useState(null);
   const [loading, setLoading]   = React.useState(true);
@@ -369,7 +369,7 @@ export default function Timeline() {
       <div className="tl-controls">
         <label>Season</label>
         <select className="tl-select" value={season} onChange={(e) => setSeason(Number(e.target.value))}>
-          {[2026, 2025, 2024, 2023].map((y) => (
+          {[2026, 2025, 2024, 2023, 2022].map((y) => (
             <option key={y} value={y}>{y}</option>
           ))}
         </select>

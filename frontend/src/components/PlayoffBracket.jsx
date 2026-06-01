@@ -9,7 +9,7 @@ const LOGO = (abbr) =>
    Divisional slot 0 = WC winners matchup (connects from top 2 WC games)
    Divisional slot 1 = 1-seed bye vs WC3 winner (connects from bottom WC game) */
 const FALLBACK_BRACKET = {
-  year: 2025,
+  year: 2026,
   superBowl: {
     afc: { seed: 1, abbr: "KC",  name: "Chiefs",   prob: 52 },
     nfc: { seed: 2, abbr: "PHI", name: "Eagles",   prob: 48 },
@@ -260,6 +260,13 @@ const CURRENT_SEASON = (() => {
      following calendar year, so Jan–Feb still belong to the prior season. */
   return now.getMonth() <= 1 ? now.getFullYear() - 1 : now.getFullYear();
 })();
+
+/* "2026" -> "2026–27 NFL Playoff Bracket" */
+function seasonTitle(startYear) {
+  const y = Number(startYear) || CURRENT_SEASON;
+  const endYY = String((y + 1) % 100).padStart(2, "0");
+  return `${y}–${endYY} NFL Playoff Bracket`;
+}
 
 export default function PlayoffBracket() {
   const [bracket, setBracket] = React.useState(FALLBACK_BRACKET);
@@ -598,7 +605,7 @@ export default function PlayoffBracket() {
       `}</style>
 
       <div className="pbr-header">
-        <div className="pbr-title">{bracket.year} NFL Playoff Bracket</div>
+        <div className="pbr-title">{seasonTitle(bracket.year)}</div>
       </div>
 
       <div className="pbr-frame">
