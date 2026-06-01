@@ -1,676 +1,595 @@
-import React, { useState } from "react";
+import React from "react";
 
 const LOGO = (abbr) =>
   `https://static.www.nfl.com/t_q-best/league/api/clubs/logos/${abbr}`;
 
+/* ─── bracket data ────────────────────────────────────────────────────────── */
+/* Divisional slot 0 = WC winners matchup (connects from top 2 WC games)
+   Divisional slot 1 = 1-seed bye vs WC3 winner (connects from bottom WC game) */
 const BRACKET = {
   year: 2025,
   superBowl: {
-    afc: { seed: 1, abbr: "KC",  name: "Chiefs",   record: "14-3", prob: 52 },
-    nfc: { seed: 2, abbr: "PHI", name: "Eagles",   record: "13-4", prob: 48 },
+    afc: { seed: 1, abbr: "KC",  name: "Chiefs",   prob: 52 },
+    nfc: { seed: 2, abbr: "PHI", name: "Eagles",   prob: 48 },
   },
   afc: {
     championship: {
-      top:    { seed: 1, abbr: "KC",  name: "Chiefs",   record: "14-3", prob: 61 },
-      bottom: { seed: 2, abbr: "BUF", name: "Bills",    record: "13-4", prob: 39 },
+      top:    { seed: 1, abbr: "KC",  name: "Chiefs",   prob: 61 },
+      bottom: { seed: 2, abbr: "BUF", name: "Bills",    prob: 39 },
     },
     divisional: [
-      { top: { seed: 1, abbr: "KC",  name: "Chiefs",   record: "14-3", prob: 68 },
-        bottom: { seed: 5, abbr: "CIN", name: "Bengals",  record: "10-7", prob: 32 } },
-      { top: { seed: 2, abbr: "BUF", name: "Bills",    record: "13-4", prob: 55 },
-        bottom: { seed: 3, abbr: "BAL", name: "Ravens",   record: "12-5", prob: 45 } },
+      /* slot 0 — top — WC1 winner vs WC2 winner */
+      { top: { seed: 2, abbr: "BUF", name: "Bills",    prob: 55 },
+        bottom: { seed: 3, abbr: "BAL", name: "Ravens",   prob: 45 } },
+      /* slot 1 — bottom — 1 seed vs WC3 winner */
+      { top: { seed: 1, abbr: "KC",  name: "Chiefs",   prob: 68 },
+        bottom: { seed: 5, abbr: "CIN", name: "Bengals",  prob: 32 } },
     ],
     wildCard: [
-      { top: { seed: 2, abbr: "BUF", name: "Bills",    record: "13-4", prob: 78 },
-        bottom: { seed: 7, abbr: "DEN", name: "Broncos",  record: "10-7", prob: 22 } },
-      { top: { seed: 3, abbr: "BAL", name: "Ravens",   record: "12-5", prob: 65 },
-        bottom: { seed: 6, abbr: "PIT", name: "Steelers", record: "10-7", prob: 35 } },
-      { top: { seed: 4, abbr: "HOU", name: "Texans",   record: "11-6", prob: 57 },
-        bottom: { seed: 5, abbr: "CIN", name: "Bengals",  record: "10-7", prob: 43 } },
+      { top: { seed: 2, abbr: "BUF", name: "Bills",    prob: 78 },
+        bottom: { seed: 7, abbr: "DEN", name: "Broncos",  prob: 22 } },
+      { top: { seed: 3, abbr: "BAL", name: "Ravens",   prob: 65 },
+        bottom: { seed: 6, abbr: "PIT", name: "Steelers", prob: 35 } },
+      { top: { seed: 4, abbr: "HOU", name: "Texans",   prob: 57 },
+        bottom: { seed: 5, abbr: "CIN", name: "Bengals",  prob: 43 } },
     ],
   },
   nfc: {
     championship: {
-      top:    { seed: 2, abbr: "PHI", name: "Eagles",   record: "13-4", prob: 54 },
-      bottom: { seed: 1, abbr: "DET", name: "Lions",    record: "15-2", prob: 46 },
+      top:    { seed: 2, abbr: "PHI", name: "Eagles",   prob: 54 },
+      bottom: { seed: 1, abbr: "DET", name: "Lions",    prob: 46 },
     },
     divisional: [
-      { top: { seed: 1, abbr: "DET", name: "Lions",    record: "15-2", prob: 66 },
-        bottom: { seed: 4, abbr: "GB",  name: "Packers",  record: "11-6", prob: 34 } },
-      { top: { seed: 2, abbr: "PHI", name: "Eagles",   record: "13-4", prob: 60 },
-        bottom: { seed: 3, abbr: "MIN", name: "Vikings",  record: "12-5", prob: 40 } },
+      /* slot 0 — top — WC1 winner vs WC2 winner */
+      { top: { seed: 2, abbr: "PHI", name: "Eagles",   prob: 60 },
+        bottom: { seed: 3, abbr: "MIN", name: "Vikings",  prob: 40 } },
+      /* slot 1 — bottom — 1 seed vs WC3 winner */
+      { top: { seed: 1, abbr: "DET", name: "Lions",    prob: 66 },
+        bottom: { seed: 4, abbr: "GB",  name: "Packers",  prob: 34 } },
     ],
     wildCard: [
-      { top: { seed: 2, abbr: "PHI", name: "Eagles",   record: "13-4", prob: 72 },
-        bottom: { seed: 7, abbr: "WAS", name: "Commanders", record: "10-7", prob: 28 } },
-      { top: { seed: 3, abbr: "MIN", name: "Vikings",  record: "12-5", prob: 59 },
-        bottom: { seed: 6, abbr: "LAR", name: "Rams",     record: "10-7", prob: 41 } },
-      { top: { seed: 4, abbr: "GB",  name: "Packers",  record: "11-6", prob: 54 },
-        bottom: { seed: 5, abbr: "SEA", name: "Seahawks", record: "10-7", prob: 46 } },
+      { top: { seed: 2, abbr: "PHI", name: "Eagles",   prob: 72 },
+        bottom: { seed: 7, abbr: "WAS", name: "Commanders", prob: 28 } },
+      { top: { seed: 3, abbr: "MIN", name: "Vikings",  prob: 59 },
+        bottom: { seed: 6, abbr: "LAR", name: "Rams",     prob: 41 } },
+      { top: { seed: 4, abbr: "GB",  name: "Packers",  prob: 54 },
+        bottom: { seed: 5, abbr: "SEA", name: "Seahawks", prob: 46 } },
     ],
   },
 };
 
-/* ── team row ─────────────────────────────────────────────────── */
+/* ─── helpers ─────────────────────────────────────────────────────────────── */
 
 function TeamRow({ team, winner }) {
   return (
-    <div className={`pb-row${winner ? " pb-row--win" : ""}`}>
-      {winner && <div className="pb-row__glow" />}
-      <span className="pb-seed">{team.seed}</span>
+    <div className={`pbr-row${winner ? " pbr-row--w" : ""}`}>
+      {winner && <div className="pbr-row-glow" />}
+      <span className="pbr-seed">{team.seed}</span>
       <img
-        className="pb-logo"
+        className="pbr-logo"
         src={LOGO(team.abbr)}
         alt={team.abbr}
         onError={(e) => { e.target.style.display = "none"; }}
       />
-      <span className="pb-abbr">{team.abbr}</span>
-      <span className="pb-record">{team.record}</span>
-      <span className={`pb-prob${winner ? " pb-prob--win" : ""}`}>
-        {team.prob}<span className="pb-pct">%</span>
+      <span className="pbr-abbr">{team.abbr}</span>
+      <span className={`pbr-prob${winner ? " pbr-prob--w" : ""}`}>
+        {team.prob}<span className="pbr-pct">%</span>
       </span>
-      {winner && <span className="pb-arrow">▶</span>}
+      {winner && <span className="pbr-arrow">▶</span>}
     </div>
   );
 }
 
-/* ── game card ────────────────────────────────────────────────── */
-
-function GameCard({ game, size = "md", glowColor }) {
-  const topWin    = game.top.prob    >= game.bottom.prob;
-  const bottomWin = game.bottom.prob >  game.top.prob;
-  const style     = glowColor ? { boxShadow: `0 0 24px ${glowColor}22, 0 2px 16px rgba(0,0,0,0.6)` } : {};
-
+function Card({ game, size = "sm" }) {
+  const topW = game.top.prob >= game.bottom.prob;
   return (
-    <div className={`pb-card pb-card--${size}`} style={style}>
-      <TeamRow team={game.top}    winner={topWin} />
-      <div className="pb-sep" />
-      <TeamRow team={game.bottom} winner={bottomWin} />
-      <div className="pb-card-foot">
-        <span className="pb-projected-badge">PROJECTED</span>
-      </div>
+    <div className={`pbr-card pbr-card--${size}`}>
+      <TeamRow team={game.top}    winner={topW} />
+      <div className="pbr-sep" />
+      <TeamRow team={game.bottom} winner={!topW} />
+      <div className="pbr-foot">PROJECTED</div>
     </div>
   );
 }
 
-/* ── SVG bracket connector ────────────────────────────────────── */
-
+/* ─── connector SVG ───────────────────────────────────────────────────────── */
 /*
-  Draws L-shaped bracket lines connecting two vertically stacked game outputs
-  to a single game input. Works by accepting percentage y-positions.
+  WC (3 games) → Div (2 games):
+    top 2 WC games  connect to Div slot 0 (top half)
+    bottom WC game  connects to Div slot 1 (bottom half)
 
-  positions: { top: 0..1, bottom: 0..1, mid: 0..1 } – as fraction of SVG height
-  direction: 'right' (AFC, connector on right side of games → left of next round)
-           | 'left'  (NFC, mirrored)
+  As percentage of column height:
+    WC centers:  16.7%, 50%, 83.3%
+    Div centers: 25%,  75%
+
+  We draw two separate bracket groups so lines never cross.
 */
-function BracketArm({ gameCount = 2, direction = "right" }) {
-  const W = 28;
-  const H = "100%";
-  const lineColor = "rgba(80,120,160,0.28)";
-  const lw = 1.5;
+const LC = "rgba(70,110,155,0.32)"; // line color
+const LW = 1.5;                      // line width
 
-  /* For 2 games → 1 game connector we use percentage y positions */
-  if (gameCount === 2) {
-    /* 2 div games → 1 conf game
-       Div game centers: roughly 25% and 75% of column height
-       Conf game center: 50% */
-    if (direction === "right") {
-      return (
-        <svg width={W} height={H} preserveAspectRatio="none" style={{ flexShrink: 0, display: "block", alignSelf: "stretch" }}>
-          <line x1={0} y1="25%" x2={W * 0.6} y2="25%" stroke={lineColor} strokeWidth={lw} />
-          <line x1={W * 0.6} y1="25%" x2={W * 0.6} y2="75%" stroke={lineColor} strokeWidth={lw} />
-          <line x1={0} y1="75%" x2={W * 0.6} y2="75%" stroke={lineColor} strokeWidth={lw} />
-          <line x1={W * 0.6} y1="50%" x2={W} y2="50%" stroke={lineColor} strokeWidth={lw} />
-        </svg>
-      );
-    }
-    return (
-      <svg width={W} height={H} preserveAspectRatio="none" style={{ flexShrink: 0, display: "block", alignSelf: "stretch" }}>
-        <line x1={W} y1="25%" x2={W * 0.4} y2="25%" stroke={lineColor} strokeWidth={lw} />
-        <line x1={W * 0.4} y1="25%" x2={W * 0.4} y2="75%" stroke={lineColor} strokeWidth={lw} />
-        <line x1={W} y1="75%" x2={W * 0.4} y2="75%" stroke={lineColor} strokeWidth={lw} />
-        <line x1={W * 0.4} y1="50%" x2={0} y2="50%" stroke={lineColor} strokeWidth={lw} />
-      </svg>
-    );
-  }
+function ConnArm3to2({ dir }) {
+  /* dir: "r" = AFC (output to right), "l" = NFC (output to left) */
+  const W = 22;
+  const r = dir === "r";
+  const sx = r ? 0 : W;   // start x (comes from game)
+  const ex = r ? W : 0;   // end x   (goes to next round)
+  const spine = r ? W * 0.55 : W * 0.45;
 
-  /* For 3 WC games → 2 Div games:
-     WC1 (top ~16.7%) + WC2 (mid ~50%) connect to Div2 (bottom ~75%)
-     WC3 (bottom ~83.3%) connects to Div1 (top ~25%)
-     We draw two separate L-brackets */
-  if (gameCount === 3) {
-    if (direction === "right") {
-      return (
-        <svg width={W} height={H} preserveAspectRatio="none" style={{ flexShrink: 0, display: "block", alignSelf: "stretch" }}>
-          {/* WC1 + WC2 → Div game bottom (75%) */}
-          <line x1={0} y1="16.7%" x2={W * 0.55} y2="16.7%" stroke={lineColor} strokeWidth={lw} />
-          <line x1={W * 0.55} y1="16.7%" x2={W * 0.55} y2="50%" stroke={lineColor} strokeWidth={lw} />
-          <line x1={0} y1="50%" x2={W * 0.55} y2="50%" stroke={lineColor} strokeWidth={lw} />
-          <line x1={W * 0.55} y1="33.5%" x2={W} y2="33.5%" stroke={lineColor} strokeWidth={lw} />
-          {/* WC3 → Div game top (25%) — but visually at 75% since Div game 1 is at top */}
-          <line x1={0} y1="83.3%" x2={W * 0.55} y2="83.3%" stroke={lineColor} strokeWidth={lw} />
-          <line x1={W * 0.55} y1="83.3%" x2={W * 0.55} y2="66.5%" stroke={lineColor} strokeWidth={lw} />
-          <line x1={W * 0.55} y1="66.5%" x2={W} y2="66.5%" stroke={lineColor} strokeWidth={lw} />
-        </svg>
-      );
-    }
-    return (
-      <svg width={W} height={H} preserveAspectRatio="none" style={{ flexShrink: 0, display: "block", alignSelf: "stretch" }}>
-        <line x1={W} y1="16.7%" x2={W * 0.45} y2="16.7%" stroke={lineColor} strokeWidth={lw} />
-        <line x1={W * 0.45} y1="16.7%" x2={W * 0.45} y2="50%" stroke={lineColor} strokeWidth={lw} />
-        <line x1={W} y1="50%" x2={W * 0.45} y2="50%" stroke={lineColor} strokeWidth={lw} />
-        <line x1={W * 0.45} y1="33.5%" x2={0} y2="33.5%" stroke={lineColor} strokeWidth={lw} />
-        <line x1={W} y1="83.3%" x2={W * 0.45} y2="83.3%" stroke={lineColor} strokeWidth={lw} />
-        <line x1={W * 0.45} y1="83.3%" x2={W * 0.45} y2="66.5%" stroke={lineColor} strokeWidth={lw} />
-        <line x1={W * 0.45} y1="66.5%" x2={0} y2="66.5%" stroke={lineColor} strokeWidth={lw} />
-      </svg>
-    );
-  }
-
-  return null;
+  return (
+    <svg width={W} style={{ alignSelf: "stretch", flexShrink: 0, display: "block" }}
+      height="100%" preserveAspectRatio="none">
+      {/* Group 1: WC1 (16.7%) + WC2 (50%) → Div top (25%) */}
+      <line x1={sx} y1="16.7%" x2={spine} y2="16.7%" stroke={LC} strokeWidth={LW} />
+      <line x1={sx} y1="50%"   x2={spine} y2="50%"   stroke={LC} strokeWidth={LW} />
+      <line x1={spine} y1="16.7%" x2={spine} y2="50%"   stroke={LC} strokeWidth={LW} />
+      <line x1={spine} y1="33.4%" x2={ex}    y2="33.4%" stroke={LC} strokeWidth={LW} />
+      {/* Group 2: WC3 (83.3%) → Div bottom (75%) */}
+      <line x1={sx}    y1="83.3%" x2={spine} y2="83.3%" stroke={LC} strokeWidth={LW} />
+      <line x1={spine} y1="83.3%" x2={spine} y2="75%"   stroke={LC} strokeWidth={LW} />
+      <line x1={spine} y1="75%"   x2={ex}    y2="75%"   stroke={LC} strokeWidth={LW} />
+    </svg>
+  );
 }
 
-/* ── Super Bowl center card ───────────────────────────────────── */
+function ConnArm2to1({ dir }) {
+  const W = 22;
+  const r = dir === "r";
+  const sx = r ? 0 : W;
+  const ex = r ? W : 0;
+  const spine = r ? W * 0.55 : W * 0.45;
 
-function SuperBowlCard({ game }) {
-  const afcWin = game.afc.prob >= game.nfc.prob;
   return (
-    <div className="pb-sb-card">
-      <div className="pb-sb-header">
-        <span className="pb-sb-trophy">🏆</span>
+    <svg width={W} style={{ alignSelf: "stretch", flexShrink: 0, display: "block" }}
+      height="100%" preserveAspectRatio="none">
+      {/* Div top (25%) + Div bottom (75%) → Conf center (50%) */}
+      <line x1={sx} y1="25%" x2={spine} y2="25%" stroke={LC} strokeWidth={LW} />
+      <line x1={sx} y1="75%" x2={spine} y2="75%" stroke={LC} strokeWidth={LW} />
+      <line x1={spine} y1="25%" x2={spine} y2="75%"  stroke={LC} strokeWidth={LW} />
+      <line x1={spine} y1="50%" x2={ex}    y2="50%"  stroke={LC} strokeWidth={LW} />
+    </svg>
+  );
+}
+
+/* Horizontal stub from Conf → SB */
+function SbStub() {
+  return (
+    <svg width={20} height="100%" style={{ flexShrink: 0, display: "block", alignSelf: "stretch" }}
+      preserveAspectRatio="none">
+      <line x1={0} y1="50%" x2={20} y2="50%" stroke={LC} strokeWidth={LW} />
+    </svg>
+  );
+}
+
+/* ─── Super Bowl center ───────────────────────────────────────────────────── */
+
+function SuperBowl({ game }) {
+  const afcW = game.afc.prob >= game.nfc.prob;
+  return (
+    <div className="pbr-sb">
+      <div className="pbr-sb-head">
+        <span className="pbr-sb-trophy">🏆</span>
         <div>
-          <div className="pb-sb-title">Super Bowl</div>
-          <div className="pb-sb-sub">LIX · New Orleans</div>
+          <div className="pbr-sb-title">Super Bowl</div>
+          <div className="pbr-sb-venue">LIX · New Orleans</div>
         </div>
       </div>
-      <div className="pb-sb-body">
-        {/* AFC side */}
-        <div className={`pb-sb-row${afcWin ? " pb-sb-row--win" : ""}`}>
-          <span className="pb-sb-conf pb-sb-conf--afc">AFC</span>
-          <span className="pb-seed pb-seed--sm">{game.afc.seed}</span>
-          <img className="pb-logo pb-logo--lg" src={LOGO(game.afc.abbr)} alt={game.afc.abbr}
-            onError={(e) => { e.target.style.display = "none"; }} />
-          <span className="pb-sb-abbr">{game.afc.abbr}</span>
-          <span className={`pb-sb-prob${afcWin ? " pb-sb-prob--win" : ""}`}>
-            {game.afc.prob}<span className="pb-pct">%</span>
-          </span>
-          {afcWin && <span className="pb-arrow pb-arrow--lg">▶</span>}
-        </div>
-        <div className="pb-sb-vs">vs</div>
-        {/* NFC side */}
-        <div className={`pb-sb-row${!afcWin ? " pb-sb-row--win" : ""}`}>
-          <span className="pb-sb-conf pb-sb-conf--nfc">NFC</span>
-          <span className="pb-seed pb-seed--sm">{game.nfc.seed}</span>
-          <img className="pb-logo pb-logo--lg" src={LOGO(game.nfc.abbr)} alt={game.nfc.abbr}
-            onError={(e) => { e.target.style.display = "none"; }} />
-          <span className="pb-sb-abbr">{game.nfc.abbr}</span>
-          <span className={`pb-sb-prob${!afcWin ? " pb-sb-prob--win" : ""}`}>
-            {game.nfc.prob}<span className="pb-pct">%</span>
-          </span>
-          {!afcWin && <span className="pb-arrow pb-arrow--lg">▶</span>}
-        </div>
+
+      <div className={`pbr-sb-row${afcW ? " pbr-sb-row--w" : ""}`}>
+        <span className="pbr-sb-conf pbr-sb-conf--afc">AFC</span>
+        <span className="pbr-seed pbr-seed--sb">{game.afc.seed}</span>
+        <img className="pbr-logo pbr-logo--sb" src={LOGO(game.afc.abbr)} alt={game.afc.abbr}
+          onError={(e) => { e.target.style.display = "none"; }} />
+        <span className="pbr-sb-abbr">{game.afc.abbr}</span>
+        <span className={`pbr-prob${afcW ? " pbr-prob--w" : ""}`}>
+          {game.afc.prob}<span className="pbr-pct">%</span>
+        </span>
+        {afcW && <span className="pbr-arrow">▶</span>}
       </div>
-      <div className="pb-sb-foot">AI PROJECTED</div>
+
+      <div className="pbr-sb-vs">vs</div>
+
+      <div className={`pbr-sb-row${!afcW ? " pbr-sb-row--w" : ""}`}>
+        <span className="pbr-sb-conf pbr-sb-conf--nfc">NFC</span>
+        <span className="pbr-seed pbr-seed--sb">{game.nfc.seed}</span>
+        <img className="pbr-logo pbr-logo--sb" src={LOGO(game.nfc.abbr)} alt={game.nfc.abbr}
+          onError={(e) => { e.target.style.display = "none"; }} />
+        <span className="pbr-sb-abbr">{game.nfc.abbr}</span>
+        <span className={`pbr-prob${!afcW ? " pbr-prob--w" : ""}`}>
+          {game.nfc.prob}<span className="pbr-pct">%</span>
+        </span>
+        {!afcW && <span className="pbr-arrow">▶</span>}
+      </div>
+
+      <div className="pbr-sb-foot">AI PROJECTED</div>
     </div>
   );
 }
 
-/* ── Conference column ────────────────────────────────────────── */
+/* ─── Conference half ─────────────────────────────────────────────────────── */
 
-function ConferenceColumn({ conf, side }) {
-  const isAFC = side === "afc";
+function ConfHalf({ conf, side }) {
+  const isAfc = side === "afc";
 
-  /* Round: Wild Card */
-  const wcCol = (
-    <div className="pb-round">
-      <div className="pb-round-label">Wild Card</div>
-      <div className="pb-round-games pb-round-games--3">
-        {conf.wildCard.map((g, i) => (
-          <GameCard key={i} game={g} size="sm" />
-        ))}
+  const wcRound = (
+    <div className="pbr-round pbr-round--wc">
+      <div className="pbr-round-lbl">Wild Card</div>
+      <div className="pbr-games pbr-games--3">
+        {conf.wildCard.map((g, i) => <Card key={i} game={g} size="sm" />)}
       </div>
     </div>
   );
 
-  /* Round: Divisional */
-  const divCol = (
-    <div className="pb-round">
-      <div className="pb-round-label">Divisional</div>
-      <div className="pb-round-games pb-round-games--2">
-        {conf.divisional.map((g, i) => (
-          <GameCard key={i} game={g} size="sm" />
-        ))}
+  const divRound = (
+    <div className="pbr-round pbr-round--div">
+      <div className="pbr-round-lbl">Divisional</div>
+      <div className="pbr-games pbr-games--2">
+        {conf.divisional.map((g, i) => <Card key={i} game={g} size="sm" />)}
       </div>
     </div>
   );
 
-  /* Round: Conference Championship */
-  const confCol = (
-    <div className="pb-round">
-      <div className="pb-round-label">Conf. Championship</div>
-      <div className="pb-round-games pb-round-games--1">
-        <GameCard game={conf.championship} size="md" />
+  const confRound = (
+    <div className="pbr-round pbr-round--conf">
+      <div className="pbr-round-lbl">Conf. Champ</div>
+      <div className="pbr-games pbr-games--1">
+        <Card game={conf.championship} size="sm" />
       </div>
     </div>
   );
-
-  /* connectors */
-  const wc2div  = <BracketArm gameCount={3} direction={isAFC ? "right" : "left"} />;
-  const div2conf = <BracketArm gameCount={2} direction={isAFC ? "right" : "left"} />;
-
-  const inner = isAFC
-    ? <>{wcCol}{wc2div}{divCol}{div2conf}{confCol}</>
-    : <>{confCol}{div2conf}{divCol}{wc2div}{wcCol}</>;
 
   return (
-    <div className="pb-conf-col">
-      <div className={`pb-conf-badge pb-conf-badge--${side}`}>{side.toUpperCase()}</div>
-      <div className="pb-rounds-row">
-        {inner}
+    <div className="pbr-half">
+      <div className={`pbr-conf-chip pbr-conf-chip--${side}`}>{side.toUpperCase()}</div>
+      <div className="pbr-rounds">
+        {isAfc
+          ? <>{wcRound}<ConnArm3to2 dir="r" />{divRound}<ConnArm2to1 dir="r" />{confRound}<SbStub /></>
+          : <><SbStub />{confRound}<ConnArm2to1 dir="l" />{divRound}<ConnArm3to2 dir="l" />{wcRound}</>
+        }
       </div>
     </div>
   );
 }
 
-/* ── Root ─────────────────────────────────────────────────────── */
+/* ─── Root ────────────────────────────────────────────────────────────────── */
 
 export default function PlayoffBracket() {
   return (
-    <div className="pb-root">
+    <div className="pbr-root">
       <style>{`
-        .pb-root {
+        /* ── reset & root ── */
+        .pbr-root {
           font-family: var(--font-ui, 'Manrope', system-ui, sans-serif);
-          color: #e2e8f0;
+          color: #dce8f4;
           overflow-x: auto;
-          padding: 0.25rem 0 1.5rem;
+          padding-bottom: 1.5rem;
+          -webkit-overflow-scrolling: touch;
         }
 
-        /* ── header ── */
-        .pb-main-header {
+        /* ── page header ── */
+        .pbr-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 1.75rem;
+          margin-bottom: 1.5rem;
           flex-wrap: wrap;
-          gap: 0.75rem;
+          gap: 0.5rem;
         }
-        .pb-main-title {
+        .pbr-title {
           font-family: var(--font-display, 'Sora', sans-serif);
-          font-size: 1.5rem;
+          font-size: 1.45rem;
           font-weight: 700;
           letter-spacing: -.025em;
-          color: #f0f4fa;
+          color: #f0f6ff;
         }
-        .pb-ai-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.65rem;
+        .pbr-ai-tag {
+          font-size: 0.6rem;
           font-weight: 800;
           letter-spacing: .18em;
           text-transform: uppercase;
-          padding: 5px 14px;
+          padding: 5px 12px;
           border-radius: 999px;
-          background: rgba(0,212,170,.1);
-          color: #00d4aa;
-          border: 1px solid rgba(0,212,170,.22);
+          background: rgba(0,212,160,.1);
+          color: #00d4a0;
+          border: 1px solid rgba(0,212,160,.22);
         }
 
-        /* ── bracket outer layout ── */
-        .pb-layout {
+        /* ── bracket frame ── */
+        .pbr-frame {
           display: flex;
           align-items: stretch;
+          min-width: 940px;
           gap: 0;
-          min-width: 980px;
         }
 
-        /* ── conference column ── */
-        .pb-conf-col {
+        /* ── conference half ── */
+        .pbr-half {
           flex: 1;
           min-width: 0;
           display: flex;
           flex-direction: column;
-          gap: 0.75rem;
+          gap: 0.55rem;
         }
-        .pb-conf-badge {
-          text-align: center;
+        .pbr-conf-chip {
           font-size: 0.6rem;
           font-weight: 800;
           letter-spacing: .2em;
           text-transform: uppercase;
-          padding: 5px 0;
+          padding: 4px 10px;
           border-radius: 6px;
-          margin: 0 6px;
+          text-align: center;
+          align-self: flex-start;
+          margin-left: 4px;
         }
-        .pb-conf-badge--afc {
-          background: rgba(0,52,148,.18);
-          color: #7aaee0;
-          border: 1px solid rgba(0,52,148,.3);
+        .pbr-conf-chip--afc {
+          background: rgba(0,52,148,.22);
+          color: #6fa4e0;
+          border: 1px solid rgba(0,52,148,.35);
         }
-        .pb-conf-badge--nfc {
-          background: rgba(180,30,30,.15);
+        .pbr-conf-chip--nfc {
+          background: rgba(170,30,30,.18);
           color: #e07a7a;
-          border: 1px solid rgba(180,30,30,.28);
+          border: 1px solid rgba(170,30,30,.3);
+          align-self: flex-end;
+          margin-left: 0;
+          margin-right: 4px;
         }
-        .pb-rounds-row {
+        .pbr-rounds {
           display: flex;
           align-items: stretch;
           flex: 1;
           gap: 0;
         }
 
-        /* ── round column ── */
-        .pb-round {
-          flex: 1;
+        /* ── round ── */
+        .pbr-round {
           display: flex;
           flex-direction: column;
-          padding: 0 5px;
           min-width: 0;
+          flex: 1;
+          padding: 0 4px;
         }
-        .pb-round-label {
-          font-size: 0.55rem;
+        .pbr-round-lbl {
+          font-size: 0.52rem;
           font-weight: 700;
-          letter-spacing: .16em;
+          letter-spacing: .15em;
           text-transform: uppercase;
-          color: rgba(255,255,255,.22);
+          color: rgba(255,255,255,.2);
           text-align: center;
-          margin-bottom: 0.6rem;
+          margin-bottom: 0.5rem;
           white-space: nowrap;
         }
-        .pb-round-games {
+        .pbr-games {
           display: flex;
           flex-direction: column;
           flex: 1;
+          gap: 6px;
         }
-        .pb-round-games--3 { gap: 6px; justify-content: space-between; }
-        .pb-round-games--2 { gap: 8px; justify-content: space-around; }
-        .pb-round-games--1 { justify-content: center; }
+        .pbr-games--3 { justify-content: space-between; }
+        .pbr-games--2 { justify-content: space-around; }
+        .pbr-games--1 { justify-content: center; }
 
         /* ── game card ── */
-        .pb-card {
-          background: linear-gradient(160deg, rgba(14,26,50,.98) 0%, rgba(8,16,34,.98) 100%);
-          border: 1px solid rgba(255,255,255,.08);
-          border-radius: 11px;
+        .pbr-card {
+          background: linear-gradient(155deg, rgba(14,26,52,.98) 0%, rgba(7,14,30,.98) 100%);
+          border: 1px solid rgba(255,255,255,.085);
+          border-radius: 10px;
           overflow: hidden;
-          position: relative;
-          transition: border-color .18s, box-shadow .18s;
           flex-shrink: 0;
+          transition: border-color .18s, box-shadow .18s;
         }
-        .pb-card:hover {
-          border-color: rgba(96,165,250,.28);
-          box-shadow: 0 4px 24px rgba(0,0,0,.45);
+        .pbr-card:hover {
+          border-color: rgba(100,160,230,.3);
+          box-shadow: 0 4px 20px rgba(0,0,0,.45);
         }
-        .pb-card--sm { min-width: 148px; }
-        .pb-card--md { min-width: 158px; }
+        .pbr-card--sm { min-width: 114px; }
 
         /* ── team row ── */
-        .pb-row {
+        .pbr-row {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 10px;
+          gap: 5px;
+          padding: 7px 9px;
           position: relative;
           overflow: hidden;
-          transition: background .15s;
         }
-        .pb-row--win {
-          background: rgba(74,222,128,.05);
-        }
-        .pb-row--win::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 2.5px;
-          background: linear-gradient(180deg, #4ade80, #22c55e);
-          border-radius: 0 2px 2px 0;
-        }
-        .pb-row__glow {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(ellipse at left center, rgba(74,222,128,.07), transparent 60%);
-          pointer-events: none;
-        }
-        .pb-seed {
-          width: 17px;
-          height: 17px;
-          border-radius: 50%;
-          background: rgba(0,52,148,.45);
-          color: #88aad4;
-          font-size: 0.58rem;
-          font-weight: 800;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          font-family: var(--font-mono, monospace);
-        }
-        .pb-seed--sm { width: 15px; height: 15px; font-size: 0.52rem; }
-        .pb-logo {
-          width: 24px;
-          height: 24px;
-          object-fit: contain;
-          flex-shrink: 0;
-        }
-        .pb-logo--lg { width: 30px; height: 30px; }
-        .pb-abbr {
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: #9ab2cc;
-          flex: 1;
-          letter-spacing: .02em;
-          min-width: 0;
-        }
-        .pb-row--win .pb-abbr { color: #d4e8f8; }
-        .pb-record {
-          font-size: 0.58rem;
-          color: rgba(255,255,255,.22);
-          font-family: var(--font-mono, monospace);
-          letter-spacing: .03em;
-          flex-shrink: 0;
-        }
-        .pb-prob {
-          font-family: var(--font-mono, monospace);
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: rgba(255,255,255,.55);
-          flex-shrink: 0;
-          min-width: 36px;
-          text-align: right;
-        }
-        .pb-prob--win { color: #e2f0ff; }
-        .pb-pct {
-          font-size: 0.56rem;
-          color: rgba(255,255,255,.3);
-          margin-left: 1px;
-        }
-        .pb-arrow {
-          font-size: 0.5rem;
-          color: #4ade80;
-          margin-left: 1px;
-        }
-        .pb-arrow--lg { font-size: 0.6rem; }
-        .pb-sep {
-          height: 1px;
-          background: rgba(255,255,255,.06);
-          margin: 0;
-        }
-        .pb-card-foot {
-          padding: 3px 10px;
-          background: rgba(0,0,0,.18);
-          text-align: center;
-        }
-        .pb-projected-badge {
-          font-size: 0.5rem;
-          font-weight: 800;
-          letter-spacing: .18em;
-          text-transform: uppercase;
-          color: rgba(107,150,212,.5);
-        }
-
-        /* ── Super Bowl center card ── */
-        .pb-sb-col {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 0 8px;
-          flex-shrink: 0;
-        }
-        .pb-sb-connector {
-          width: 18px;
-          height: 2px;
-          background: rgba(255,210,80,.2);
-          flex-shrink: 0;
-          margin: 0 2px;
-        }
-        .pb-sb-card {
-          background: linear-gradient(160deg, #0c1a30 0%, #080f1e 100%);
-          border: 1px solid rgba(255,210,80,.3);
-          border-radius: 16px;
-          overflow: hidden;
-          min-width: 182px;
-          box-shadow:
-            0 0 0 1px rgba(255,210,80,.08),
-            0 0 30px rgba(255,210,80,.08),
-            0 12px 40px rgba(0,0,0,.6);
-          animation: pb-sb-pulse 3s ease-in-out infinite;
-        }
-        @keyframes pb-sb-pulse {
-          0%, 100% { box-shadow: 0 0 0 1px rgba(255,210,80,.08), 0 0 30px rgba(255,210,80,.08), 0 12px 40px rgba(0,0,0,.6); }
-          50%       { box-shadow: 0 0 0 1px rgba(255,210,80,.18), 0 0 45px rgba(255,210,80,.16), 0 12px 40px rgba(0,0,0,.6); }
-        }
-        .pb-sb-header {
-          display: flex;
-          align-items: center;
-          gap: 9px;
-          padding: 10px 14px 8px;
-          background: rgba(255,210,80,.07);
-          border-bottom: 1px solid rgba(255,210,80,.14);
-        }
-        .pb-sb-trophy {
-          font-size: 1.3rem;
-          line-height: 1;
-        }
-        .pb-sb-title {
-          font-family: var(--font-display, 'Sora', sans-serif);
-          font-size: 0.85rem;
-          font-weight: 700;
-          letter-spacing: .04em;
-          color: #ffd250;
-        }
-        .pb-sb-sub {
-          font-size: 0.58rem;
-          font-weight: 600;
-          letter-spacing: .1em;
-          color: rgba(255,210,80,.45);
-          margin-top: 1px;
-        }
-        .pb-sb-body { padding: 4px 0; }
-        .pb-sb-row {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          padding: 9px 14px;
-          position: relative;
-          overflow: hidden;
-          transition: background .15s;
-        }
-        .pb-sb-row--win {
-          background: rgba(255,210,80,.05);
-        }
-        .pb-sb-row--win::before {
+        .pbr-row--w { background: rgba(74,222,128,.055); }
+        .pbr-row--w::before {
           content: '';
           position: absolute;
           left: 0; top: 0; bottom: 0;
-          width: 3px;
-          background: linear-gradient(180deg, #ffd250, #f59e0b);
+          width: 2.5px;
+          background: linear-gradient(180deg, #4ade80, #16a34a);
+          border-radius: 0 2px 2px 0;
         }
-        .pb-sb-vs {
-          text-align: center;
-          font-size: 0.62rem;
-          font-weight: 800;
-          letter-spacing: .1em;
-          color: rgba(255,255,255,.18);
-          padding: 2px 0;
-          border-top: 1px solid rgba(255,255,255,.06);
-          border-bottom: 1px solid rgba(255,255,255,.06);
+        .pbr-row-glow {
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(ellipse at left center, rgba(74,222,128,.07), transparent 55%);
+          pointer-events: none;
         }
-        .pb-sb-conf {
-          font-size: 0.52rem;
+        .pbr-seed {
+          width: 15px;
+          height: 15px;
+          border-radius: 50%;
+          background: rgba(0,40,120,.45);
+          color: #7090c0;
+          font-size: 0.54rem;
           font-weight: 800;
-          letter-spacing: .12em;
-          text-transform: uppercase;
-          width: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          font-family: var(--font-mono, monospace);
+        }
+        .pbr-seed--sb { width: 16px; height: 16px; font-size: 0.56rem; }
+        .pbr-logo {
+          width: 22px;
+          height: 22px;
+          object-fit: contain;
           flex-shrink: 0;
         }
-        .pb-sb-conf--afc { color: #6b96d4; }
-        .pb-sb-conf--nfc { color: #e07a7a; }
-        .pb-sb-abbr {
+        .pbr-logo--sb { width: 27px; height: 27px; }
+        .pbr-abbr {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #8aacc8;
+          flex: 1;
+          min-width: 0;
+          letter-spacing: .02em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .pbr-row--w .pbr-abbr { color: #d8eeff; }
+        .pbr-prob {
+          font-family: var(--font-mono, monospace);
+          font-size: 0.76rem;
+          font-weight: 700;
+          color: rgba(255,255,255,.42);
+          flex-shrink: 0;
+        }
+        .pbr-prob--w { color: #e8f4ff; }
+        .pbr-pct { font-size: 0.54rem; color: rgba(255,255,255,.28); margin-left: 1px; }
+        .pbr-arrow { font-size: 0.48rem; color: #4ade80; margin-left: 2px; }
+        .pbr-sep { height: 1px; background: rgba(255,255,255,.055); }
+        .pbr-foot {
+          padding: 2px 8px;
+          text-align: center;
+          font-size: 0.45rem;
+          font-weight: 800;
+          letter-spacing: .16em;
+          color: rgba(100,140,200,.38);
+          background: rgba(0,0,0,.18);
+        }
+
+        /* ── Super Bowl ── */
+        .pbr-sb-col {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          padding-top: 1.25rem; /* offset for round labels */
+        }
+        .pbr-sb {
+          background: linear-gradient(155deg, #0c1b32 0%, #070e1c 100%);
+          border: 1px solid rgba(255,205,70,.28);
+          border-radius: 14px;
+          overflow: hidden;
+          min-width: 158px;
+          box-shadow:
+            0 0 0 1px rgba(255,205,70,.06),
+            0 0 28px rgba(255,205,70,.07),
+            0 10px 36px rgba(0,0,0,.65);
+          animation: pbr-pulse 3.2s ease-in-out infinite;
+        }
+        @keyframes pbr-pulse {
+          0%, 100% { box-shadow: 0 0 0 1px rgba(255,205,70,.06), 0 0 28px rgba(255,205,70,.07), 0 10px 36px rgba(0,0,0,.65); }
+          50%       { box-shadow: 0 0 0 1px rgba(255,205,70,.14), 0 0 42px rgba(255,205,70,.14), 0 10px 36px rgba(0,0,0,.65); }
+        }
+        .pbr-sb-head {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 9px 12px 7px;
+          background: rgba(255,205,70,.065);
+          border-bottom: 1px solid rgba(255,205,70,.13);
+        }
+        .pbr-sb-trophy { font-size: 1.2rem; line-height: 1; }
+        .pbr-sb-title {
+          font-family: var(--font-display, 'Sora', sans-serif);
           font-size: 0.82rem;
           font-weight: 700;
-          color: #9ab2cc;
-          flex: 1;
-          letter-spacing: .03em;
+          color: #ffd050;
+          letter-spacing: .02em;
         }
-        .pb-sb-row--win .pb-sb-abbr { color: #f0f4fa; }
-        .pb-sb-prob {
-          font-family: var(--font-mono, monospace);
-          font-size: 0.85rem;
-          font-weight: 700;
-          color: rgba(255,255,255,.5);
+        .pbr-sb-venue {
+          font-size: 0.55rem;
+          font-weight: 600;
+          letter-spacing: .08em;
+          color: rgba(255,205,70,.42);
+          margin-top: 1px;
         }
-        .pb-sb-prob--win { color: #ffd250; }
-        .pb-sb-foot {
-          padding: 5px;
+        .pbr-sb-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          position: relative;
+          overflow: hidden;
+        }
+        .pbr-sb-row--w { background: rgba(255,205,70,.05); }
+        .pbr-sb-row--w::before {
+          content: '';
+          position: absolute;
+          left: 0; top: 0; bottom: 0;
+          width: 2.5px;
+          background: linear-gradient(180deg, #ffd050, #f59e0b);
+        }
+        .pbr-sb-vs {
           text-align: center;
+          font-size: 0.58rem;
+          font-weight: 800;
+          letter-spacing: .1em;
+          color: rgba(255,255,255,.16);
+          padding: 2px 0;
+          border-top: 1px solid rgba(255,255,255,.055);
+          border-bottom: 1px solid rgba(255,255,255,.055);
+        }
+        .pbr-sb-conf {
           font-size: 0.5rem;
           font-weight: 800;
+          letter-spacing: .1em;
+          text-transform: uppercase;
+          width: 26px;
+          flex-shrink: 0;
+        }
+        .pbr-sb-conf--afc { color: #6fa4e0; }
+        .pbr-sb-conf--nfc { color: #e07a7a; }
+        .pbr-sb-abbr {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #8aacc8;
+          flex: 1;
+        }
+        .pbr-sb-row--w .pbr-sb-abbr { color: #f0f6ff; }
+        .pbr-sb-foot {
+          padding: 4px;
+          text-align: center;
+          font-size: 0.46rem;
+          font-weight: 800;
           letter-spacing: .18em;
-          color: rgba(255,210,80,.3);
+          color: rgba(255,205,70,.28);
           background: rgba(0,0,0,.2);
-          border-top: 1px solid rgba(255,210,80,.1);
+          border-top: 1px solid rgba(255,205,70,.1);
         }
 
         /* ── footnote ── */
-        .pb-footnote {
-          margin-top: 1.25rem;
-          font-size: 0.7rem;
-          color: rgba(255,255,255,.22);
+        .pbr-note {
+          margin-top: 1rem;
+          font-size: 0.68rem;
+          color: rgba(255,255,255,.2);
           text-align: center;
           font-style: italic;
         }
-
-        @media (max-width: 1024px) {
-          .pb-layout { min-width: 880px; }
-          .pb-card--sm { min-width: 130px; }
-          .pb-card--md { min-width: 140px; }
-          .pb-sb-card  { min-width: 162px; }
-        }
       `}</style>
 
-      <div className="pb-main-header">
-        <div className="pb-main-title">{BRACKET.year} NFL Playoff Bracket</div>
-        <span className="pb-ai-badge">⚡ AI Projected</span>
+      <div className="pbr-header">
+        <div className="pbr-title">{BRACKET.year} NFL Playoff Bracket</div>
+        <span className="pbr-ai-tag">⚡ AI Projected</span>
       </div>
 
-      <div className="pb-layout">
-        {/* AFC side */}
-        <ConferenceColumn conf={BRACKET.afc} side="afc" />
+      <div className="pbr-frame">
+        <ConfHalf conf={BRACKET.afc} side="afc" />
 
-        {/* Super Bowl center */}
-        <div className="pb-sb-col">
-          <div className="pb-sb-connector" />
-          <SuperBowlCard game={BRACKET.superBowl} />
-          <div className="pb-sb-connector" />
+        <div className="pbr-sb-col">
+          <SuperBowl game={BRACKET.superBowl} />
         </div>
 
-        {/* NFC side */}
-        <ConferenceColumn conf={BRACKET.nfc} side="nfc" />
+        <ConfHalf conf={BRACKET.nfc} side="nfc" />
       </div>
 
-      <p className="pb-footnote">
+      <p className="pbr-note">
         Win probabilities are Monte Carlo model outputs — not a guarantee of results.
       </p>
     </div>
