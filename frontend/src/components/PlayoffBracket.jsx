@@ -1,12 +1,14 @@
 import React from "react";
+import { api } from "../api";
 
 const LOGO = (abbr) =>
   `https://static.www.nfl.com/t_q-best/league/api/clubs/logos/${abbr}`;
 
-/* ─── bracket data ────────────────────────────────────────────────────────── */
-/* Divisional slot 0 = WC winners matchup (connects from top 2 WC games)
+/* ─── offline fallback ────────────────────────────────────────────────────── */
+/* Used only when the live bracket endpoint is unavailable.
+   Divisional slot 0 = WC winners matchup (connects from top 2 WC games)
    Divisional slot 1 = 1-seed bye vs WC3 winner (connects from bottom WC game) */
-const BRACKET = {
+const FALLBACK_BRACKET = {
   year: 2025,
   superBowl: {
     afc: { seed: 1, abbr: "KC",  name: "Chiefs",   prob: 52 },
@@ -252,7 +254,40 @@ function ConfHalf({ conf, side }) {
 
 /* ─── Root ────────────────────────────────────────────────────────────────── */
 
+const CURRENT_SEASON = (() => {
+  const now = new Date();
+  /* NFL season is labeled by the year it starts; the playoffs run into the
+     following calendar year, so Jan–Feb still belong to the prior season. */
+  return now.getMonth() <= 1 ? now.getFullYear() - 1 : now.getFullYear();
+})();
+
 export default function PlayoffBracket() {
+  const [bracket, setBracket] = React.useState(FALLBACK_BRACKET);
+  const [source, setSource]   = React.useState("loading"); // loading | live | fallback
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        if (!api?.getPlayoffBracket) throw new Error("API unavailable");
+        const json = await api.getPlayoffBracket(CURRENT_SEASON);
+        if (cancelled) return;
+        if (json?.success && json.afc && json.nfc && json.superBowl) {
+          setBracket({ year: json.year, superBowl: json.superBowl, afc: json.afc, nfc: json.nfc });
+          setSource("live");
+        } else {
+          setSource("fallback");
+        }
+      } catch {
+        if (!cancelled) setSource("fallback");
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div className="pbr-root">
       <style>{`
@@ -281,18 +316,6 @@ export default function PlayoffBracket() {
           letter-spacing: -.025em;
           color: #f0f6ff;
         }
-        .pbr-ai-tag {
-          font-size: 0.6rem;
-          font-weight: 800;
-          letter-spacing: .18em;
-          text-transform: uppercase;
-          padding: 5px 12px;
-          border-radius: 999px;
-          background: rgba(0,212,160,.1);
-          color: #00d4a0;
-          border: 1px solid rgba(0,212,160,.22);
-        }
-
         /* ── bracket frame ── */
         .pbr-frame {
           display: flex;
@@ -575,22 +598,23 @@ export default function PlayoffBracket() {
       `}</style>
 
       <div className="pbr-header">
-        <div className="pbr-title">{BRACKET.year} NFL Playoff Bracket</div>
-        <span className="pbr-ai-tag">⚡ AI Projected</span>
+        <div className="pbr-title">{bracket.year} NFL Playoff Bracket</div>
       </div>
 
       <div className="pbr-frame">
-        <ConfHalf conf={BRACKET.afc} side="afc" />
+        <ConfHalf conf={bracket.afc} side="afc" />
 
         <div className="pbr-sb-col">
-          <SuperBowl game={BRACKET.superBowl} />
+          <SuperBowl game={bracket.superBowl} />
         </div>
 
-        <ConfHalf conf={BRACKET.nfc} side="nfc" />
+        <ConfHalf conf={bracket.nfc} side="nfc" />
       </div>
 
       <p className="pbr-note">
-        Win probabilities are Monte Carlo model outputs — not a guarantee of results.
+        {source === "live"
+          ? `Projected from live ${bracket.year} season data — win probabilities are model outputs, not a guarantee of results.`
+          : "Win probabilities are model outputs — not a guarantee of results."}
       </p>
     </div>
   );

@@ -380,6 +380,156 @@ router.get("/playoff", async (req, res) => {
   }
 });
 
+/* ---------------------------------------------------------------------------
+   Playoff bracket builder
+   Seeds a full 14-team postseason bracket from live season-to-date team data
+   (records, TSI, point differential) and projects every round forward using a
+   logistic matchup model. Returns the same shape the PlayoffBracket UI uses.
+--------------------------------------------------------------------------- */
+
+const BRACKET_HOME_BUMP = 3; // higher seed hosts — small strength advantage
+
+function teamStrength(team) {
+  const winPct = team.record?.winPct || 0;
+  const pointDiff = team.averages?.pointDiffPerGame || 0;
+  const tsi = team.tsi || 0;
+  return tsi * 0.6 + winPct * 40 + pointDiff * 1.2;
+}
+
+function byStrengthDesc(a, b) {
+  const diff = teamStrength(b) - teamStrength(a);
+  if (diff !== 0) return diff;
+  return (b.record?.winPct || 0) - (a.record?.winPct || 0);
+}
+
+/* probability the first team beats the second, given a strength advantage */
+function matchupProbability(teamA, teamB, homeBump = 0) {
+  const spread = teamStrength(teamA) - teamStrength(teamB) + homeBump;
+  const p = 1 / (1 + Math.exp(-spread * 0.06));
+  return Math.max(0.08, Math.min(0.92, p));
+}
+
+function toSlot(team, prob) {
+  return {
+    seed: team._seed,
+    abbr: team.code,
+    name: team.name,
+    prob: Math.round(prob * 100)
+  };
+}
+
+/* order two teams so the higher seed (lower seed number) comes first */
+function orderBySeed(a, b) {
+  return (a._seed || 99) <= (b._seed || 99) ? [a, b] : [b, a];
+}
+
+/* build a single game; first arg is the home/higher seed */
+function makeGame(home, away, useHomeBump = true) {
+  const pHome = matchupProbability(home, away, useHomeBump ? BRACKET_HOME_BUMP : 0);
+  const homeWins = pHome >= 0.5;
+  return {
+    top: toSlot(home, pHome),
+    bottom: toSlot(away, 1 - pHome),
+    _winner: homeWins ? home : away
+  };
+}
+
+function stripGame(game) {
+  return { top: game.top, bottom: game.bottom };
+}
+
+function buildConferenceBracket(confRows) {
+  /* division winners (best team per division) take seeds 1–4 */
+  const byDivision = confRows.reduce((acc, team) => {
+    (acc[team.division] = acc[team.division] || []).push(team);
+    return acc;
+  }, {});
+
+  const divisionWinners = Object.values(byDivision)
+    .map((list) => list.slice().sort(byStrengthDesc)[0])
+    .filter(Boolean)
+    .sort(byStrengthDesc)
+    .slice(0, 4);
+
+  const winnerCodes = new Set(divisionWinners.map((t) => t.code));
+
+  /* next three best non-division-winners are wild cards (seeds 5–7) */
+  const wildcards = confRows
+    .filter((t) => !winnerCodes.has(t.code))
+    .sort(byStrengthDesc)
+    .slice(0, 3);
+
+  const seeds = [...divisionWinners, ...wildcards];
+  seeds.forEach((team, i) => { team._seed = i + 1; });
+  const s = (n) => seeds[n - 1];
+
+  /* need a full 7-team field to build a standard bracket */
+  if (seeds.length < 7 || seeds.some((t) => !t)) return null;
+
+  /* Wild Card round: 2v7, 3v6, 4v5 (1 seed byes) */
+  const wc1 = makeGame(s(2), s(7));
+  const wc2 = makeGame(s(3), s(6));
+  const wc3 = makeGame(s(4), s(5));
+
+  /* Divisional round (fixed-path bracket):
+       slot 0 (top)    = WC1 winner vs WC2 winner
+       slot 1 (bottom) = 1-seed vs WC3 winner */
+  const d0 = makeGame(...orderBySeed(wc1._winner, wc2._winner));
+  const d1 = makeGame(...orderBySeed(s(1), wc3._winner));
+
+  /* Conference Championship */
+  const cc = makeGame(...orderBySeed(d0._winner, d1._winner));
+
+  return {
+    championship: stripGame(cc),
+    divisional: [stripGame(d0), stripGame(d1)],
+    wildCard: [stripGame(wc1), stripGame(wc2), stripGame(wc3)],
+    champion: cc._winner
+  };
+}
+
+function buildPlayoffBracket(rows, year) {
+  const afcRows = rows.filter((t) => t.conference === "AFC");
+  const nfcRows = rows.filter((t) => t.conference === "NFC");
+
+  const afc = buildConferenceBracket(afcRows);
+  const nfc = buildConferenceBracket(nfcRows);
+
+  if (!afc || !nfc) return null;
+
+  /* super bowl is neutral-site, so no home bump; labels are by conference */
+  const afcProb = Math.round(matchupProbability(afc.champion, nfc.champion, 0) * 100);
+
+  return {
+    year: year || new Date().getFullYear(),
+    superBowl: {
+      afc: { seed: afc.champion._seed, abbr: afc.champion.code, name: afc.champion.name, prob: afcProb },
+      nfc: { seed: nfc.champion._seed, abbr: nfc.champion.code, name: nfc.champion.name, prob: 100 - afcProb }
+    },
+    afc: { championship: afc.championship, divisional: afc.divisional, wildCard: afc.wildCard },
+    nfc: { championship: nfc.championship, divisional: nfc.divisional, wildCard: nfc.wildCard }
+  };
+}
+
+router.get("/bracket", async (req, res) => {
+  try {
+    const year = Number(req.query.year) || undefined;
+    const teams = await getNFLTeamList();
+    const rows = await Promise.all(
+      teams.map((team) => fetchTeamSummary(team.code, year))
+    );
+
+    const bracket = buildPlayoffBracket(rows, year);
+    if (!bracket) {
+      return res.json({ success: false, reason: "Not enough season data to seed a bracket yet." });
+    }
+
+    res.json({ success: true, ...bracket });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 router.get("/matchup", async (req, res) => {
   try {
     const team1 = normalizeTeamAbbr(req.query.team1 || "DAL");

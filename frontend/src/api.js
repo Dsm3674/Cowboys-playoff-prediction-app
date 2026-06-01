@@ -252,6 +252,12 @@
     });
   }
 
+  async function getPlayoffBracket(year) {
+    return request("/api/analytics/bracket", {
+      query: { year }
+    });
+  }
+
   async function getScheduleStrength(year) {
     return request("/api/analytics/schedule-strength", {
       query: { year }
@@ -380,6 +386,7 @@
     getDivisionPower,
     getLeagueForecast,
     getPlayoffPulse,
+    getPlayoffBracket,
     getScheduleStrength,
     getMatchup,
     getTeamComparison,
