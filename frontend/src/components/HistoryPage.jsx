@@ -5,8 +5,21 @@ function HistoryPage() {
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  const [account, setAccount] = React.useState("");
+
+  function getSignedInAccount() {
+    try {
+      const stored = JSON.parse(localStorage.getItem("cowboys_iq_auth_v3") || "null");
+      return /^[^@\s]+@gmail\.com$/i.test(stored?.user || "")
+        ? stored.user.trim().toLowerCase()
+        : "";
+    } catch (_err) {
+      return "";
+    }
+  }
 
   React.useEffect(() => {
+    setAccount(getSignedInAccount());
     setLoading(true);
     setError(null);
 
@@ -29,12 +42,16 @@ function HistoryPage() {
     <div className="content-area">
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Our Story: Prediction History</h2>
-        <p style={{ color: "#555", fontSize: "0.9rem" }}>
-          Track how playoff, division, conference and Super Bowl odds have
-          shifted over time for the Cowboys.
+        <p className="text-muted" style={{ fontSize: "0.9rem" }}>
+          Track how playoff, division, conference and Super Bowl odds have shifted
+          over time for your account only. This history is scoped to your signed-in
+          Gmail and this browser cookie, not shared across every visitor.
         </p>
+        <div className="intel-chip intel-chip--muted" style={{ marginBottom: "1rem" }}>
+          {account ? `Private history: ${account}` : "Private browser history"}
+        </div>
 
-        {loading && <p>Loading history…</p>}
+        {loading && <p>Loading your private history…</p>}
 
         {/* FIX: error only shows if fetch failed */}
         {!loading && error && (
@@ -43,9 +60,9 @@ function HistoryPage() {
 
         {/* FIX: clean empty-state */}
         {!loading && !error && rows.length === 0 && (
-          <p style={{ fontStyle: "italic", color: "#666" }}>
-            No historical predictions yet. Run a simulation to start building
-            the story.
+          <p className="text-muted" style={{ fontStyle: "italic" }}>
+            No private predictions yet. Run a simulation while signed in to start
+            building your own history.
           </p>
         )}
 

@@ -130,6 +130,8 @@
       "use strict";
 
       var AUTH_KEY = "cowboys_iq_auth_v3";
+      var HISTORY_COOKIE = "lsi_history";
+      var USER_COOKIE = "lsi_user";
       var AUTH_BASE =
         location.protocol === "file:"
           ? "http://localhost:3001"
@@ -171,6 +173,29 @@
 
       function isGmail(email) {
         return /^[^@\s]+@gmail\.com$/i.test((email || "").trim());
+      }
+
+      function writeCookie(name, value, maxAgeSeconds) {
+        if (!value) return;
+        var secure = location.protocol === "https:" ? "; Secure" : "";
+        document.cookie = name + "=" + encodeURIComponent(value) + "; Max-Age=" + (maxAgeSeconds || 31536000) + "; Path=/; SameSite=Lax" + secure;
+      }
+
+      function clearCookie(name) {
+        document.cookie = name + "=; Max-Age=0; Path=/; SameSite=Lax";
+      }
+
+      function ensureHistoryCookie() {
+        var match = document.cookie
+          .split(";")
+          .map(function (part) { return part.trim(); })
+          .find(function (part) { return part.indexOf(HISTORY_COOKIE + "=") === 0; });
+        var current = match ? decodeURIComponent(match.slice(HISTORY_COOKIE.length + 1)) : "";
+        if (!current) {
+          current = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : ("hist_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 12));
+        }
+        try { localStorage.setItem(HISTORY_COOKIE, current); } catch (e) {}
+        writeCookie(HISTORY_COOKIE, current);
       }
 
       function showError(message) {
@@ -305,6 +330,10 @@
               }));
             } catch (e) {}
           }
+          if (opts.user && isGmail(opts.user)) {
+            writeCookie(USER_COOKIE, opts.user.trim().toLowerCase());
+          }
+          ensureHistoryCookie();
           closeModal();
           body.classList.remove("lp-locked");
           if (stage) stage.classList.remove("is-exiting");
@@ -319,6 +348,8 @@
         transition.classList.add("is-active");
         setTimeout(function () {
           try { localStorage.removeItem(AUTH_KEY); } catch (e) {}
+          try { localStorage.removeItem(HISTORY_COOKIE); } catch (e) {}
+          clearCookie(USER_COOKIE);
           var btn = document.getElementById("lp-signout-btn");
           if (btn) btn.remove();
           body.classList.add("lp-locked");

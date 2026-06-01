@@ -6,6 +6,54 @@ const Prediction = require("./predictions");
 
 const { generateEspnPrediction } = require("./prediction");
 
+function normalizeEmail(email) {
+  const normalized = String(email || "").trim().toLowerCase();
+  return /^[^@\s]+@gmail\.com$/i.test(normalized) ? normalized : "";
+}
+
+function parseCookies(cookieHeader = "") {
+  return String(cookieHeader || "")
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .reduce((out, part) => {
+      const eq = part.indexOf("=");
+      if (eq === -1) return out;
+      const key = part.slice(0, eq);
+      const value = part.slice(eq + 1);
+      try {
+        out[key] = decodeURIComponent(value);
+      } catch (_err) {
+        out[key] = value;
+      }
+      return out;
+    }, {});
+}
+
+function normalizeHistoryId(value) {
+  const id = String(value || "").trim();
+  if (!id || id.length > 128) return "";
+  return /^[a-zA-Z0-9._:-]+$/.test(id) ? id : "";
+}
+
+function getHistoryIdentity(req) {
+  const cookies = parseCookies(req.headers.cookie);
+  return {
+    userEmail: normalizeEmail(
+      req.get("X-LoneStar-User") ||
+        req.get("X-Lonestar-User") ||
+        cookies.lsi_user ||
+        req.query.user
+    ),
+    historyClientId: normalizeHistoryId(
+      req.get("X-LoneStar-History-Id") ||
+        req.get("X-Lonestar-History-Id") ||
+        cookies.lsi_history ||
+        req.query.historyId
+    )
+  };
+}
+
 /* ---------------------------------------------------
    POST /api/prediction/generate
    Generates a new prediction and saves it to DB
@@ -13,6 +61,7 @@ const { generateEspnPrediction } = require("./prediction");
 router.post("/generate", async (req, res) => {
   try {
     const { modelType = "RandomForest" } = req.body;
+    const identity = getHistoryIdentity(req);
 
     const cowboys = await Team.findByName("Dallas Cowboys");
     if (!cowboys) {
@@ -43,6 +92,8 @@ router.post("/generate", async (req, res) => {
         source: "ESPN",
       },
       modelVersion: `espn-mc-${modelType.toLowerCase()}`,
+      userEmail: identity.userEmail,
+      historyClientId: identity.historyClientId,
     });
 
     res.json({
@@ -66,8 +117,12 @@ router.post("/generate", async (req, res) => {
 
 router.get("/history", async (req, res) => {
   try {
-    const rows = await Prediction.getAll();
-    res.json({ history: rows });
+    const identity = getHistoryIdentity(req);
+    const rows = await Prediction.getHistoryForIdentity(identity, req.query.limit);
+    res.json({
+      history: rows,
+      scope: identity.userEmail ? "gmail" : identity.historyClientId ? "browser" : "none"
+    });
   } catch (err) {
     console.error("History fetch error:", err);
     res.status(500).json({ error: "Failed to load history" });
