@@ -4,7 +4,10 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const db = require("../databases");
 
+
 const router = express.Router();
+
+
 
 // ---------------------------------------------------------------------------
 // The War Room — Pro-only prediction market + chatbot.
@@ -22,6 +25,13 @@ const router = express.Router();
 // (the $1/month Stripe plan) — checked against the subscriptions table that
 // the Stripe webhook maintains, with a live Stripe lookup as fallback.
 // ---------------------------------------------------------------------------
+const { OpenAI } = require('openai');
+
+const openRouterClient = new OpenAI({
+  baseURL: "https://openrouter.ai",
+  apiKey: process.env.OPENROUTER_API_KEY, // Make sure to put your sk-or-v1-... key in your .env file
+});
+
 
 const STARTING_BALANCE = 1000;
 const stripeSecret = process.env.STRIPE_SECRET_KEY || "";
@@ -597,7 +607,8 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
 
     const board = await marketContext();
 
-    if (!anthropicClient) {
+        // Safety check updated to use your new OpenRouter client
+    if (!openRouterClient) {
       return res.json({
         reply: fallbackReply(history[history.length - 1].content, board),
         engine: "builtin"
@@ -614,12 +625,16 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
       "Current market board (YES price in cents = crowd probability):\n" +
       (board || "(no open markets)");
 
-    const response = await anthropicClient.messages.create({
-      model: ANTHROPIC_MODEL,
+        // Swapped from Anthropic to OpenRouter Free Router
+    const response = await openRouterClient.chat.completions.create({
+      model: "openrouter/free", // Automatically picks from available 100% free models
       max_tokens: 1024,
-      system,
-      messages: history
+      messages: [
+        { role: "system", content: system },
+        ...history
+      ]
     });
+
 
     const reply = response.content
       .filter((b) => b.type === "text")
@@ -634,7 +649,11 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
       });
     }
 
-    res.json({ reply, engine: "claude" });
+    // Extract the text message using the OpenRouter/OpenAI response format
+    const reply = response.choices[0].message.content;
+
+    // Send the response back to your Dallas Cowboys dashboard
+    res.json({ reply, engine: "openrouter" });
   } catch (error) {
     console.error("[warroom] chat failed:", error);
     res.status(500).json({ error: "The analyst dropped the headset. Try again." });
@@ -642,3 +661,4 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
 });
 
 module.exports = router;
+
