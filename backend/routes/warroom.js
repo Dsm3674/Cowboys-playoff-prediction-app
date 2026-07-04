@@ -39,11 +39,12 @@ if (ANTHROPIC_API_KEY) {
   }
 }
 
-// Comma-separated list of emails that get Pro without a subscription
-// (owner/testing accounts).
+// Comma-separated list of emails that get Pro without a subscription.
+// The site owner always has access; PRO_FREE_EMAILS adds more accounts.
+const OWNER_EMAIL = "divyanshusomasekhar1@gmail.com";
 const PRO_FREE_EMAILS = new Set(
-  String(process.env.PRO_FREE_EMAILS || "")
-    .split(",")
+  [OWNER_EMAIL]
+    .concat(String(process.env.PRO_FREE_EMAILS || "").split(","))
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean)
 );
