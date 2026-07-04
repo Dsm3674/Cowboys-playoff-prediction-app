@@ -1,34 +1,34 @@
-/* ── War Room (Pro) — broadsheet edition ─────────────────────────
- * Design language: a newspaper front page (NYT-style).
- *   Surface   white sheet #ffffff inside the dark app shell
- *   Ink       #121212 · secondary #5a5a5a · meta #727272
- *   Rules     hairline #e2e2e2 · section rules #121212
- *   Accent    editorial red #d0021b (LIVE marks only)
- *   Markets   YES #2a78d6 / NO #e34948 — validated (CVD + contrast)
- *             for the white surface
+/* ── War Room (Pro) — broadsheet, night edition ──────────────────
+ * Design language: a newspaper front page (NYT-style), inverted onto
+ * the site's dark surface.
+ *   Surface   the app's midnight navy #0a0e1a
+ *   Ink       #e6e9ef · secondary #a8b0c0 · meta #8a93a6
+ *   Rules     hairline #2a3245 · section rules in ink
+ *   Accent    editorial red (LIVE marks only)
+ *   Markets   YES #3987e5 / NO #e66767 — validated (CVD + contrast)
+ *             for the dark surface
  *   Type      Georgia/serif headlines & body · Inter Tight caps for
  *             kickers, bylines, and meta ("5 MIN READ" register)
  * ─────────────────────────────────────────────────────────────── */
 
 .wr-page {
-  --wr-paper: #ffffff;
-  --wr-ink: #121212;
-  --wr-ink-2: #5a5a5a;
-  --wr-meta: #727272;
-  --wr-rule: #e2e2e2;
-  --wr-rule-dark: #121212;
-  --wr-live: #d0021b;
-  --wr-yes: #2a78d6;
-  --wr-no: #e34948;
+  --wr-paper: var(--bg-primary, #0a0e1a);
+  --wr-ink: var(--text-primary, #e6e9ef);
+  --wr-ink-2: #a8b0c0;
+  --wr-meta: var(--text-muted, #8a93a6);
+  --wr-rule: var(--border, #2a3245);
+  --wr-rule-dark: var(--text-primary, #e6e9ef);
+  --wr-live: #f06a6a;
+  --wr-yes: #3987e5;
+  --wr-no: #e66767;
   --wr-serif: Georgia, "Times New Roman", serif;
   --wr-sans: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
 
   background: var(--wr-paper);
   color: var(--wr-ink);
   font-family: var(--wr-serif);
-  padding: 26px 30px 48px;
-  border-radius: 4px;
-  margin: 4px 0 32px;
+  padding: 18px 4px 48px;
+  margin: 0 0 32px;
 }
 
 .wr-loading {
@@ -320,8 +320,8 @@
   gap: 7px;
   padding: 8px 11px;
   border-radius: 3px;
-  background: var(--wr-paper);
-  border: 1px solid #c7c7c7;
+  background: transparent;
+  border: 1px solid #3a4560;
   color: var(--wr-ink);
   font-family: var(--wr-sans);
   font-size: 12.5px;
@@ -331,7 +331,7 @@
 }
 
 .wr-chip:hover:not(:disabled) {
-  background: #f7f7f7;
+  background: #141a29;
 }
 
 .wr-chip:disabled {
@@ -403,7 +403,7 @@
   gap: 6px;
   padding: 0 10px;
   border-radius: 3px;
-  border: 1px solid #c7c7c7;
+  border: 1px solid #3a4560;
   background: var(--wr-paper);
 }
 
@@ -439,7 +439,7 @@
   border-radius: 3px;
   border: 1px solid var(--wr-ink);
   background: var(--wr-ink);
-  color: #ffffff;
+  color: var(--wr-paper);
   font-family: var(--wr-sans);
   font-weight: 700;
   font-size: 11px;
@@ -456,7 +456,8 @@
 }
 
 .wr-btn:hover:not(:disabled) {
-  background: #333333;
+  background: #ffffff;
+  border-color: #ffffff;
 }
 
 .wr-btn:focus-visible,
@@ -509,7 +510,7 @@
 }
 
 .wr-board__list li.is-you {
-  background: #f7f5ef;
+  background: #141a29;
 }
 
 .wr-board__rank {
@@ -517,7 +518,7 @@
   font-family: var(--wr-serif);
   font-size: 20px;
   font-weight: 700;
-  color: #c7c7c7;
+  color: #4a5468;
   line-height: 1;
 }
 
@@ -704,7 +705,7 @@
   min-width: 0;
   padding: 10px 12px;
   border-radius: 3px;
-  border: 1px solid #c7c7c7;
+  border: 1px solid #3a4560;
   background: var(--wr-paper);
   color: var(--wr-ink);
   font-family: var(--wr-serif);
