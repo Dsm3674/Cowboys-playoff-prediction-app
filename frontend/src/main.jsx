@@ -32,12 +32,14 @@ import TeamComparisonPage from "./components/TeamComparisonPage";
 import Timeline from "./components/Timeline";
 import PlayoffBracket from "./components/PlayoffBracket";
 import UserProfileCard from "./components/UserProfileCard";
+import WarRoomPage from "./components/WarRoomPage";
 
 import "./styles/global.css";
 import "../style.css";
 import "./styles/EventsAdmin.css";
 import "./styles/Timeline.css";
 import "./styles/MotionPolish.css";
+import "./styles/WarRoom.css";
 
 const CATEGORY_MAP = {
   dashboard: 'Core',
@@ -46,6 +48,7 @@ const CATEGORY_MAP = {
   predictions: 'Core',
   insights: 'Core',
   bracket: 'Core',
+  warroom: 'Pro',
   events: 'System',
   profile: 'System',
   history: 'System'
@@ -137,6 +140,7 @@ function CommandPalette({ isOpen, onClose, onNavigate }) {
     { id: 'players',     label: 'Players',           desc: 'Roster profiles and comparison' },
     { id: 'predictions', label: 'Predictions',       desc: 'Model output and scenarios' },
     { id: 'insights',    label: 'Insights',          desc: 'League standings and trends' },
+    { id: 'warroom',     label: 'War Room',          desc: 'Pro prediction markets + analyst chatbot' },
   ];
 
   const results = pages.filter(p => p.label.toLowerCase().includes(query.toLowerCase()));
@@ -482,7 +486,7 @@ function LinearInspector({ currentPage, selectedTeam, year }) {
 
 function useAppRouter() {
   const allowedPages = useMemo(
-    () => new Set(["dashboard", "games", "players", "predictions", "insights", "bracket", "events", "profile", "history"]),
+    () => new Set(["dashboard", "games", "players", "predictions", "insights", "bracket", "warroom", "events", "profile", "history"]),
     []
   );
 
@@ -601,6 +605,8 @@ function App() {
         return <InsightsPage year={year} selectedTeam={selectedTeam} />;
       case "bracket":
         return <BracketPage year={year} />;
+      case "warroom":
+        return <WarRoomPage />;
       case "events":
         return <EventsAdmin />;
       case "profile":
