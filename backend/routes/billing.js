@@ -7,13 +7,14 @@ const router = express.Router();
 
 // ---------------------------------------------------------------------------
 // Stripe — War Room Pro subscriptions ($1/month)
-// STRIPE_PRICE_ID_WAR_ROOM_PRO should point at a $1/month recurring price in
-// the Stripe dashboard. If it's not set, checkout falls back to inline
-// price_data at $1/month so the flow still works out of the box.
+// The default price ID below is the $1/month recurring price created in the
+// Stripe dashboard; STRIPE_PRICE_ID_WAR_ROOM_PRO overrides it if set. If both
+// are empty, checkout falls back to inline price_data at $1/month.
 // ---------------------------------------------------------------------------
 const stripeSecret = process.env.STRIPE_SECRET_KEY || "";
 const stripe = stripeSecret ? require("stripe")(stripeSecret) : null;
-const PRO_PRICE_ID = process.env.STRIPE_PRICE_ID_WAR_ROOM_PRO || "";
+const PRO_PRICE_ID =
+  process.env.STRIPE_PRICE_ID_WAR_ROOM_PRO || "price_1TpbFC0TdeU5Fnp9lwCh7S7m";
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
 const PRO_PRICE_USD_CENTS = 100; // $1/month
 
