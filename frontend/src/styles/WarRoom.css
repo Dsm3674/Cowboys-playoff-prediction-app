@@ -1,0 +1,874 @@
+/* ── War Room (Pro) — broadsheet, night edition ──────────────────
+ * Design language: a newspaper front page (NYT-style), inverted onto
+ * the site's dark surface.
+ *   Surface   the app's midnight navy #0a0e1a
+ *   Ink       #e6e9ef · secondary #a8b0c0 · meta #8a93a6
+ *   Rules     hairline #2a3245 · section rules in ink
+ *   Accent    editorial red (LIVE marks only)
+ *   Markets   YES #3987e5 / NO #e66767 — validated (CVD + contrast)
+ *             for the dark surface
+ *   Type      Georgia/serif headlines & body · Inter Tight caps for
+ *             kickers, bylines, and meta ("5 MIN READ" register)
+ * ─────────────────────────────────────────────────────────────── */
+
+.wr-page {
+  --wr-paper: var(--bg-primary, #0a0e1a);
+  --wr-ink: var(--text-primary, #e6e9ef);
+  --wr-ink-2: #a8b0c0;
+  --wr-meta: var(--text-muted, #8a93a6);
+  --wr-rule: var(--border, #2a3245);
+  --wr-rule-dark: var(--text-primary, #e6e9ef);
+  --wr-live: #f06a6a;
+  --wr-yes: #3987e5;
+  --wr-no: #e66767;
+  --wr-serif: Georgia, "Times New Roman", serif;
+  --wr-sans: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+
+  background: var(--wr-paper);
+  color: var(--wr-ink);
+  font-family: var(--wr-serif);
+  padding: 18px 4px 48px;
+  margin: 0 0 32px;
+}
+
+.wr-loading {
+  padding: 56px 0;
+  text-align: center;
+  color: var(--wr-meta);
+  font-family: var(--wr-sans);
+  font-size: 13px;
+}
+
+.wr-error {
+  margin: 16px 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--wr-live);
+  border-bottom: 1px solid var(--wr-rule);
+  color: var(--wr-live);
+  font-family: var(--wr-sans);
+  font-size: 13.5px;
+}
+
+.wr-flash {
+  margin: 0 0 18px;
+  padding: 9px 0;
+  border-top: 1px solid var(--wr-rule-dark);
+  border-bottom: 1px solid var(--wr-rule);
+  font-family: var(--wr-sans);
+  font-size: 12.5px;
+  color: var(--wr-ink);
+}
+
+/* ── Masthead ──────────────────────────────────────────────── */
+
+.wr-topbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 3px double var(--wr-rule-dark);
+}
+
+.wr-dateline {
+  font-family: var(--wr-sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--wr-meta);
+  margin-bottom: 10px;
+}
+
+.wr-dateline__sep {
+  margin: 0 6px;
+  color: var(--wr-rule);
+}
+
+.wr-title {
+  margin: 0 0 8px;
+  color: var(--wr-ink);
+  font-family: var(--wr-serif);
+  font-weight: 700;
+  font-size: 2.4rem;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.wr-sub {
+  margin: 0;
+  max-width: 540px;
+  font-family: var(--wr-serif);
+  font-size: 14px;
+  color: var(--wr-ink-2);
+  line-height: 1.5;
+}
+
+/* Stat tiles — market-data register */
+.wr-tiles {
+  display: flex;
+  gap: 0;
+}
+
+.wr-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 140px;
+  padding: 2px 20px;
+}
+
+.wr-tile + .wr-tile {
+  border-left: 1px solid var(--wr-rule);
+}
+
+.wr-tile__label {
+  font-family: var(--wr-sans);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--wr-meta);
+}
+
+.wr-tile__value {
+  font-family: var(--wr-serif);
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.wr-tile__value::before {
+  content: "★ ";
+  font-size: 0.6em;
+  vertical-align: 0.25em;
+  color: var(--wr-ink);
+}
+
+/* ── Layout: columns with a hairline gutter rule ───────────── */
+
+.wr-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr);
+  gap: 0;
+  align-items: start;
+}
+
+.wr-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  padding-right: 24px;
+}
+
+.wr-chat {
+  border-left: 1px solid var(--wr-rule);
+  padding-left: 24px;
+}
+
+@media (max-width: 980px) {
+  .wr-layout {
+    grid-template-columns: 1fr;
+  }
+  .wr-left {
+    padding-right: 0;
+  }
+  .wr-chat {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--wr-rule-dark);
+    padding-top: 18px;
+    margin-top: 18px;
+  }
+}
+
+.wr-markets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 24px;
+}
+
+@media (max-width: 700px) {
+  .wr-markets {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Market card → newspaper item ──────────────────────────── */
+
+.wr-market {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0 18px;
+  border-bottom: 1px solid var(--wr-rule);
+}
+
+.wr-market--resolved {
+  opacity: 0.55;
+}
+
+.wr-market__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.wr-market__cat {
+  font-family: var(--wr-sans);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--wr-ink);
+}
+
+.wr-market__chance {
+  font-family: var(--wr-sans);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--wr-meta);
+  white-space: nowrap;
+}
+
+.wr-market__outcome {
+  font-family: var(--wr-sans);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--wr-live);
+}
+
+.wr-market__q {
+  margin: 0;
+  color: var(--wr-ink);
+  font-family: var(--wr-serif);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+}
+
+.wr-market__detail {
+  margin: -4px 0 0;
+  font-family: var(--wr-serif);
+  font-size: 13.5px;
+  color: var(--wr-ink-2);
+  line-height: 1.5;
+}
+
+/* ── Odds meter: two shares, 2px paper gap, hairline ticks ─── */
+
+.wr-meter {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  margin-top: 2px;
+}
+
+.wr-meter__yes,
+.wr-meter__no {
+  height: 100%;
+  min-width: 4px;
+  transition: width 0.35s ease;
+}
+
+.wr-meter__yes {
+  background: var(--wr-yes);
+  border-radius: 3px 1px 1px 3px;
+}
+
+.wr-meter__no {
+  background: var(--wr-no);
+  opacity: 0.45;
+  border-radius: 1px 3px 3px 1px;
+}
+
+.wr-meter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(10% - 1px),
+    var(--wr-paper) calc(10% - 1px),
+    var(--wr-paper) 10%
+  );
+  pointer-events: none;
+}
+
+/* ── Side chips ────────────────────────────────────────────── */
+
+.wr-market__prices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.wr-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border-radius: 3px;
+  background: transparent;
+  border: 1px solid #3a4560;
+  color: var(--wr-ink);
+  font-family: var(--wr-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.wr-chip:hover:not(:disabled) {
+  background: #141a29;
+}
+
+.wr-chip:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.wr-chip__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 0 2px var(--wr-paper);
+}
+
+.wr-chip__dot--yes { background: var(--wr-yes); }
+.wr-chip__dot--no  { background: var(--wr-no); }
+
+.wr-chip__label {
+  flex: 1;
+  text-align: left;
+}
+
+.wr-chip__price {
+  font-family: var(--wr-sans);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.wr-chip--yes.is-active {
+  border-color: var(--wr-yes);
+  box-shadow: inset 0 0 0 1px var(--wr-yes);
+}
+
+.wr-chip--no.is-active {
+  border-color: var(--wr-no);
+  box-shadow: inset 0 0 0 1px var(--wr-no);
+}
+
+.wr-market__position {
+  display: flex;
+  gap: 14px;
+  font-family: var(--wr-sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wr-meta);
+}
+
+.wr-market__position .wr-chip__dot {
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+}
+
+/* ── Bet row ───────────────────────────────────────────────── */
+
+.wr-market__bet {
+  display: flex;
+  gap: 8px;
+}
+
+.wr-stake {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 3px;
+  border: 1px solid #3a4560;
+  background: var(--wr-paper);
+}
+
+.wr-stake__unit {
+  font-size: 11px;
+  filter: grayscale(0.3);
+}
+
+.wr-stake__input {
+  width: 58px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--wr-ink);
+  font-family: var(--wr-sans);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.wr-stake__input:focus {
+  outline: none;
+}
+
+.wr-stake:focus-within {
+  border-color: var(--wr-ink);
+}
+
+/* ── Buttons — NYT register: black, uppercase sans ─────────── */
+
+.wr-btn {
+  padding: 9px 16px;
+  border-radius: 3px;
+  border: 1px solid var(--wr-ink);
+  background: var(--wr-ink);
+  color: var(--wr-paper);
+  font-family: var(--wr-sans);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  text-align: center;
+}
+
+.wr-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.wr-btn:hover:not(:disabled) {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+.wr-btn:focus-visible,
+.wr-chip:focus-visible {
+  outline: 2px solid var(--wr-yes);
+  outline-offset: 2px;
+}
+
+.wr-btn--bet {
+  flex: 1;
+}
+
+.wr-btn--bet-yes,
+.wr-btn--bet-no {
+  background: var(--wr-ink);
+}
+
+/* ── Leaderboard → ranked "most popular" list ──────────────── */
+
+.wr-board {
+  margin-top: 22px;
+}
+
+.wr-board__title {
+  margin: 0 0 4px;
+  color: var(--wr-ink);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--wr-rule-dark);
+  font-family: var(--wr-sans);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wr-ink);
+}
+
+.wr-board__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wr-board__list li {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 10px 2px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--wr-rule);
+}
+
+.wr-board__list li.is-you {
+  background: #141a29;
+}
+
+.wr-board__rank {
+  width: 22px;
+  font-family: var(--wr-serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: #4a5468;
+  line-height: 1;
+}
+
+.wr-board__list li.is-you .wr-board__rank {
+  color: var(--wr-ink);
+}
+
+.wr-board__player {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--wr-serif);
+  font-weight: 700;
+}
+
+.wr-board__you {
+  font-family: var(--wr-sans);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 7px;
+  border: 1px solid var(--wr-ink);
+  border-radius: 2px;
+  color: var(--wr-ink);
+}
+
+.wr-board__worth {
+  font-family: var(--wr-sans);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.wr-board__worth::before {
+  content: "★ ";
+  font-size: 0.8em;
+  color: var(--wr-meta);
+}
+
+.wr-board__note {
+  margin-top: 8px;
+  font-family: var(--wr-sans);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--wr-meta);
+}
+
+/* ── Chat → live Q&A column ────────────────────────────────── */
+
+.wr-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 440px;
+  max-height: 640px;
+  position: sticky;
+  top: 12px;
+  background: transparent;
+}
+
+.wr-chat__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--wr-rule-dark);
+}
+
+.wr-chat__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--wr-live);
+  flex: none;
+  animation: wr-live-pulse 2s infinite ease-in-out;
+}
+
+.wr-chat__tag {
+  font-family: var(--wr-sans);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--wr-live);
+}
+
+.wr-chat__name {
+  flex: 1;
+  font-family: var(--wr-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--wr-ink);
+}
+
+@keyframes wr-live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.wr-chat__scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.wr-msg {
+  padding: 10px 0;
+  font-family: var(--wr-serif);
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-bottom: 1px solid var(--wr-rule);
+  max-width: none;
+}
+
+.wr-msg--assistant::before,
+.wr-msg--user::before {
+  display: block;
+  font-family: var(--wr-sans);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.wr-msg--assistant::before {
+  content: "The Analyst";
+  color: var(--wr-meta);
+}
+
+.wr-msg--user::before {
+  content: "You";
+  color: var(--wr-yes);
+}
+
+.wr-msg--user {
+  color: var(--wr-ink-2);
+}
+
+.wr-msg--typing {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  border-bottom: 0;
+}
+
+.wr-msg--typing::before {
+  content: "";
+  display: none;
+}
+
+.wr-msg--typing span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--wr-meta);
+  animation: wr-typing 1.1s infinite ease-in-out;
+}
+
+.wr-msg--typing span:nth-child(2) { animation-delay: 0.15s; }
+.wr-msg--typing span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes wr-typing {
+  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+.wr-chat__form {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--wr-rule-dark);
+}
+
+.wr-chat__input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 3px;
+  border: 1px solid #3a4560;
+  background: var(--wr-paper);
+  color: var(--wr-ink);
+  font-family: var(--wr-serif);
+  font-size: 13.5px;
+}
+
+.wr-chat__input::placeholder {
+  color: var(--wr-meta);
+  font-family: var(--wr-sans);
+  font-size: 12.5px;
+}
+
+.wr-chat__input:focus {
+  outline: none;
+  border-color: var(--wr-ink);
+}
+
+/* ── Paywall → subscription prompt ─────────────────────────── */
+
+.wr-paywall {
+  max-width: 520px;
+  margin: 40px auto;
+  padding: 28px 0 8px;
+  border-top: 3px double var(--wr-rule-dark);
+  border-bottom: 1px solid var(--wr-rule-dark);
+  text-align: center;
+}
+
+.wr-paywall__badge {
+  display: inline-block;
+  font-family: var(--wr-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--wr-live);
+  margin-bottom: 14px;
+}
+
+.wr-paywall__title {
+  margin: 0 0 10px;
+  color: var(--wr-ink);
+  font-family: var(--wr-serif);
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1.15;
+}
+
+.wr-paywall__copy {
+  margin: 0 auto 18px;
+  max-width: 420px;
+  font-family: var(--wr-serif);
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--wr-ink-2);
+}
+
+.wr-paywall__price {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--wr-rule);
+  border-bottom: 1px solid var(--wr-rule);
+  margin-bottom: 6px;
+}
+
+.wr-paywall__amount {
+  font-family: var(--wr-serif);
+  font-weight: 700;
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.wr-paywall__per {
+  font-family: var(--wr-sans);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--wr-meta);
+  line-height: 1.6;
+  text-align: left;
+}
+
+.wr-paywall__list {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.wr-paywall__list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--wr-rule);
+  font-family: var(--wr-serif);
+  font-size: 13px;
+  color: var(--wr-ink-2);
+  line-height: 1.5;
+}
+
+.wr-paywall__li-title {
+  font-family: var(--wr-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--wr-ink);
+}
+
+.wr-paywall__cta {
+  width: 100%;
+  padding: 13px 16px;
+  font-size: 12px;
+}
+
+.wr-paywall__signin {
+  font-family: var(--wr-serif);
+  font-size: 13.5px;
+  color: var(--wr-ink-2);
+  line-height: 1.6;
+}
+
+.wr-paywall__note {
+  margin: 14px 0 18px;
+  font-family: var(--wr-sans);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--wr-meta);
+  line-height: 1.7;
+}
+
+/* ── Motion & small screens ────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .wr-meter__yes,
+  .wr-meter__no,
+  .wr-chip,
+  .wr-btn {
+    transition: none;
+  }
+  .wr-msg--typing span,
+  .wr-chat__dot {
+    animation: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .wr-page {
+    padding: 20px 16px 40px;
+  }
+  .wr-tiles {
+    width: 100%;
+  }
+  .wr-tile {
+    flex: 1;
+    min-width: 0;
+    padding: 2px 12px;
+  }
+  .wr-tile:first-child {
+    padding-left: 0;
+  }
+}
