@@ -38,16 +38,20 @@ const stripeSecret = process.env.STRIPE_SECRET_KEY || "";
 const stripe = stripeSecret ? require("stripe")(stripeSecret) : null;
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "meta-llama/llama-3-8b-instruct:free"; // <-- Change model here
 let anthropicClient = null;
 if (ANTHROPIC_API_KEY) {
   try {
     const Anthropic = require("@anthropic-ai/sdk");
-    anthropicClient = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    anthropicClient = new Anthropic({ 
+      apiKey: ANTHROPIC_API_KEY,
+      baseURL: "https://openrouter.ai" // <-- ADD THIS LINE
+    });
   } catch (err) {
     console.error("[warroom] anthropic sdk unavailable:", err.message);
   }
 }
+
 
 // Comma-separated list of emails that get Pro without a subscription.
 // The site owner always has access; PRO_FREE_EMAILS adds more accounts.
