@@ -872,3 +872,545 @@
     padding-left: 0;
   }
 }
+
+/* ── Mode tabs (Markets ↔ Perfect Season) ──────────────────── */
+
+.wr-modes {
+  display: flex;
+  gap: 22px;
+  margin: -6px 0 16px;
+  border-bottom: 1px solid var(--wr-rule);
+}
+
+.wr-mode {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 2px 10px;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--wr-meta);
+  font-family: var(--wr-sans);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.wr-mode:hover {
+  color: var(--wr-ink);
+}
+
+.wr-mode.is-active {
+  color: var(--wr-ink);
+  border-bottom-color: var(--wr-ink);
+}
+
+.wr-mode__tag {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  border: 1px solid var(--wr-live);
+  border-radius: 2px;
+  color: var(--wr-live);
+}
+
+/* ── Perfect Season game ───────────────────────────────────── */
+
+.ps {
+  min-height: 420px;
+  padding-right: 2px;
+}
+
+.ps-pop {
+  animation: ps-pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+@keyframes ps-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.ps-kicker {
+  font-family: var(--wr-sans);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--wr-meta);
+  margin-bottom: 8px;
+}
+
+.ps-headline {
+  margin: 0 0 12px;
+  color: var(--wr-ink);
+  font-family: var(--wr-serif);
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.ps-score {
+  font-variant-numeric: tabular-nums;
+}
+
+.ps-subhead {
+  margin: 0;
+  color: var(--wr-ink);
+  font-family: var(--wr-serif);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.ps-copy {
+  margin: 0 0 20px;
+  max-width: 460px;
+  font-family: var(--wr-serif);
+  font-size: 14px;
+  color: var(--wr-ink-2);
+  line-height: 1.6;
+}
+
+.ps-cta {
+  padding: 12px 26px;
+  font-size: 12px;
+}
+
+.ps-splash,
+.ps-final {
+  padding: 40px 0 24px;
+  text-align: center;
+  position: relative;
+}
+
+.ps-splash .ps-copy,
+.ps-final .ps-copy {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Slot machine */
+.ps-spin {
+  padding: 56px 0;
+  text-align: center;
+}
+
+.ps-slot {
+  display: inline-block;
+  min-width: 260px;
+  padding: 18px 26px;
+  border-top: 3px double var(--wr-rule-dark);
+  border-bottom: 3px double var(--wr-rule-dark);
+}
+
+.ps-slot__name {
+  display: inline-block;
+  font-family: var(--wr-serif);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--wr-ink);
+  animation: ps-reel 0.09s linear infinite;
+}
+
+@keyframes ps-reel {
+  0% { transform: translateY(-2px); opacity: 0.7; }
+  50% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(2px); opacity: 0.7; }
+}
+
+/* Draft board */
+.ps-draft__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.ps-skip {
+  padding: 7px 12px;
+  background: none;
+  border: 1px solid #3a4560;
+  border-radius: 3px;
+  color: var(--wr-ink);
+  font-family: var(--wr-sans);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.ps-skip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ps-pool {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.ps-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid #3a4560;
+  border-radius: 3px;
+  color: var(--wr-ink);
+  text-align: left;
+  cursor: pointer;
+  animation: ps-deal 0.35s ease both;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
+}
+
+@keyframes ps-deal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ps-card:hover:not(:disabled) {
+  border-color: var(--wr-yes);
+  background: #141a29;
+  transform: translateY(-2px);
+}
+
+.ps-card.is-taken {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ps-card__pos {
+  font-family: var(--wr-sans);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--wr-meta);
+}
+
+.ps-card__name {
+  font-family: var(--wr-serif);
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ps-card__rating {
+  font-family: var(--wr-sans);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--wr-yes);
+}
+
+.ps-card__note {
+  font-family: var(--wr-sans);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--wr-meta);
+}
+
+/* Roster tray */
+.ps-roster {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--wr-rule);
+}
+
+@media (max-width: 700px) {
+  .ps-roster {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ps-slotbox {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px dashed #3a4560;
+  border-radius: 3px;
+  min-height: 52px;
+}
+
+.ps-slotbox.is-filled {
+  border-style: solid;
+  border-color: var(--wr-yes);
+  animation: ps-fill 0.3s ease;
+}
+
+@keyframes ps-fill {
+  0% { transform: scale(0.95); }
+  60% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+.ps-slotbox__pos {
+  font-family: var(--wr-sans);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--wr-meta);
+}
+
+.ps-slotbox__name {
+  font-family: var(--wr-serif);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--wr-ink);
+}
+
+.ps-slotbox__rating {
+  font-family: var(--wr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--wr-yes);
+}
+
+.ps-ready {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--wr-rule);
+}
+
+.ps-ready__rating {
+  font-family: var(--wr-sans);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--wr-meta);
+}
+
+.ps-ready__rating strong {
+  color: var(--wr-ink);
+  font-size: 16px;
+  margin-left: 6px;
+}
+
+/* Season play */
+.ps-season {
+  padding: 18px 0;
+}
+
+.ps-scoreline {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 14px;
+}
+
+.ps-record {
+  font-family: var(--wr-serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--wr-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.ps-matchup {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  padding: 34px 16px;
+  border-top: 3px double var(--wr-rule-dark);
+  border-bottom: 3px double var(--wr-rule-dark);
+  overflow: hidden;
+}
+
+.ps-matchup__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 130px;
+}
+
+.ps-matchup__team {
+  font-family: var(--wr-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--wr-ink);
+  text-align: center;
+}
+
+.ps-matchup__rating {
+  font-family: var(--wr-sans);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--wr-meta);
+}
+
+.ps-matchup__vs {
+  font-family: var(--wr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--wr-meta);
+}
+
+.ps-matchup__dots {
+  position: absolute;
+  bottom: 10px;
+  display: flex;
+  gap: 4px;
+}
+
+.ps-matchup__dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--wr-meta);
+  animation: wr-typing 1.1s infinite ease-in-out;
+}
+
+.ps-matchup__dots span:nth-child(2) { animation-delay: 0.15s; }
+.ps-matchup__dots span:nth-child(3) { animation-delay: 0.3s; }
+
+/* Rubber-stamp result */
+.ps-stamp {
+  position: absolute;
+  font-family: var(--wr-sans);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  padding: 6px 18px;
+  border: 3px solid currentColor;
+  border-radius: 4px;
+  transform: rotate(-8deg);
+  animation: ps-stamp 0.35s cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+.ps-stamp--w { color: var(--wr-yes); }
+.ps-stamp--l { color: var(--wr-no); }
+
+@keyframes ps-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2.6) rotate(-16deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.94) rotate(-7deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+
+.ps-stamp--l {
+  animation: ps-stamp 0.35s cubic-bezier(0.2, 1.2, 0.4, 1) both,
+    ps-shake 0.4s ease 0.35s;
+}
+
+@keyframes ps-shake {
+  0%, 100% { transform: scale(1) rotate(-8deg) translateX(0); }
+  25% { transform: scale(1) rotate(-8deg) translateX(-5px); }
+  50% { transform: scale(1) rotate(-8deg) translateX(5px); }
+  75% { transform: scale(1) rotate(-8deg) translateX(-3px); }
+}
+
+/* Season progress strip */
+.ps-strip {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  padding: 16px 0 4px;
+  flex-wrap: wrap;
+}
+
+.ps-strip__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid #3a4560;
+}
+
+.ps-strip__dot.is-w { background: var(--wr-yes); border-color: var(--wr-yes); }
+.ps-strip__dot.is-l { background: var(--wr-no); border-color: var(--wr-no); }
+.ps-strip__dot.is-now { box-shadow: 0 0 0 2px var(--wr-rule); }
+
+/* Final card */
+.ps-final--perfect .ps-score { color: var(--wr-yes); }
+.ps-final--loss .ps-score { color: var(--wr-no); }
+
+.ps-reward {
+  margin: 0 0 20px;
+  font-family: var(--wr-sans);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--wr-ink);
+}
+
+/* Confetti for 20-0 */
+.ps-confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ps-confetti span {
+  position: absolute;
+  top: -12px;
+  width: 7px;
+  height: 11px;
+  background: var(--wr-yes);
+  animation: ps-confetti 2.6s linear infinite;
+}
+
+.ps-confetti span:nth-child(3n) { background: var(--wr-no); }
+.ps-confetti span:nth-child(3n + 1) { background: var(--wr-ink); }
+
+@keyframes ps-confetti {
+  to {
+    transform: translateY(340px) rotate(540deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-pop,
+  .ps-card,
+  .ps-slotbox.is-filled,
+  .ps-stamp,
+  .ps-slot__name {
+    animation: none;
+  }
+  .ps-confetti {
+    display: none;
+  }
+}
