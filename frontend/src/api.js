@@ -368,6 +368,42 @@
     ]);
   }
 
+
+  // ── War Room (Pro): prediction market + chatbot ──────────────
+
+  function getWarRoomStatus() {
+    return request("/api/warroom/status");
+  }
+
+  function getWarRoomMarkets() {
+    return request("/api/warroom/markets");
+  }
+
+  function placeWarRoomBet(marketId, side, amount) {
+    return request(`/api/warroom/markets/${marketId}/bet`, {
+      method: "POST",
+      body: { side, amount }
+    });
+  }
+
+  function getWarRoomLeaderboard() {
+    return request("/api/warroom/leaderboard");
+  }
+
+  function sendWarRoomChat(messages) {
+    return request("/api/warroom/chat", {
+      method: "POST",
+      body: { messages }
+    });
+  }
+
+  function startProCheckout() {
+    return request("/api/billing/create-checkout-session", {
+      method: "POST",
+      body: { plan: "War Room Pro", email: getSignedInUser() }
+    });
+  }
+
   export const api = {
     getCowboysRecord,
     getRecord,
@@ -400,5 +436,11 @@
     generatePrediction,
     getCurrentPrediction,
     getPredictionHistory,
-    runWhatIfSimulation
+    runWhatIfSimulation,
+    getWarRoomStatus,
+    getWarRoomMarkets,
+    placeWarRoomBet,
+    getWarRoomLeaderboard,
+    sendWarRoomChat,
+    startProCheckout
   };
