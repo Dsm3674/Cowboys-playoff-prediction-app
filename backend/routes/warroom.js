@@ -25,30 +25,40 @@ const router = express.Router();
 // (the $1/month Stripe plan) — checked against the subscriptions table that
 // the Stripe webhook maintains, with a live Stripe lookup as fallback.
 // ---------------------------------------------------------------------------
-const { OpenAI } = require('openai');
-
-const openRouterClient = new OpenAI({
-  baseURL: "https://openrouter.ai",
-  apiKey: process.env.OPENROUTER_API_KEY, // Make sure to put your sk-or-v1-... key in your .env file
-});
-
-
 const STARTING_BALANCE = 1000;
 const stripeSecret = process.env.STRIPE_SECRET_KEY || "";
 const stripe = stripeSecret ? require("stripe")(stripeSecret) : null;
 
+// Chat engines, in order of preference:
+//   1. Anthropic (ANTHROPIC_API_KEY) — Claude via the official SDK
+//   2. OpenRouter (OPENROUTER_API_KEY, sk-or-v1-...) — free/cheap models
+//      via the OpenAI-compatible endpoint
+//   3. Built-in fallback responder (no key needed)
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "meta-llama/llama-3-8b-instruct:free"; // <-- Change model here
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
 let anthropicClient = null;
 if (ANTHROPIC_API_KEY) {
   try {
     const Anthropic = require("@anthropic-ai/sdk");
-    anthropicClient = new Anthropic({ 
-      apiKey: ANTHROPIC_API_KEY,
-      baseURL: "https://openrouter.ai" // <-- ADD THIS LINE
-    });
+    anthropicClient = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
   } catch (err) {
     console.error("[warroom] anthropic sdk unavailable:", err.message);
+  }
+}
+
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
+const OPENROUTER_MODEL =
+  process.env.OPENROUTER_MODEL || "meta-llama/llama-3-8b-instruct:free";
+let openRouterClient = null;
+if (OPENROUTER_API_KEY) {
+  try {
+    const { OpenAI } = require("openai");
+    openRouterClient = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: OPENROUTER_API_KEY
+    });
+  } catch (err) {
+    console.error("[warroom] openai sdk unavailable:", err.message);
   }
 }
 
@@ -611,8 +621,7 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
 
     const board = await marketContext();
 
-        // Safety check updated to use your new OpenRouter client
-    if (!openRouterClient) {
+    if (!anthropicClient && !openRouterClient) {
       return res.json({
         reply: fallbackReply(history[history.length - 1].content, board),
         engine: "builtin"
@@ -629,35 +638,41 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
       "Current market board (YES price in cents = crowd probability):\n" +
       (board || "(no open markets)");
 
-        // Swapped from Anthropic to OpenRouter Free Router
-    const response = await openRouterClient.chat.completions.create({
-      model: "openrouter/free", // Automatically picks from available 100% free models
-      max_tokens: 1024,
-      messages: [
-        { role: "system", content: system },
-        ...history
-      ]
-    });
+    let reply = "";
+    let engine = "";
 
+    if (anthropicClient) {
+      engine = "claude";
+      const response = await anthropicClient.messages.create({
+        model: ANTHROPIC_MODEL,
+        max_tokens: 1024,
+        system,
+        messages: history
+      });
+      reply = response.content
+        .filter((b) => b.type === "text")
+        .map((b) => b.text)
+        .join("\n")
+        .trim();
+      if (response.stop_reason === "refusal") reply = "";
+    } else {
+      engine = "openrouter";
+      const response = await openRouterClient.chat.completions.create({
+        model: OPENROUTER_MODEL,
+        max_tokens: 1024,
+        messages: [{ role: "system", content: system }, ...history]
+      });
+      reply = String(response.choices?.[0]?.message?.content || "").trim();
+    }
 
-    const reply = response.content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("\n")
-      .trim();
-
-    if (response.stop_reason === "refusal" || !reply) {
+    if (!reply) {
       return res.json({
         reply: "I can't help with that one — try me on Cowboys odds or the markets.",
-        engine: "claude"
+        engine
       });
     }
 
-    // Extract the text message using the OpenRouter/OpenAI response format
-    const reply = response.choices[0].message.content;
-
-    // Send the response back to your Dallas Cowboys dashboard
-    res.json({ reply, engine: "openrouter" });
+    res.json({ reply, engine });
   } catch (error) {
     console.error("[warroom] chat failed:", error);
     res.status(500).json({ error: "The analyst dropped the headset. Try again." });
