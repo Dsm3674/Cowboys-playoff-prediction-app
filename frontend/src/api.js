@@ -397,6 +397,13 @@
     });
   }
 
+  function claimSeasonReward(wins) {
+    return request("/api/warroom/season/reward", {
+      method: "POST",
+      body: { wins }
+    });
+  }
+
   function startProCheckout() {
     return request("/api/billing/create-checkout-session", {
       method: "POST",
@@ -442,5 +449,6 @@
     placeWarRoomBet,
     getWarRoomLeaderboard,
     sendWarRoomChat,
+    claimSeasonReward,
     startProCheckout
   };
