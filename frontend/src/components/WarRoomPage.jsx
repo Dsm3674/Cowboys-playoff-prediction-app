@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "../api";
+import PerfectSeason from "./PerfectSeason";
 
 /*
  * War Room — Pro-only page.
@@ -276,6 +277,7 @@ export default function WarRoomPage() {
   const [error, setError] = useState("");
   const [betting, setBetting] = useState(false);
   const [flash, setFlash] = useState("");
+  const [mode, setMode] = useState("markets"); // markets | season
 
   async function loadMarkets() {
     const data = await api.getWarRoomMarkets();
@@ -392,10 +394,32 @@ export default function WarRoomPage() {
         </div>
       </header>
 
+      <nav className="wr-modes" aria-label="Game mode">
+        <button
+          className={`wr-mode ${mode === "markets" ? "is-active" : ""}`}
+          onClick={() => setMode("markets")}
+        >
+          The Markets
+        </button>
+        <button
+          className={`wr-mode ${mode === "season" ? "is-active" : ""}`}
+          onClick={() => setMode("season")}
+        >
+          Perfect Season
+          <span className="wr-mode__tag">Game</span>
+        </button>
+      </nav>
+
       {flash ? <div className="wr-flash">{flash}</div> : null}
 
       <div className="wr-layout">
-        <div className="wr-left">
+        <div className="wr-left" key={mode}>
+          {mode === "season" ? (
+            <PerfectSeason
+              onReward={(balance) => setWallet((w) => ({ ...(w || {}), balance }))}
+            />
+          ) : (
+          <>
           <div className="wr-markets">
             {markets.map((m) => (
               <MarketCard key={m.id} market={m} onBet={handleBet} busy={betting} />
@@ -421,6 +445,8 @@ export default function WarRoomPage() {
               <div className="wr-board__note">Net worth = balance + open stakes</div>
             </section>
           ) : null}
+          </>
+          )}
         </div>
         <ChatPanel />
       </div>
