@@ -235,8 +235,8 @@ function ChatPanel() {
     <section className="wr-chat">
       <div className="wr-chat__head">
         <span className="wr-chat__dot" />
+        <span className="wr-chat__tag">Live</span>
         <span className="wr-chat__name">War Room Analyst</span>
-        <span className="wr-chat__tag">Pro</span>
       </div>
       <div className="wr-chat__scroll" ref={scrollRef}>
         {messages.map((m, i) => (
@@ -361,6 +361,15 @@ export default function WarRoomPage() {
     <div className="wr-page">
       <header className="wr-topbar">
         <div className="wr-topbar__intro">
+          <div className="wr-dateline">
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric"
+            })}
+            <span className="wr-dateline__sep">·</span> Star Coin Exchange
+          </div>
           <h1 className="wr-title">The War Room</h1>
           <p className="wr-sub">
             Prices are the crowd's probability in cents. Star Coins are virtual —
