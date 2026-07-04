@@ -537,6 +537,49 @@ router.post("/markets/:id/resolve", async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Perfect Season game — pays Star Coins for a completed season.
+// 5 coins per win, +500 for a perfect 20-0. One reward per minute per user.
+// ---------------------------------------------------------------------------
+
+const seasonRewardAt = new Map(); // email -> last reward timestamp
+
+router.post("/season/reward", requirePro, async (req, res) => {
+  try {
+    await ensureTables();
+    const wins = Math.floor(Number(req.body.wins));
+    if (!Number.isFinite(wins) || wins < 0 || wins > 20) {
+      return res.status(400).json({ error: "Invalid season result." });
+    }
+
+    const last = seasonRewardAt.get(req.warRoomEmail) || 0;
+    if (Date.now() - last < 60 * 1000) {
+      return res.status(429).json({
+        error: "Take a breather, coach — one season reward per minute."
+      });
+    }
+    seasonRewardAt.set(req.warRoomEmail, Date.now());
+
+    const perfect = wins === 20;
+    const reward = wins * 5 + (perfect ? 500 : 0);
+    await getWallet(req.warRoomEmail);
+    const { rows } = await db.query(
+      `UPDATE wr_wallets SET balance = balance + $2, updated_at = CURRENT_TIMESTAMP
+       WHERE email = $1 RETURNING balance`,
+      [req.warRoomEmail, reward]
+    );
+    res.json({
+      ok: true,
+      reward,
+      perfect,
+      balance: Number(rows[0].balance)
+    });
+  } catch (error) {
+    console.error("[warroom] season reward failed:", error);
+    res.status(500).json({ error: "Unable to record the season." });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Chatbot (Pro only)
 // ---------------------------------------------------------------------------
 
