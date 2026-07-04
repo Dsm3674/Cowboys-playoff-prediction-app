@@ -7,6 +7,10 @@ import { api } from "../api";
  * Right: the War Room Analyst chatbot.
  * Locked behind the $1/month War Room Pro subscription; non-subscribers see
  * a paywall card that launches Stripe checkout.
+ *
+ * Color system: YES/NO are series colors (validated blue/red pair for the
+ * dark card surface). Text stays in ink tokens; the colored dot beside a
+ * label carries identity, never the text itself.
  */
 
 function Paywall({ signedIn }) {
@@ -31,23 +35,44 @@ function Paywall({ signedIn }) {
 
   return (
     <div className="wr-paywall">
-      <div className="wr-paywall__badge">★ Pro exclusive</div>
-      <h2 className="wr-paywall__title">The War Room is locked.</h2>
+      <div className="wr-paywall__badge">Pro exclusive</div>
+      <h2 className="wr-paywall__title">The War Room is locked</h2>
       <p className="wr-paywall__copy">
-        Bet Star Coins on Cowboys season outcomes in a live prediction market,
-        climb the leaderboard, and grill the War Room Analyst — our resident
-        chatbot — about playoff odds. All of it is included with War Room Pro
-        for <strong>$1/month</strong>.
+        Trade Star Coins on Cowboys season outcomes, climb the leaderboard, and
+        grill the War Room Analyst about playoff odds.
       </p>
+
+      <div className="wr-paywall__price">
+        <span className="wr-paywall__amount">$1</span>
+        <span className="wr-paywall__per">
+          per month
+          <br />
+          cancel anytime
+        </span>
+      </div>
+
       <ul className="wr-paywall__list">
-        <li>🎯 Polymarket-style markets on playoff odds, the NFC East, and more</li>
-        <li>🪙 1,000 Star Coins to start — winners split the pot</li>
-        <li>🏆 Season-long leaderboard against other Pro members</li>
-        <li>🤖 The War Room Analyst chatbot, on call 24/7</li>
+        <li>
+          <span className="wr-paywall__li-title">Prediction markets</span>
+          <span>Polymarket-style odds on the playoffs, the NFC East, and more</span>
+        </li>
+        <li>
+          <span className="wr-paywall__li-title">1,000 Star Coins</span>
+          <span>Stake a side — winners split the whole pot when it resolves</span>
+        </li>
+        <li>
+          <span className="wr-paywall__li-title">Leaderboard</span>
+          <span>Season-long standings against other Pro members</span>
+        </li>
+        <li>
+          <span className="wr-paywall__li-title">War Room Analyst</span>
+          <span>A chatbot that knows the model and the market board</span>
+        </li>
       </ul>
+
       {signedIn ? (
-        <button className="wr-btn wr-btn--primary" onClick={subscribe} disabled={busy}>
-          {busy ? "Opening secure checkout…" : "Unlock with Pro — $1/month"}
+        <button className="wr-btn wr-btn--primary wr-paywall__cta" onClick={subscribe} disabled={busy}>
+          {busy ? "Opening secure checkout…" : "Unlock the War Room"}
         </button>
       ) : (
         <p className="wr-paywall__signin">
@@ -57,8 +82,8 @@ function Paywall({ signedIn }) {
       )}
       {error ? <div className="wr-error">{error}</div> : null}
       <div className="wr-paywall__note">
-        Already subscribed? Make sure you're signed in with the same Gmail you
-        used at checkout.
+        Already subscribed? Sign in with the same Gmail you used at checkout.
+        Star Coins are virtual and have no cash value.
       </div>
     </div>
   );
@@ -77,63 +102,85 @@ function MarketCard({ market, onBet, busy }) {
         <span className="wr-market__cat">{market.category}</span>
         {resolved ? (
           <span className="wr-market__outcome">
-            Resolved: {String(market.outcome || "").toUpperCase()}
+            Resolved {String(market.outcome || "").toUpperCase()}
           </span>
-        ) : null}
+        ) : (
+          <span className="wr-market__chance">{market.yesPrice}% chance</span>
+        )}
       </div>
+
       <h3 className="wr-market__q">{market.question}</h3>
       {market.detail ? <p className="wr-market__detail">{market.detail}</p> : null}
 
-      <div className="wr-market__prices">
-        <button
-          type="button"
-          className={`wr-price wr-price--yes ${side === "yes" ? "is-active" : ""}`}
-          onClick={() => setSide("yes")}
-          disabled={resolved}
-        >
-          YES {market.yesPrice}¢
-        </button>
-        <button
-          type="button"
-          className={`wr-price wr-price--no ${side === "no" ? "is-active" : ""}`}
-          onClick={() => setSide("no")}
-          disabled={resolved}
-        >
-          NO {market.noPrice}¢
-        </button>
+      {/* Share meter: two segments with a 2px surface gap, rounded data ends */}
+      <div className="wr-meter" aria-hidden="true">
+        <div className="wr-meter__yes" style={{ width: `${market.yesPrice}%` }} />
+        <div className="wr-meter__no" style={{ width: `${market.noPrice}%` }} />
       </div>
 
-      <div className="wr-market__bar">
-        <div className="wr-market__bar-yes" style={{ width: `${market.yesPrice}%` }} />
+      <div className="wr-market__prices" role="radiogroup" aria-label="Pick a side">
+        <button
+          type="button"
+          className={`wr-chip wr-chip--yes ${side === "yes" ? "is-active" : ""}`}
+          onClick={() => setSide("yes")}
+          disabled={resolved}
+          aria-pressed={side === "yes"}
+        >
+          <span className="wr-chip__dot wr-chip__dot--yes" />
+          <span className="wr-chip__label">Yes</span>
+          <span className="wr-chip__price">{market.yesPrice}¢</span>
+        </button>
+        <button
+          type="button"
+          className={`wr-chip wr-chip--no ${side === "no" ? "is-active" : ""}`}
+          onClick={() => setSide("no")}
+          disabled={resolved}
+          aria-pressed={side === "no"}
+        >
+          <span className="wr-chip__dot wr-chip__dot--no" />
+          <span className="wr-chip__label">No</span>
+          <span className="wr-chip__price">{market.noPrice}¢</span>
+        </button>
       </div>
 
       {hasPosition ? (
         <div className="wr-market__position">
-          Your stake:{" "}
-          {market.myYesStake > 0 ? `${market.myYesStake.toFixed(0)} on YES` : ""}
-          {market.myYesStake > 0 && market.myNoStake > 0 ? " · " : ""}
-          {market.myNoStake > 0 ? `${market.myNoStake.toFixed(0)} on NO` : ""}
+          {market.myYesStake > 0 ? (
+            <span>
+              <span className="wr-chip__dot wr-chip__dot--yes" />
+              {market.myYesStake.toFixed(0)} on Yes
+            </span>
+          ) : null}
+          {market.myNoStake > 0 ? (
+            <span>
+              <span className="wr-chip__dot wr-chip__dot--no" />
+              {market.myNoStake.toFixed(0)} on No
+            </span>
+          ) : null}
         </div>
       ) : null}
 
       {!resolved ? (
         <div className="wr-market__bet">
-          <input
-            type="number"
-            min="1"
-            max="10000"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="wr-market__stake"
-            aria-label="Stake in Star Coins"
-          />
+          <div className="wr-stake">
+            <span className="wr-stake__unit">🪙</span>
+            <input
+              type="number"
+              min="1"
+              max="10000"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="wr-stake__input"
+              aria-label="Stake in Star Coins"
+            />
+          </div>
           <button
             type="button"
-            className="wr-btn wr-btn--bet"
+            className={`wr-btn wr-btn--bet wr-btn--bet-${side}`}
             disabled={busy}
             onClick={() => onBet(market.id, side, Number(amount))}
           >
-            Bet {side.toUpperCase()}
+            Bet {side === "yes" ? "Yes" : "No"}
           </button>
         </div>
       ) : null}
@@ -187,7 +234,9 @@ function ChatPanel() {
   return (
     <section className="wr-chat">
       <div className="wr-chat__head">
-        <span className="wr-chat__dot" /> War Room Analyst
+        <span className="wr-chat__dot" />
+        <span className="wr-chat__name">War Room Analyst</span>
+        <span className="wr-chat__tag">Pro</span>
       </div>
       <div className="wr-chat__scroll" ref={scrollRef}>
         {messages.map((m, i) => (
@@ -195,7 +244,13 @@ function ChatPanel() {
             {m.content}
           </div>
         ))}
-        {thinking ? <div className="wr-msg wr-msg--assistant wr-msg--typing">…</div> : null}
+        {thinking ? (
+          <div className="wr-msg wr-msg--assistant wr-msg--typing">
+            <span />
+            <span />
+            <span />
+          </div>
+        ) : null}
       </div>
       <form className="wr-chat__form" onSubmit={send}>
         <input
@@ -262,7 +317,7 @@ export default function WarRoomPage() {
       const data = await api.placeWarRoomBet(marketId, side, amount);
       setWallet((w) => ({ ...(w || {}), balance: data.balance }));
       setMarkets((cur) => cur.map((m) => (m.id === data.market.id ? data.market : m)));
-      setFlash(`Bet placed: ${amount} Star Coins on ${side.toUpperCase()}. 🤝`);
+      setFlash(`Bet placed — ${amount} Star Coins on ${side.toUpperCase()}.`);
       try {
         const lb = await api.getWarRoomLeaderboard();
         setLeaderboard(lb.leaderboard || []);
@@ -272,6 +327,11 @@ export default function WarRoomPage() {
     }
     setBetting(false);
   }
+
+  const atRisk = markets.reduce(
+    (s, m) => s + (m.myYesStake || 0) + (m.myNoStake || 0),
+    0
+  );
 
   if (error) {
     return (
@@ -300,42 +360,56 @@ export default function WarRoomPage() {
   return (
     <div className="wr-page">
       <header className="wr-topbar">
-        <div>
+        <div className="wr-topbar__intro">
           <h1 className="wr-title">The War Room</h1>
           <p className="wr-sub">
-            Star Coin prediction markets + your personal analyst. Prices are the
-            crowd's probability in cents. Coins are virtual — bragging rights only.
+            Prices are the crowd's probability in cents. Star Coins are virtual —
+            bragging rights only.
           </p>
         </div>
-        <div className="wr-wallet">
-          <span className="wr-wallet__label">Your wallet</span>
-          <span className="wr-wallet__coins">
-            🪙 {wallet ? Number(wallet.balance).toFixed(0) : "—"}
-          </span>
+        <div className="wr-tiles">
+          <div className="wr-tile">
+            <span className="wr-tile__label">Star Coin balance</span>
+            <span className="wr-tile__value">
+              {wallet ? Number(wallet.balance).toLocaleString("en-US", { maximumFractionDigits: 0 }) : "—"}
+            </span>
+          </div>
+          <div className="wr-tile">
+            <span className="wr-tile__label">At risk in markets</span>
+            <span className="wr-tile__value">
+              {atRisk.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            </span>
+          </div>
         </div>
       </header>
 
       {flash ? <div className="wr-flash">{flash}</div> : null}
 
       <div className="wr-layout">
-        <div className="wr-markets">
-          {markets.map((m) => (
-            <MarketCard key={m.id} market={m} onBet={handleBet} busy={betting} />
-          ))}
+        <div className="wr-left">
+          <div className="wr-markets">
+            {markets.map((m) => (
+              <MarketCard key={m.id} market={m} onBet={handleBet} busy={betting} />
+            ))}
+          </div>
           {leaderboard.length ? (
             <section className="wr-board">
-              <h3 className="wr-board__title">🏆 Leaderboard</h3>
+              <h3 className="wr-board__title">Leaderboard</h3>
               <ol className="wr-board__list">
                 {leaderboard.map((row) => (
                   <li key={row.rank} className={row.you ? "is-you" : ""}>
-                    <span>
-                      #{row.rank} {row.player}
-                      {row.you ? " (you)" : ""}
+                    <span className="wr-board__rank">{row.rank}</span>
+                    <span className="wr-board__player">
+                      {row.player}
+                      {row.you ? <span className="wr-board__you">You</span> : null}
                     </span>
-                    <span>🪙 {row.netWorth}</span>
+                    <span className="wr-board__worth">
+                      {row.netWorth.toLocaleString("en-US")}
+                    </span>
                   </li>
                 ))}
               </ol>
+              <div className="wr-board__note">Net worth = balance + open stakes</div>
             </section>
           ) : null}
         </div>
