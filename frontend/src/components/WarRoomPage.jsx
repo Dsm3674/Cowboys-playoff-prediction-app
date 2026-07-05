@@ -190,6 +190,7 @@ function MarketCard({ market, onBet, busy }) {
 }
 
 function ChatPanel() {
+  const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       role: "assistant",
@@ -233,11 +234,31 @@ function ChatPanel() {
   }
 
   return (
-    <section className="wr-chat">
+    <aside className={`wr-chat-dock ${open ? "is-open" : ""}`}>
+      <button
+        type="button"
+        className="wr-chat-launcher"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls="war-room-analyst"
+        title="War Room Analyst"
+      >
+        <span className="wr-chat-launcher__pulse" />
+        <span className="wr-chat-launcher__mark">AI</span>
+      </button>
+    <section className="wr-chat" id="war-room-analyst" aria-hidden={!open}>
       <div className="wr-chat__head">
         <span className="wr-chat__dot" />
         <span className="wr-chat__tag">Live</span>
         <span className="wr-chat__name">War Room Analyst</span>
+        <button
+          type="button"
+          className="wr-chat__close"
+          onClick={() => setOpen(false)}
+          aria-label="Close War Room Analyst"
+        >
+          x
+        </button>
       </div>
       <div className="wr-chat__scroll" ref={scrollRef}>
         {messages.map((m, i) => (
@@ -258,7 +279,7 @@ function ChatPanel() {
           className="wr-chat__input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Ask about odds, markets, matchups…"
+          placeholder="Ask about odds, markets, matchups..."
           maxLength={2000}
         />
         <button className="wr-btn wr-btn--primary" type="submit" disabled={thinking}>
@@ -266,6 +287,7 @@ function ChatPanel() {
         </button>
       </form>
     </section>
+    </aside>
   );
 }
 
@@ -448,8 +470,8 @@ export default function WarRoomPage() {
           </>
           )}
         </div>
-        <ChatPanel />
       </div>
+      <ChatPanel />
     </div>
   );
 }

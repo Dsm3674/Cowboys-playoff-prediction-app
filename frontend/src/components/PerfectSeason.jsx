@@ -691,8 +691,9 @@ function shuffle(list) {
 }
 
 function buildSchedule() {
+  // 17 random regular-season games, then 3 playoff monsters.
   const pool = shuffle(OPPONENTS);
-  const regular = pool.slice(0, 17).sort((x, y) => x.rating - y.rating);
+  const regular = pool.slice(0, 17);
   const playoffs = shuffle(OPPONENTS.filter((o) => o.rating >= 94)).slice(0, 3);
   return regular.concat(playoffs).map((o, i) => ({ ...o, week: i + 1, playoff: i >= 17 }));
 }
@@ -807,9 +808,8 @@ export default function PerfectSeason({ onReward }) {
     if (!roundPool) return [];
     let list = [...roundPool.players];
     if (filterPos !== "All") list = list.filter((p) => p.pos === filterPos);
-    if (sortBy === "rating") list.sort((a, b) => b.rating - a.rating);
-    else if (sortBy === "year") list.sort((a, b) => a.year - b.year);
-    else list.sort((a, b) => a.pos.localeCompare(b.pos) || b.rating - a.rating);
+    if (sortBy === "year") list.sort((a, b) => a.year - b.year);
+    else list.sort((a, b) => a.pos.localeCompare(b.pos) || a.name.localeCompare(b.name));
     return list;
   }, [roundPool, sortBy, filterPos]);
 
@@ -824,19 +824,19 @@ export default function PerfectSeason({ onReward }) {
     setFilterPos("All");
     let ticks = 0;
     const interval = setInterval(() => {
-      ticks++;
+      ticks += 1;
       const random = POOLS[Math.floor(Math.random() * POOLS.length)];
       setSpinLabel({ team: random.team, era: random.era });
-      if (ticks >= 10) {
+      if (ticks >= 22) {
         clearInterval(interval);
         const rolled = rollRound(nextRoster, roundSide(nextRound));
         setSpinLabel({ team: rolled.team, era: rolled.era });
         later(() => {
           setRoundPool(rolled);
           setPhase("draft");
-        }, 320);
+        }, 850);
       }
-    }, 85);
+    }, 70);
     timers.current.push(interval);
   }
 
@@ -1014,11 +1014,10 @@ export default function PerfectSeason({ onReward }) {
               <div className="ps2-controls">
                 <label className="ps2-sort">
                   Sort
-                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                    <option value="pos">Position</option>
-                    <option value="rating">Rating</option>
-                    <option value="year">Year</option>
-                  </select>
+	                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+	                    <option value="pos">Position</option>
+	                    <option value="year">Year</option>
+	                  </select>
                 </label>
                 <div className="ps2-filters">
                   {["All", ...poolPositions].map((pos) => (
