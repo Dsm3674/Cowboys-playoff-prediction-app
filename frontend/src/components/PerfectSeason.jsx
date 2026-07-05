@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api";
 
 /*
@@ -796,6 +797,15 @@ export default function PerfectSeason({ onReward }) {
   const timers = useRef([]);
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  useEffect(() => {
+    if (phase !== "spin" || typeof document === "undefined") return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [phase]);
+
   function later(fn, ms) {
     timers.current.push(setTimeout(fn, ms));
   }
@@ -926,6 +936,39 @@ export default function PerfectSeason({ onReward }) {
   const perfect = phase === "done" && losses === 0 && wins === schedule.length;
   const currentGame = schedule[gameIndex];
   const maxBin = mc ? Math.max(...mc.bins) : 1;
+  const spinTakeover =
+    phase === "spin" && typeof document !== "undefined"
+      ? createPortal(
+          <div className={`ps2-takeover ${spinSettled ? "is-locked" : "is-spinning"}`}>
+            <div className="ps2-takeover__field" aria-hidden="true">
+              {SLOT_DEFS.map((slot) => (
+                <span key={slot.id}>
+                  {slot.label}
+                </span>
+              ))}
+            </div>
+            <div className="ps2-takeover__panel" aria-live="polite">
+              <div className="ps2-takeover__round">
+                Round {round}/{ROUNDS} · {roundSide(round) === "OFF" ? "Offense" : "Defense"}
+              </div>
+              <div className="ps2-takeover__reels">
+                <div className="ps2-takeover__reel ps2-takeover__reel--team">
+                  <em>Team</em>
+                  <strong>{spinLabel.team}</strong>
+                </div>
+                <div className="ps2-takeover__reel ps2-takeover__reel--era">
+                  <em>Era</em>
+                  <strong>{spinLabel.era}</strong>
+                </div>
+              </div>
+              <div className="ps2-takeover__status">
+                {spinSettled ? "Let's go" : "Spinning"}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   // ── Render ────────────────────────────────────────────────────
 
@@ -961,6 +1004,7 @@ export default function PerfectSeason({ onReward }) {
 
   return (
     <div className="ps">
+      {spinTakeover}
       {phase === "idle" ? (
         <div className="ps-splash ps-pop">
           <div className="ps-kicker">Game mode · powered by the Quantum Engine</div>
@@ -981,37 +1025,7 @@ export default function PerfectSeason({ onReward }) {
         </div>
       ) : null}
 
-      {phase === "spin" ? (
-        <div className={`ps2-takeover ${spinSettled ? "is-locked" : "is-spinning"}`}>
-          <div className="ps2-takeover__field" aria-hidden="true">
-            {SLOT_DEFS.map((slot) => (
-              <span key={slot.id}>
-                {slot.label}
-              </span>
-            ))}
-          </div>
-          <div className="ps2-takeover__panel" aria-live="polite">
-            <div className="ps2-takeover__round">
-              Round {round}/{ROUNDS} · {roundSide(round) === "OFF" ? "Offense" : "Defense"}
-            </div>
-            <div className="ps2-takeover__reels">
-              <div className="ps2-takeover__reel ps2-takeover__reel--team">
-                <em>Team</em>
-                <strong>{spinLabel.team}</strong>
-              </div>
-              <div className="ps2-takeover__reel ps2-takeover__reel--era">
-                <em>Era</em>
-                <strong>{spinLabel.era}</strong>
-              </div>
-            </div>
-            <div className="ps2-takeover__status">
-              {spinSettled ? "Let's go" : "Spinning"}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {phase === "spin" || phase === "draft" ? (
+      {phase === "draft" ? (
         <div className="ps2-draft">
           <div className="ps2-head">
             <span className="ps2-round">
