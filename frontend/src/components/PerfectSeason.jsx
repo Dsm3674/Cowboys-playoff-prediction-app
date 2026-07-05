@@ -981,6 +981,36 @@ export default function PerfectSeason({ onReward }) {
         </div>
       ) : null}
 
+      {phase === "spin" ? (
+        <div className={`ps2-takeover ${spinSettled ? "is-locked" : "is-spinning"}`}>
+          <div className="ps2-takeover__field" aria-hidden="true">
+            {SLOT_DEFS.map((slot) => (
+              <span key={slot.id}>
+                {slot.label}
+              </span>
+            ))}
+          </div>
+          <div className="ps2-takeover__panel" aria-live="polite">
+            <div className="ps2-takeover__round">
+              Round {round}/{ROUNDS} · {roundSide(round) === "OFF" ? "Offense" : "Defense"}
+            </div>
+            <div className="ps2-takeover__reels">
+              <div className="ps2-takeover__reel ps2-takeover__reel--team">
+                <em>Team</em>
+                <strong>{spinLabel.team}</strong>
+              </div>
+              <div className="ps2-takeover__reel ps2-takeover__reel--era">
+                <em>Era</em>
+                <strong>{spinLabel.era}</strong>
+              </div>
+            </div>
+            <div className="ps2-takeover__status">
+              {spinSettled ? "Let's go" : "Spinning"}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {phase === "spin" || phase === "draft" ? (
         <div className="ps2-draft">
           <div className="ps2-head">

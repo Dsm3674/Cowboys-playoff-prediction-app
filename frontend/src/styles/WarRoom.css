@@ -1678,6 +1678,246 @@
 
 /* ── Perfect Season v2: 12-round draft board ───────────────── */
 
+.ps2-takeover {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 35% 42%, rgba(57, 135, 229, 0.13), transparent 36%),
+    radial-gradient(circle at 52% 56%, rgba(240, 106, 106, 0.08), transparent 34%),
+    rgba(3, 6, 16, 0.94);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  animation: ps2-takeover-in 0.22s ease-out both;
+}
+
+.ps2-takeover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent 0 47%, rgba(230, 233, 239, 0.08) 50%, transparent 53%),
+    repeating-linear-gradient(0deg, transparent 0 9px, rgba(255, 255, 255, 0.035) 10px 11px);
+  opacity: 0.45;
+  animation: ps-scan 1.2s linear infinite;
+}
+
+.ps2-takeover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(3, 6, 16, 0.78), transparent 18% 82%, rgba(3, 6, 16, 0.78)),
+    linear-gradient(180deg, rgba(3, 6, 16, 0.8), transparent 22% 76%, rgba(3, 6, 16, 0.86));
+  pointer-events: none;
+}
+
+.ps2-takeover__field {
+  position: absolute;
+  inset: 12% 6%;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 18px;
+  opacity: 0.1;
+  filter: blur(1px);
+  transform: perspective(800px) rotateX(10deg);
+}
+
+.ps2-takeover__field span {
+  display: grid;
+  place-items: center;
+  min-height: 52px;
+  border: 1px solid rgba(230, 233, 239, 0.18);
+  color: rgba(230, 233, 239, 0.55);
+  font-family: var(--wr-sans);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.ps2-takeover__panel {
+  position: relative;
+  z-index: 2;
+  width: min(760px, 100%);
+  text-align: center;
+  transform: translateY(-2vh);
+}
+
+.ps2-takeover__round {
+  margin-bottom: 22px;
+  font-family: var(--wr-sans);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.36em;
+  color: rgba(230, 233, 239, 0.64);
+}
+
+.ps2-takeover__reels {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(260px, 1.3fr);
+  gap: 22px;
+}
+
+.ps2-takeover__reel {
+  position: relative;
+  min-height: 128px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 13px;
+  padding: 22px 26px;
+  border: 3px solid rgba(230, 233, 239, 0.28);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.012)),
+    #0b1222;
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.48), 0 0 34px rgba(57, 135, 229, 0.16) inset;
+  overflow: hidden;
+}
+
+.ps2-takeover__reel::before,
+.ps2-takeover__reel::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 31%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.ps2-takeover__reel::before {
+  top: 0;
+  background: linear-gradient(180deg, #0b1222, transparent);
+}
+
+.ps2-takeover__reel::after {
+  bottom: 0;
+  background: linear-gradient(0deg, #0b1222, transparent);
+}
+
+.ps2-takeover__reel em,
+.ps2-takeover__reel strong {
+  position: relative;
+  z-index: 2;
+}
+
+.ps2-takeover__reel em {
+  font-family: var(--wr-sans);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(230, 233, 239, 0.58);
+}
+
+.ps2-takeover__reel strong {
+  color: #f4f7fb;
+  font-family: var(--wr-sans);
+  font-size: clamp(2.2rem, 7vw, 4.8rem);
+  font-weight: 950;
+  line-height: 0.94;
+  text-transform: uppercase;
+  text-shadow: 0 0 24px rgba(230, 233, 239, 0.28);
+}
+
+.ps2-takeover__reel--team {
+  border-color: rgba(241, 132, 74, 0.92);
+  box-shadow: 0 0 46px rgba(241, 132, 74, 0.26), 0 0 30px rgba(241, 132, 74, 0.14) inset;
+}
+
+.ps2-takeover__reel--era {
+  border-color: rgba(159, 86, 238, 0.94);
+  box-shadow: 0 0 48px rgba(159, 86, 238, 0.3), 0 0 30px rgba(159, 86, 238, 0.15) inset;
+}
+
+.ps2-takeover.is-spinning .ps2-takeover__reel strong {
+  animation: ps2-takeover-roll 0.11s linear infinite;
+}
+
+.ps2-takeover.is-locked .ps2-takeover__reel {
+  animation: ps2-takeover-lock 0.46s cubic-bezier(0.17, 1.15, 0.32, 1) both;
+}
+
+.ps2-takeover.is-locked .ps2-takeover__reel strong {
+  animation: ps2-takeover-land 0.5s cubic-bezier(0.17, 1.15, 0.32, 1) both;
+}
+
+.ps2-takeover__status {
+  margin-top: 28px;
+  font-family: var(--wr-sans);
+  font-size: 14px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.46em;
+  color: #f1a65f;
+}
+
+.ps2-takeover.is-spinning .ps2-takeover__status::after {
+  content: "...";
+  letter-spacing: 0.18em;
+  animation: ps-dots 0.7s steps(3, end) infinite;
+}
+
+@keyframes ps2-takeover-in {
+  from { opacity: 0; transform: scale(1.02); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ps2-takeover-roll {
+  0% { transform: translateY(-34px) scaleY(1.14); opacity: 0.35; filter: blur(3px); }
+  40% { transform: translateY(0); opacity: 1; filter: blur(0.5px); }
+  100% { transform: translateY(34px) scaleY(0.9); opacity: 0.35; filter: blur(3px); }
+}
+
+@keyframes ps2-takeover-land {
+  0% { transform: translateY(-28px) scaleY(1.08); opacity: 0.4; filter: blur(2px); }
+  58% { transform: translateY(5px) scaleY(0.96); opacity: 1; filter: blur(0); }
+  80% { transform: translateY(-2px); }
+  100% { transform: translateY(0); opacity: 1; filter: blur(0); }
+}
+
+@keyframes ps2-takeover-lock {
+  0% { transform: translateY(0); }
+  48% { transform: translateY(-4px); }
+  100% { transform: translateY(0); }
+}
+
+@media (max-width: 680px) {
+  .ps2-takeover {
+    padding: 18px;
+  }
+
+  .ps2-takeover__field {
+    inset: 10% 4%;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .ps2-takeover__round {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+  }
+
+  .ps2-takeover__reels {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .ps2-takeover__reel {
+    min-height: 108px;
+  }
+
+  .ps2-takeover__status {
+    font-size: 12px;
+    letter-spacing: 0.3em;
+  }
+}
+
 .ps2-head {
   position: relative;
   display: flex;
@@ -2312,6 +2552,12 @@
   .ps2-chip.is-locked,
   .ps2-chip.is-locked .ps2-chip__value,
   .ps2-head::before,
+  .ps2-takeover,
+  .ps2-takeover::before,
+  .ps2-takeover.is-spinning .ps2-takeover__reel strong,
+  .ps2-takeover.is-locked .ps2-takeover__reel,
+  .ps2-takeover.is-locked .ps2-takeover__reel strong,
+  .ps2-takeover.is-spinning .ps2-takeover__status::after,
   .ps2-row,
   .ps2-slot.is-hot,
   .ps2-hist__bar,
