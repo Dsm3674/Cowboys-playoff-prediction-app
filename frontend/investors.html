@@ -3,169 +3,611 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LoneStar AI | Investor Deck</title>
-  <meta name="description" content="Investor deck for LoneStar AI, a sports analytics product for fans, classrooms, sponsors, and football decision-makers." />
+  <title>LoneStar AI · Investor Brief</title>
+  <meta name="description" content="LoneStar AI is building the Bloomberg Terminal for NFL fans — a transparent, fan-first sports intelligence platform. Investor brief, market framing, roadmap, and the ask." />
   <link rel="icon" href="https://static.www.nfl.com/t_q-best/league/api/clubs/logos/DAL" type="image/png" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-T72EJM2GWF"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-T72EJM2GWF');
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,650;9..144,800&family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800;9..144,900&family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="./educators.css" />
+  <link rel="stylesheet" href="./pro.css" />
   <link rel="stylesheet" href="./investors.css" />
 </head>
-<body>
-  <div class="deck-noise" aria-hidden="true"></div>
+<body class="pro-body inv-body">
 
-  <header class="deck-nav">
-    <a class="deck-logo" href="./index.html">
-      <span>DAL</span>
-      <strong>LoneStar <em>AI</em></strong>
-    </a>
-    <nav aria-label="Investor page">
-      <a href="#thesis">Thesis</a>
-      <a href="#product">Product</a>
-      <a href="#roadmap">Roadmap</a>
-      <a href="#contact">Contact</a>
-    </nav>
-    <a class="deck-nav__cta" href="mailto:divyanshusomasekhar1@gmail.com?subject=LoneStar%20AI%20Investor%20Deck%20Request">Email founder</a>
-  </header>
+<header class="edu-nav">
+  <a href="./index.html" class="edu-nav__logo">
+    <span class="edu-nav__star">★</span> LoneStar AI
+  </a>
+  <nav class="edu-nav__links">
+    <a href="#thesis">Thesis</a>
+    <a href="#market">Market</a>
+    <a href="#traction">Traction</a>
+    <a href="#moat">Moat</a>
+    <a href="#model">Revenue</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="#ask" class="edu-nav__cta">Request deck</a>
+  </nav>
+</header>
 
-  <main>
-    <section class="deck-hero">
-      <div class="deck-hero__copy">
-        <div class="deck-kicker">Investor deck / LoneStar AI</div>
-        <h1>Back the sports intelligence layer for fans and classrooms.</h1>
+<main class="edu-main">
+
+  <!-- HERO -->
+  <section class="edu-hero inv-hero">
+    <div class="inv-hero__badge">★ Investor brief · v1.0 · Pre-seed</div>
+    <h1 class="edu-hero__title inv-hero__title">
+      The <span class="edu-hero__title-accent">Bloomberg Terminal</span><br />
+      for the NFL fan.
+    </h1>
+    <p class="edu-hero__copy inv-hero__copy">
+      LoneStar AI turns 100,000 Monte Carlo simulations, live win-probability telemetry, and
+      transparent player-impact scoring into a single command center for the most engaged
+      consumer audience on the planet. Free tier live. Pro subscriptions live.
+      <strong>Ready to scale.</strong>
+    </p>
+    <div class="edu-hero__cta-row">
+      <a href="#ask" class="edu-btn edu-btn--primary">Request the deck</a>
+      <a href="#traction" class="edu-btn edu-btn--ghost">See traction</a>
+    </div>
+
+    <div class="inv-metrics">
+      <div class="inv-metric">
+        <strong>32</strong>
+        <span>teams modeled live</span>
+      </div>
+      <div class="inv-metric">
+        <strong>100k</strong>
+        <span>sims per scenario</span>
+      </div>
+      <div class="inv-metric">
+        <strong>$1</strong>
+        <span>monthly Pro tier · live</span>
+      </div>
+      <div class="inv-metric">
+        <strong>6</strong>
+        <span>co-founders shipping</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- THESIS -->
+  <section class="edu-section" id="thesis">
+    <div class="edu-section__head">
+      <div class="edu-section__kicker">Thesis</div>
+      <h2 class="edu-section__title">Sports media is broken. The numbers belong to the fans now.</h2>
+      <p class="edu-section__sub">
+        For 30 years, NFL analytics lived in three walled gardens: ESPN graphics, league press releases,
+        and gambling shows. Modern fans want what front offices have — a transparent model they
+        can interrogate, save, and share. That product doesn't exist yet. We're building it.
+      </p>
+    </div>
+
+    <div class="inv-thesis-grid edu-reveal">
+      <article class="inv-thesis">
+        <div class="inv-thesis__num">01</div>
+        <h3>The market is already paying</h3>
         <p>
-          LoneStar AI turns playoff probability, live win probability, player pressure, and scenario modeling
-          into a clear product experience for Cowboys fans, educators, sponsors, and sports analytics buyers.
+          Fantasy platforms, betting apps, and subscription analytics products have proven that
+          fans will pay $9–$30/mo for an edge. None of them are transparent, fan-first, or built for how modern fans actually share.
         </p>
-        <div class="deck-actions">
-          <a class="deck-btn deck-btn--primary" href="mailto:divyanshusomasekhar1@gmail.com?subject=LoneStar%20AI%20Investor%20Deck%20Request&body=Hi%20Divyanshu%2C%0A%0AI%20would%20like%20to%20learn%20more%20about%20LoneStar%20AI%20as%20an%20investor%20or%20sponsor.%0A%0AName%3A%0ACompany%3A%0AInterest%3A%0A">Request the deck</a>
-          <a class="deck-btn deck-btn--ghost" href="./index.html">View product</a>
-        </div>
-      </div>
-
-      <aside class="deal-card" aria-label="Investor summary">
-        <div class="deal-card__top">
-          <span>Deal memo</span>
-          <b>Preview</b>
-        </div>
-        <div class="deal-card__headline">A football analytics product with fan, classroom, and sponsor lanes.</div>
-        <div class="deal-card__grid">
-          <div><strong>100k</strong><span>simulation runs</span></div>
-          <div><strong>32</strong><span>NFL teams</span></div>
-          <div><strong>3</strong><span>buyer lanes</span></div>
-          <div><strong>Open</strong><span>source base</span></div>
-        </div>
-        <div class="deal-card__contact">
-          <span>Direct email</span>
-          <a href="mailto:divyanshusomasekhar1@gmail.com">divyanshusomasekhar1@gmail.com</a>
-        </div>
-      </aside>
-    </section>
-
-    <section class="deck-section deck-section--light" id="thesis">
-      <div class="section-head">
-        <span>Why invest</span>
-        <h2>Sports data is everywhere. Clear sports intelligence is still rare.</h2>
+      </article>
+      <article class="inv-thesis">
+        <div class="inv-thesis__num">02</div>
+        <h3>Modern tooling changed the economics</h3>
         <p>
-          The opportunity is not another scoreboard. It is a product that explains what changed,
-          why it matters, and what could happen next.
+          A focused six-person team now ships what took 50 people in 2018. The barrier to a
+          defensible sports product collapsed. The winner is whoever builds the brand and the
+          data flywheel first.
+        </p>
+      </article>
+      <article class="inv-thesis">
+        <div class="inv-thesis__num">03</div>
+        <h3>Distribution is solved</h3>
+        <p>
+          Group chats, Reddit, TikTok, and Discord are the new sports cable. Exportable charts
+          and one-line "model says" receipts spread the brand for free. We're built for that loop.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <!-- MARKET -->
+  <section class="edu-section edu-section--alt" id="market">
+    <div class="edu-section__head">
+      <div class="edu-section__kicker">Market</div>
+      <h2 class="edu-section__title">The most attention-rich consumer market in America.</h2>
+      <p class="edu-section__sub">
+        The NFL is the single largest media franchise in the United States. Sunday Night Football
+        is the #1 show on TV nine years running. We're not betting on growing a category — we're
+        building the analytics layer for a category that's already at scale.
+      </p>
+    </div>
+
+    <div class="inv-market-grid edu-reveal">
+      <div class="inv-market">
+        <div class="inv-market__big">~180M</div>
+        <div class="inv-market__label">U.S. NFL fans</div>
+        <p>The largest single-sport audience in the country. We need a fraction of a fraction to build a meaningful business.</p>
+      </div>
+      <div class="inv-market">
+        <div class="inv-market__big">~60M</div>
+        <div class="inv-market__label">Fantasy + DFS players</div>
+        <p>The high-intent core. They already pay for analytics. They are our first beachhead.</p>
+      </div>
+      <div class="inv-market">
+        <div class="inv-market__big">38</div>
+        <div class="inv-market__label">U.S. states with legal sports betting</div>
+        <p>A regulated, growing surface. We don't take bets — we sell the intelligence layer above them.</p>
+      </div>
+      <div class="inv-market">
+        <div class="inv-market__big">$22B</div>
+        <div class="inv-market__label">Global sports analytics market by 2030</div>
+        <p>The B2B story: leagues, teams, broadcasters, and books all want the same models we ship to consumers.</p>
+      </div>
+    </div>
+
+    <div class="inv-market-note">
+      Sources: Nielsen, FSGA, AGA, Grand View Research. Conservative directional figures —
+      full citations and bottoms-up TAM math are in the deck.
+    </div>
+  </section>
+
+  <!-- TRACTION -->
+  <section class="edu-section" id="traction">
+    <div class="edu-section__head">
+      <div class="edu-section__kicker">Traction</div>
+      <h2 class="edu-section__title">This isn't a deck. It's a shipped product.</h2>
+      <p class="edu-section__sub">
+        Most pre-seed pitches sell a wireframe. Ours ships. Below is what already runs in production today.
+      </p>
+    </div>
+
+    <div class="edu-card-grid edu-reveal">
+      <div class="edu-card">
+        <div class="edu-card__icon">⚙️</div>
+        <h3>Quantum Engine, live</h3>
+        <p>
+          100,000-simulation Monte Carlo model running for all 32 teams. Strength-of-schedule,
+          injury decay, weather, and rest weighting all priced in before kickoff.
         </p>
       </div>
-      <div class="thesis-grid">
-        <article>
-          <span>01</span>
-          <h3>Fans want proof, not hot takes.</h3>
-          <p>Live playoff odds, saved scenarios, and weekly intelligence reports create a premium reason to return.</p>
-        </article>
-        <article>
-          <span>02</span>
-          <h3>Classrooms need real data stories.</h3>
-          <p>Sports analytics makes probability, modeling, and decision-making easier for students to care about.</p>
-        </article>
-        <article>
-          <span>03</span>
-          <h3>Sponsors want engaged audiences.</h3>
-          <p>Team-specific intelligence gives brands a credible way to support fans without feeling generic.</p>
-        </article>
+      <div class="edu-card">
+        <div class="edu-card__icon">📡</div>
+        <h3>Live win probability</h3>
+        <p>
+          Real-time WP chart that re-prices on every play call, score, and turnover. Engineered
+          on top of public ESPN data — no proprietary feed dependency.
+        </p>
       </div>
-    </section>
+      <div class="edu-card">
+        <div class="edu-card__icon">🎯</div>
+        <h3>Player Clutch Index</h3>
+        <p>
+          Original weighted scoring of every player on every roster. The kind of metric ESPN
+          sells back to the league for seven figures.
+        </p>
+      </div>
+      <div class="edu-card">
+        <div class="edu-card__icon">💳</div>
+        <h3>Subscriptions live</h3>
+        <p>
+          Pro tier live at $1/month with Stripe checkout in production. Hosted checkout,
+          webhooks, and subscription tracking are all wired end to end.
+        </p>
+      </div>
+      <div class="edu-card">
+        <div class="edu-card__icon">🎓</div>
+        <h3>Education pilot lane</h3>
+        <p>
+          A classroom-ready curriculum surface that teaches probability, statistics, and decision
+          theory using the same engine. B2B distribution baked into v1.
+        </p>
+      </div>
+      <div class="edu-card">
+        <div class="edu-card__icon">🧪</div>
+        <h3>Cross-functional team, shipping fast</h3>
+        <p>
+          Three engineers, two marketers, one operator. Full stack — backend, frontend, payments,
+          model, brand, growth — shipped by a tight, focused team. Capital efficiency proven
+          before the round.
+        </p>
+      </div>
+    </div>
+  </section>
 
-    <section class="deck-section" id="product">
-      <div class="section-head section-head--dark">
-        <span>Product surface</span>
-        <h2>The prototype already has multiple product lanes.</h2>
-        <p>Each lane can stand alone, but together they make LoneStar AI feel like a command center.</p>
-      </div>
-      <div class="product-grid">
-        <article>
-          <b>01</b>
-          <h3>Quantum Engine</h3>
-          <p>Monte Carlo playoff forecasts, projected wins, seed probabilities, and matchup movement.</p>
-        </article>
-        <article>
-          <b>02</b>
-          <h3>Scenario Studio</h3>
-          <p>What-if paths for injuries, rivals, division races, schedule strength, and clutch games.</p>
-        </article>
-        <article>
-          <b>03</b>
-          <h3>Classroom Lab</h3>
-          <p>Teacher-friendly sports analytics pilots for probability, data literacy, and model explainability.</p>
-        </article>
-        <article>
-          <b>04</b>
-          <h3>Sponsor Deck</h3>
-          <p>Sponsored reports, weekly fan pulse, product placements, and branded playoff intelligence drops.</p>
-        </article>
-      </div>
-    </section>
+  <!-- MOAT -->
+  <section class="edu-section edu-section--alt" id="moat">
+    <div class="edu-section__head">
+      <div class="edu-section__kicker">Defensibility</div>
+      <h2 class="edu-section__title">Why we win when bigger players notice.</h2>
+      <p class="edu-section__sub">
+        Every analytics product eventually fights ESPN, Action Network, and a Big-4 sportsbook.
+        Here's the moat we're building before that fight.
+      </p>
+    </div>
 
-    <section class="deck-section deck-section--light" id="roadmap">
-      <div class="section-head">
-        <span>Roadmap preview</span>
-        <h2>From prototype to sports analytics product.</h2>
-      </div>
-      <div class="roadmap">
+    <div class="edu-outcomes edu-reveal">
+      <div class="edu-outcome">
+        <div class="edu-outcome__num">01</div>
         <div>
-          <span>Now</span>
-          <h3>Stabilize the command center</h3>
-          <p>Harden login, polish the dashboard, improve model reliability, and package the investor deck.</p>
-        </div>
-        <div>
-          <span>Next</span>
-          <h3>Launch pilots</h3>
-          <p>Run classroom pilots, collect fan feedback, and test supporter pricing with real users.</p>
-        </div>
-        <div>
-          <span>Scale</span>
-          <h3>Expand the product</h3>
-          <p>Add sponsor reports, exports, partner pages, and other team or league-specific intelligence layers.</p>
+          <h3>Transparency as a feature</h3>
+          <p>ESPN BPI is a black box. FiveThirtyEight froze. We expose every weight, prior, and adjustment. Fans, teachers, and bettors all want this — competitors can't ship it without admitting their model is messy.</p>
         </div>
       </div>
-    </section>
+      <div class="edu-outcome">
+        <div class="edu-outcome__num">02</div>
+        <div>
+          <h3>The classroom flywheel</h3>
+          <p>Every teacher who runs the curriculum trains 30 future power users a year. No competitor has a credible edu-distribution play. We do, and it costs us nothing to maintain.</p>
+        </div>
+      </div>
+      <div class="edu-outcome">
+        <div class="edu-outcome__num">03</div>
+        <div>
+          <h3>Shipping velocity</h3>
+          <p>We ship features in days that incumbents schedule in quarters. Live payments, a full investor surface, and three rebrands inside a single sprint. The cadence is the moat.</p>
+        </div>
+      </div>
+      <div class="edu-outcome">
+        <div class="edu-outcome__num">04</div>
+        <div>
+          <h3>Brand-first, fan-coded</h3>
+          <p>LoneStar AI talks like a fan, not a hedge fund. The tone, the receipts, the export tools — engineered for the group chat. Voice and trust compound; bigger players can't fake them.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <section class="deck-section contact-section" id="contact">
-      <div class="contact-card">
-        <div>
-          <span class="deck-kicker">Investor inquiry path</span>
-          <h2>Want the deck, demo, or sponsor conversation?</h2>
-          <p>
-            Email the founder directly. Include your name, company, whether you are interested in investing,
-            sponsoring, advising, or piloting, and the best time to talk.
-          </p>
-        </div>
-        <div class="contact-card__actions">
-          <a class="deck-btn deck-btn--primary" href="mailto:divyanshusomasekhar1@gmail.com?subject=LoneStar%20AI%20Investor%20Deck%20Request&body=Hi%20Divyanshu%2C%0A%0AI%20would%20like%20to%20learn%20more%20about%20LoneStar%20AI.%0A%0AName%3A%0ACompany%3A%0AInterest%3A%0ABest%20time%20to%20talk%3A%0A">Email divyanshusomasekhar1@gmail.com</a>
-          <a class="deck-btn deck-btn--ghost" href="https://github.com/Dsm3674/Cowboys-playoff-prediction-app" target="_blank" rel="noopener">View GitHub</a>
-        </div>
-      </div>
-    </section>
-  </main>
+  <!-- BUSINESS MODEL -->
+  <section class="edu-section" id="model">
+    <div class="edu-section__head">
+      <div class="edu-section__kicker">Revenue model</div>
+      <h2 class="edu-section__title">Three revenue lines. One engine.</h2>
+      <p class="edu-section__sub">
+        The same simulation core ships to consumers today, schools next quarter, and the B2B
+        data buyers after that. Every line strengthens the others.
+      </p>
+    </div>
 
-  <footer class="deck-footer">
-    <span>LoneStar AI investor deck preview</span>
-    <a href="./index.html">Back to landing</a>
-  </footer>
+    <div class="inv-revenue-grid edu-reveal">
+      <article class="inv-revenue">
+        <div class="inv-revenue__tag">Payments live</div>
+        <h3>Consumer subscription</h3>
+        <div class="inv-revenue__price">$1 / mo</div>
+        <p>War Room Pro: premium model views, saved scenarios, weekly intel drops, export tools. Stripe checkout is live today at an introductory $1/month. Yearly plan and gift subscriptions on deck.</p>
+        <ul>
+          <li>Monthly + annual SKUs</li>
+          <li>Yearly upsell at $10 (2 months free)</li>
+          <li>Gifting and family plans next season</li>
+        </ul>
+      </article>
+      <article class="inv-revenue inv-revenue--featured">
+        <div class="inv-revenue__tag">Q2 2026</div>
+        <h3>Classroom B2B</h3>
+        <div class="inv-revenue__price">$249 / classroom / yr</div>
+        <p>Same engine, packaged as a probability and data-literacy curriculum. Teachers buy seats. Schools buy site licenses. Pilot lane already built.</p>
+        <ul>
+          <li>Per-classroom and per-school SKUs</li>
+          <li>Curriculum + worksheets + teacher dashboard</li>
+          <li>One sales conversation, 30-seat ACV</li>
+        </ul>
+      </article>
+      <article class="inv-revenue">
+        <div class="inv-revenue__tag">2027</div>
+        <h3>Data &amp; API</h3>
+        <div class="inv-revenue__price">Enterprise</div>
+        <p>Once the model is industrial-grade, license the JSON feed to fantasy platforms, smaller media outlets, and second-screen apps. High-margin, low-marginal-cost expansion.</p>
+        <ul>
+          <li>JSON feed + webhook + SDK</li>
+          <li>Tiered usage pricing</li>
+          <li>White-label dashboard offering</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section class="edu-section edu-section--alt" id="roadmap">
+    <div class="edu-section__head">
+      <div class="edu-section__kicker">Roadmap</div>
+      <h2 class="edu-section__title">What the next 18 months look like.</h2>
+      <p class="edu-section__sub">
+        Honest sequencing. Each milestone unlocks the next revenue line.
+      </p>
+    </div>
+
+    <div class="edu-steps edu-reveal">
+      <div class="edu-step">
+        <div class="edu-step__num">Q1</div>
+        <h3>Growth-mode consumer</h3>
+        <p>Paid social pilots, group-chat exports, referral loop, annual SKU, gift subs. Target: first 1,000 paying Pro users.</p>
+      </div>
+      <div class="edu-step">
+        <div class="edu-step__num">Q2</div>
+        <h3>Classroom launch</h3>
+        <p>Ship the teacher dashboard, packaged curriculum, and pilot with 50 classrooms. First B2B revenue.</p>
+      </div>
+      <div class="edu-step">
+        <div class="edu-step__num">Q3</div>
+        <h3>Expansion: NBA + CFB</h3>
+        <p>Port the engine to college football and NBA. Same product surface, three sports, year-round retention.</p>
+      </div>
+      <div class="edu-step">
+        <div class="edu-step__num">Q4</div>
+        <h3>API + data partnerships</h3>
+        <p>Open the JSON feed. First two enterprise design partners signed. Roadmap to default-alive on revenue.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- USE OF FUNDS -->
+  <section class="edu-section" id="funds">
+    <div class="edu-section__head">
+      <div class="edu-section__kicker">Use of funds</div>
+      <h2 class="edu-section__title">What the round buys.</h2>
+      <p class="edu-section__sub">
+        Lean by design. The product already ships. The round funds distribution, model quality,
+        and one extraordinary engineering hire.
+      </p>
+    </div>
+
+    <div class="inv-funds-grid edu-reveal">
+      <div class="inv-funds">
+        <div class="inv-funds__pct">45%</div>
+        <h3>Growth + content</h3>
+        <p>Paid social pilots, sports-creator partnerships, weekly written intel, group-chat-native exports.</p>
+      </div>
+      <div class="inv-funds">
+        <div class="inv-funds__pct">30%</div>
+        <h3>Model + data</h3>
+        <p>Better player-impact priors, real-time injury feed, expanded multi-sport coverage.</p>
+      </div>
+      <div class="inv-funds">
+        <div class="inv-funds__pct">15%</div>
+        <h3>Specialist depth</h3>
+        <p>One senior hire (data engineering or sports-modeling specialist) to deepen the bench beyond the six founders.</p>
+      </div>
+      <div class="inv-funds">
+        <div class="inv-funds__pct">10%</div>
+        <h3>Infra + runway buffer</h3>
+        <p>Hosting, payment processing fees, monitoring, legal incorporation, and a conservative cash buffer.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEAM -->
+  <section class="edu-section edu-section--alt" id="team">
+    <div class="edu-section__head">
+      <div class="edu-section__kicker">Team</div>
+      <h2 class="edu-section__title">Who's building this.</h2>
+      <p class="edu-section__sub">
+        Six co-founders. Three engineers, two marketers, one operator. Every line of code,
+        every piece of copy, every model parameter — shipped by this team.
+      </p>
+    </div>
+
+    <div class="inv-team-grid edu-reveal">
+      <article class="inv-team-card inv-team-card--lead">
+        <div class="inv-team-card__avatar">DS</div>
+        <h3>Divyanshu Somasekhar</h3>
+        <p class="inv-team-card__role">Founder · Engineering</p>
+        <p class="inv-team-card__bio">
+          Shipped the first end-to-end version of the product. Owns architecture, the Quantum
+          Engine model, and the brand surface.
+        </p>
+      </article>
+
+      <article class="inv-team-card">
+        <div class="inv-team-card__avatar">SS</div>
+        <h3>Shourya Saxena</h3>
+        <p class="inv-team-card__role">Engineering · Treasurer</p>
+        <p class="inv-team-card__bio">
+          Builds product alongside running the company's books. Owns financial planning,
+          burn modeling, and the engineering features that touch money.
+        </p>
+      </article>
+
+      <article class="inv-team-card">
+        <div class="inv-team-card__avatar">IM</div>
+        <h3>Ishaan Maji</h3>
+        <p class="inv-team-card__role">Engineering</p>
+        <p class="inv-team-card__bio">
+          Full-stack engineer. Pushes the simulation engine, frontend polish, and the data
+          pipeline that keeps every team's numbers fresh.
+        </p>
+      </article>
+
+      <article class="inv-team-card">
+        <div class="inv-team-card__avatar">MK</div>
+        <h3>Madhav Kumar</h3>
+        <p class="inv-team-card__role">Marketing</p>
+        <p class="inv-team-card__bio">
+          Runs growth, brand voice, and the group-chat-native exports that turn every Pro
+          subscriber into a distribution channel.
+        </p>
+      </article>
+
+      <article class="inv-team-card">
+        <div class="inv-team-card__avatar">DS</div>
+        <h3>Daksh Shetty</h3>
+        <p class="inv-team-card__role">Marketing</p>
+        <p class="inv-team-card__bio">
+          Drives content, creator partnerships, and the weekly intelligence drop. Owns the
+          top-of-funnel and the social surface.
+        </p>
+      </article>
+
+      <article class="inv-team-card">
+        <div class="inv-team-card__avatar">RJ</div>
+        <h3>Ryan Juramongkol</h3>
+        <p class="inv-team-card__role">Operations</p>
+        <p class="inv-team-card__bio">
+          Runs internal ops, vendor and tooling stack, and the cross-team coordination that
+          keeps a six-person founding team moving as one.
+        </p>
+      </article>
+    </div>
+
+    <div class="inv-team-contact">
+      <a href="mailto:divyanshusomasekhar1@gmail.com">divyanshusomasekhar1@gmail.com</a>
+      <span aria-hidden="true">·</span>
+      <a href="https://github.com/Dsm3674/Cowboys-playoff-prediction-app" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </section>
+
+  <!-- ASK / CTA -->
+  <section class="edu-section inv-ask" id="ask">
+    <div class="inv-ask__shell">
+      <div class="inv-ask__copy">
+        <div class="edu-section__kicker">The ask</div>
+        <h2 class="edu-section__title">Raising a pre-seed to make this default-alive.</h2>
+        <p>
+          We're talking with mission-aligned angels, sports-tech funds, and modern consumer funds.
+          Drop your email and we'll send the full deck plus a 15-minute walkthrough video within
+          one business day.
+        </p>
+        <ul class="inv-ask__bullets">
+          <li>Live product, paid tier ready to switch on</li>
+          <li>Six-founder team, shipping fast</li>
+          <li>Three revenue lines, one engine</li>
+          <li>Brand-first, fan-coded GTM</li>
+        </ul>
+      </div>
+
+      <form class="inv-form" id="inv-form" novalidate>
+        <div class="inv-form__field">
+          <label for="inv-email">Email</label>
+          <input type="email" id="inv-email" name="email" placeholder="you@fund.com" required autocomplete="email" />
+        </div>
+        <div class="inv-form__field">
+          <label for="inv-name">Name</label>
+          <input type="text" id="inv-name" name="name" placeholder="Your full name" autocomplete="name" />
+        </div>
+        <div class="inv-form__field">
+          <label for="inv-firm">Firm / context</label>
+          <input type="text" id="inv-firm" name="firm" placeholder="Fund, angel, scout, etc." />
+        </div>
+        <button type="submit" class="edu-btn edu-btn--primary inv-form__submit">Request the deck</button>
+        <div class="inv-form__status" id="inv-form-status" aria-live="polite"></div>
+        <div class="inv-form__note">
+          We'll only use your email to send the deck and follow up. No newsletter, no list.
+        </div>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<footer class="edu-footer">
+  <div class="edu-footer__inner">
+    <div>
+      <div class="edu-footer__logo">★ LoneStar AI</div>
+      <div class="edu-footer__tag">Building the analytics layer for the most-watched sport in America.</div>
+    </div>
+    <div class="edu-footer__links">
+      <a href="./index.html">Main site</a>
+      <a href="./pro.html">War Room Pro</a>
+      <a href="./educators.html">For educators</a>
+      <a href="mailto:divyanshusomasekhar1@gmail.com">Email</a>
+      <a href="https://github.com/Dsm3674/Cowboys-playoff-prediction-app" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+  <div class="edu-footer__copy">© LoneStar AI · Investor brief. Not affiliated with the NFL or Dallas Cowboys.</div>
+</footer>
+
+<script>
+  (function () {
+    var reveals = document.querySelectorAll(".edu-reveal");
+    if (!("IntersectionObserver" in window) || !reveals.length) {
+      reveals.forEach(function (el) { el.classList.add("is-visible"); });
+    } else {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+      reveals.forEach(function (el) { io.observe(el); });
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(function (link) {
+      link.addEventListener("click", function (e) {
+        var id = link.getAttribute("href");
+        if (id.length < 2) return;
+        var target = document.querySelector(id);
+        if (!target) return;
+        e.preventDefault();
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    var form = document.getElementById("inv-form");
+    var status = document.getElementById("inv-form-status");
+    var submit = form ? form.querySelector(".inv-form__submit") : null;
+
+    function setStatus(message, kind) {
+      if (!status) return;
+      status.textContent = message;
+      status.className = "inv-form__status" + (kind ? " is-" + kind : "");
+    }
+
+    if (form) {
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        var email = document.getElementById("inv-email").value.trim();
+        var name = document.getElementById("inv-name").value.trim();
+        var firm = document.getElementById("inv-firm").value.trim();
+
+        if (!email) {
+          setStatus("Email is required.", "error");
+          return;
+        }
+
+        submit.disabled = true;
+        var original = submit.textContent;
+        submit.textContent = "Sending...";
+        setStatus("");
+
+        try {
+          var res = await fetch("/api/billing/access-request", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: email,
+              name: name,
+              plan: "Investor inquiry",
+              price: firm ? ("Deck request · " + firm).slice(0, 40) : "Deck request"
+            })
+          });
+          var data = await res.json();
+          if (res.ok) {
+            form.reset();
+            setStatus("Got it. We'll be in touch within one business day.", "success");
+          } else {
+            setStatus(data.error || "Couldn't submit. Try again or email directly.", "error");
+          }
+        } catch (err) {
+          setStatus("Network error. Try again or email directly.", "error");
+        }
+        submit.disabled = false;
+        submit.textContent = original;
+      });
+    }
+  })();
+</script>
+
 </body>
 </html>

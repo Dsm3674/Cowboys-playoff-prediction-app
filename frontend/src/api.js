@@ -29,6 +29,74 @@
     return { raw: text };
   }
 
+  const AUTH_KEY = "cowboys_iq_auth_v3";
+  const HISTORY_COOKIE = "lsi_history";
+  const USER_COOKIE = "lsi_user";
+
+  function isGmail(email) {
+    return /^[^@\s]+@gmail\.com$/i.test(String(email || "").trim());
+  }
+
+  function readCookie(name) {
+    if (typeof document === "undefined") return "";
+    const prefix = `${name}=`;
+    const match = document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(prefix));
+    return match ? decodeURIComponent(match.slice(prefix.length)) : "";
+  }
+
+  function writeCookie(name, value, maxAgeSeconds = 60 * 60 * 24 * 365) {
+    if (typeof document === "undefined" || !value) return;
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax${secure}`;
+  }
+
+  function makeHistoryId() {
+    if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+    return `hist_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+  }
+
+  function ensureHistoryId() {
+    if (typeof window === "undefined") return "";
+
+    let historyId = readCookie(HISTORY_COOKIE) || localStorage.getItem(HISTORY_COOKIE);
+    if (!historyId) {
+      historyId = makeHistoryId();
+    }
+
+    localStorage.setItem(HISTORY_COOKIE, historyId);
+    writeCookie(HISTORY_COOKIE, historyId);
+    return historyId;
+  }
+
+  function getSignedInUser() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
+      if (isGmail(stored?.user)) {
+        const email = stored.user.trim().toLowerCase();
+        writeCookie(USER_COOKIE, email);
+        return email;
+      }
+    } catch (_err) {
+      // Ignore malformed legacy auth data and fall back to the cookie.
+    }
+
+    const cookieUser = readCookie(USER_COOKIE);
+    return isGmail(cookieUser) ? cookieUser.trim().toLowerCase() : "";
+  }
+
+  function getIdentityHeaders() {
+    const historyId = ensureHistoryId();
+    const user = getSignedInUser();
+
+    return {
+      ...(historyId ? { "X-LoneStar-History-Id": historyId } : {}),
+      ...(user ? { "X-LoneStar-User": user } : {})
+    };
+  }
+
   async function request(path, options = {}) {
     const {
       method = "GET",
@@ -43,6 +111,7 @@
       method,
       headers: {
         "Content-Type": "application/json",
+        ...getIdentityHeaders(),
         ...headers
       },
       body: body !== undefined ? JSON.stringify(body) : undefined
@@ -183,6 +252,12 @@
     });
   }
 
+  async function getPlayoffBracket(year) {
+    return request("/api/analytics/bracket", {
+      query: { year }
+    });
+  }
+
   async function getScheduleStrength(year) {
     return request("/api/analytics/schedule-strength", {
       query: { year }
@@ -293,6 +368,49 @@
     ]);
   }
 
+
+  // ── War Room (Pro): prediction market + chatbot ──────────────
+
+  function getWarRoomStatus() {
+    return request("/api/warroom/status");
+  }
+
+  function getWarRoomMarkets() {
+    return request("/api/warroom/markets");
+  }
+
+  function placeWarRoomBet(marketId, side, amount) {
+    return request(`/api/warroom/markets/${marketId}/bet`, {
+      method: "POST",
+      body: { side, amount }
+    });
+  }
+
+  function getWarRoomLeaderboard() {
+    return request("/api/warroom/leaderboard");
+  }
+
+  function sendWarRoomChat(messages) {
+    return request("/api/warroom/chat", {
+      method: "POST",
+      body: { messages }
+    });
+  }
+
+  function claimSeasonReward(wins) {
+    return request("/api/warroom/season/reward", {
+      method: "POST",
+      body: { wins }
+    });
+  }
+
+  function startProCheckout() {
+    return request("/api/billing/create-checkout-session", {
+      method: "POST",
+      body: { plan: "War Room Pro", email: getSignedInUser() }
+    });
+  }
+
   export const api = {
     getCowboysRecord,
     getRecord,
@@ -311,6 +429,7 @@
     getDivisionPower,
     getLeagueForecast,
     getPlayoffPulse,
+    getPlayoffBracket,
     getScheduleStrength,
     getMatchup,
     getTeamComparison,
@@ -324,5 +443,12 @@
     generatePrediction,
     getCurrentPrediction,
     getPredictionHistory,
-    runWhatIfSimulation
+    runWhatIfSimulation,
+    getWarRoomStatus,
+    getWarRoomMarkets,
+    placeWarRoomBet,
+    getWarRoomLeaderboard,
+    sendWarRoomChat,
+    claimSeasonReward,
+    startProCheckout
   };

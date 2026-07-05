@@ -30,13 +30,16 @@ import StandingsPage from "./components/StandingsPage";
 import TSICard from "./components/TSICard";
 import TeamComparisonPage from "./components/TeamComparisonPage";
 import Timeline from "./components/Timeline";
+import PlayoffBracket from "./components/PlayoffBracket";
 import UserProfileCard from "./components/UserProfileCard";
+import WarRoomPage from "./components/WarRoomPage";
 
 import "./styles/global.css";
 import "../style.css";
 import "./styles/EventsAdmin.css";
 import "./styles/Timeline.css";
 import "./styles/MotionPolish.css";
+import "./styles/WarRoom.css";
 
 const CATEGORY_MAP = {
   dashboard: 'Core',
@@ -44,6 +47,8 @@ const CATEGORY_MAP = {
   players: 'Core',
   predictions: 'Core',
   insights: 'Core',
+  bracket: 'Core',
+  warroom: 'Pro',
   events: 'System',
   profile: 'System',
   history: 'System'
@@ -87,12 +92,16 @@ const NFL_TEAMS = [
 /* ── Shared Components ──────────────────────────────────────── */
 
 function LiveTicker() {
-  const [items, setItems] = useState([
-    { label: "DAL Proj Wins", value: "11", trend: "up" },
-    { label: "Top Seed", value: "SF", trend: "neutral" },
-    { label: "Highest TSI", value: "BAL (14.2)", trend: "up" },
-    { label: "Playoff Bubble", value: "SEA, LAR", trend: "down" },
-    { label: "Strength of Sched", value: "DAL (Toughest)", trend: "neutral" }
+  const [items] = useState([
+    { label: "AFC #1 Seed",     value: "KC 14-3",    trend: "up" },
+    { label: "NFC #1 Seed",     value: "DET 15-2",   trend: "up" },
+    { label: "SB Favorite",     value: "KC 52%",     trend: "neutral" },
+    { label: "Highest TSI",     value: "BAL 14.2",   trend: "up" },
+    { label: "DAL Proj Wins",   value: "10.8",       trend: "up" },
+    { label: "DAL Playoff Odds", value: "74%",       trend: "up" },
+    { label: "Bubble Teams",    value: "SEA,LAR,DEN",trend: "down" },
+    { label: "SOS Toughest",    value: "DAL",        trend: "neutral" },
+    { label: "DAL SB Odds",     value: "9.4%",       trend: "up" },
   ]);
 
   return (
@@ -125,11 +134,13 @@ function CommandPalette({ isOpen, onClose, onNavigate }) {
   if (!isOpen) return null;
 
   const pages = [
-    { id: 'dashboard', label: 'Dashboard', desc: 'Core season outlook' },
-    { id: 'games', label: 'Games', desc: 'Schedule and win probability' },
-    { id: 'players', label: 'Players', desc: 'Roster profiles and comparison' },
-    { id: 'predictions', label: 'Predictions', desc: 'Model output and scenarios' },
-    { id: 'insights', label: 'Insights', desc: 'League standings and trends' },
+    { id: 'dashboard',   label: 'Dashboard',        desc: 'Core season outlook' },
+    { id: 'bracket',     label: 'Playoff Bracket',  desc: 'AI-projected NFL playoff bracket' },
+    { id: 'games',       label: 'Games',             desc: 'Schedule and win probability' },
+    { id: 'players',     label: 'Players',           desc: 'Roster profiles and comparison' },
+    { id: 'predictions', label: 'Predictions',       desc: 'Model output and scenarios' },
+    { id: 'insights',    label: 'Insights',          desc: 'League standings and trends' },
+    { id: 'warroom',     label: 'War Room',          desc: 'Pro prediction markets + analyst chatbot' },
   ];
 
   const results = pages.filter(p => p.label.toLowerCase().includes(query.toLowerCase()));
@@ -382,6 +393,19 @@ function PredictionsPage({ year, selectedTeam }) {
   );
 }
 
+/* ── Bracket Page ────────────────────────────────────────────── */
+
+function BracketPage({ year }) {
+  return (
+    <PageShell
+      title="Playoff Bracket"
+      subtitle="AI-projected NFL playoff bracket with Monte Carlo win probabilities for all 32 teams."
+    >
+      <PlayoffBracket year={year} />
+    </PageShell>
+  );
+}
+
 /* ── Insights Page (consolidated) ───────────────────────────── */
 
 function InsightsPage({ year, selectedTeam }) {
@@ -462,7 +486,7 @@ function LinearInspector({ currentPage, selectedTeam, year }) {
 
 function useAppRouter() {
   const allowedPages = useMemo(
-    () => new Set(["dashboard", "games", "players", "predictions", "insights", "events", "profile", "history"]),
+    () => new Set(["dashboard", "games", "players", "predictions", "insights", "bracket", "warroom", "events", "profile", "history"]),
     []
   );
 
@@ -579,6 +603,10 @@ function App() {
         return <PredictionsPage year={year} selectedTeam={selectedTeam} />;
       case "insights":
         return <InsightsPage year={year} selectedTeam={selectedTeam} />;
+      case "bracket":
+        return <BracketPage year={year} />;
+      case "warroom":
+        return <WarRoomPage />;
       case "events":
         return <EventsAdmin />;
       case "profile":
