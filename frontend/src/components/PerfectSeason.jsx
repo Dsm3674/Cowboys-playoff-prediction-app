@@ -792,6 +792,7 @@ export default function PerfectSeason({ onReward }) {
   const [results, setResults] = useState([]);
   const [stamp, setStamp] = useState(null);
   const [reward, setReward] = useState(null);
+  const [spinSettled, setSpinSettled] = useState(false);
   const timers = useRef([]);
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -822,6 +823,7 @@ export default function PerfectSeason({ onReward }) {
     setPhase("spin");
     setSelected(null);
     setFilterPos("All");
+    setSpinSettled(false);
     let ticks = 0;
     const interval = setInterval(() => {
       ticks += 1;
@@ -831,9 +833,11 @@ export default function PerfectSeason({ onReward }) {
         clearInterval(interval);
         const rolled = rollRound(nextRoster, roundSide(nextRound));
         setSpinLabel({ team: rolled.team, era: rolled.era });
+        setSpinSettled(true);
         later(() => {
           setRoundPool(rolled);
           setPhase("draft");
+          setSpinSettled(false);
         }, 850);
       }
     }, 70);
@@ -987,13 +991,21 @@ export default function PerfectSeason({ onReward }) {
             <span className={`ps2-side ps2-side--${roundSide(round).toLowerCase()}`}>
               {roundSide(round)}
             </span>
-            <span className={`ps2-chip ps2-chip--team ${phase === "spin" ? "is-spinning" : ""}`}>
+            <span
+              className={`ps2-chip ps2-chip--team ${
+                phase === "spin" ? (spinSettled ? "is-locked" : "is-spinning") : ""
+              }`}
+            >
               <em>Team</em>
-              {spinLabel.team}
+              <span className="ps2-chip__value">{spinLabel.team}</span>
             </span>
-            <span className={`ps2-chip ps2-chip--era ${phase === "spin" ? "is-spinning" : ""}`}>
+            <span
+              className={`ps2-chip ps2-chip--era ${
+                phase === "spin" ? (spinSettled ? "is-locked" : "is-spinning") : ""
+              }`}
+            >
               <em>Era</em>
-              {spinLabel.era}
+              <span className="ps2-chip__value">{spinLabel.era}</span>
             </span>
             <button
               className="ps-skip"
