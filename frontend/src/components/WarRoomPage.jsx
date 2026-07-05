@@ -412,7 +412,7 @@ export default function WarRoomPage() {
 
       {flash ? <div className="wr-flash">{flash}</div> : null}
 
-      <div className="wr-layout">
+      <div className={`wr-layout ${mode === "season" ? "wr-layout--wide" : ""}`}>
         <div className="wr-left" key={mode}>
           {mode === "season" ? (
             <PerfectSeason
