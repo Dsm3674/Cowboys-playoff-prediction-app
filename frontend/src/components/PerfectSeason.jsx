@@ -1,304 +1,441 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 
 /*
- * Perfect Season — the War Room's second game mode, inspired by 82-0.com.
- * Spin the wheel for a legendary NFL team-era, draft an all-time roster
- * from each pool, then play a 20-game season one reveal at a time chasing
- * 20-0. Wins pay out Star Coins into the same wallet as the markets.
+ * Perfect Season — the War Room's second game mode, inspired by 82-0.com's
+ * 20-0 challenge, rebuilt in depth:
+ *
+ *   · 12-round draft. Each round spins a TEAM + ERA window and deals that
+ *     team-era's player pool with (approximate) real season stat lines.
+ *   · Rounds 1-6 draft offense (QB/RB/WR/TE + 2 FLEX), rounds 7-12 draft
+ *     defense (EDGE/DT/LB/CB/S + D-FLEX). Premium slots carry multipliers:
+ *     QB x1.5, EDGE x1.2, CB x1.2.
+ *   · Select a player, then tap a highlighted slot to place them. Sort and
+ *     filter the pool; 2 rerolls per draft.
+ *   · The Quantum Engine runs a 10,000-season Monte Carlo on the finished
+ *     roster — win distribution, expected wins, and the odds of 20-0 —
+ *     before the live season plays out one reveal at a time.
+ *   · Wins pay Star Coins into the same wallet as the markets.
+ *
+ * Stat lines are approximate historical season numbers — game data, not a
+ * record book.
  */
 
-const ERAS = [
+// ── Dataset: team-era pools ─────────────────────────────────────
+
+function P(name, pos, year, rating, stats) {
+  return { name, pos, year, rating, stats };
+}
+
+const OFF_POS = new Set(["QB", "RB", "WR", "TE"]);
+const DEF_POS = new Set(["EDGE", "DT", "LB", "CB", "S"]);
+
+const POOLS = [
   {
-    name: "'70s Steelers",
+    team: "DAL",
+    era: "2021–2025",
     players: [
-      { name: "Terry Bradshaw", pos: "QB", rating: 89 },
-      { name: "Franco Harris", pos: "RB", rating: 91 },
-      { name: "Lynn Swann", pos: "WR", rating: 88 },
-      { name: "John Stallworth", pos: "WR", rating: 89 },
-      { name: "Bennie Cunningham", pos: "TE", rating: 82 },
-      { name: "Mike Webster", pos: "OL", rating: 95 },
-      { name: "Joe Greene", pos: "DL", rating: 97 },
-      { name: "Jack Lambert", pos: "LB", rating: 95 },
-      { name: "Jack Ham", pos: "LB", rating: 94 },
-      { name: "Mel Blount", pos: "DB", rating: 94 },
-      { name: "Donnie Shell", pos: "DB", rating: 88 }
+      P("Dak Prescott", "QB", 2023, 91, { YDS: 4516, TD: 36, INT: 9, RTG: 105.9 }),
+      P("CeeDee Lamb", "WR", 2023, 94, { REC: 135, YDS: 1749, TD: 12 }),
+      P("Tony Pollard", "RB", 2022, 86, { RUYDS: 1007, TD: 9, YPC: 5.2, REC: 39 }),
+      P("Jake Ferguson", "TE", 2023, 84, { REC: 71, YDS: 761, TD: 5 }),
+      P("Brandin Cooks", "WR", 2023, 83, { REC: 54, YDS: 657, TD: 8 }),
+      P("Micah Parsons", "EDGE", 2021, 96, { SACKS: 13, TKL: 84, FF: 3 }),
+      P("Trevon Diggs", "CB", 2021, 92, { INT: 11, PD: 21, TKL: 52 }),
+      P("DaRon Bland", "CB", 2023, 90, { INT: 9, PD: 14, TD: 5 }),
+      P("Osa Odighizuwa", "DT", 2023, 85, { SACKS: 2, TKL: 42 }),
+      P("Leighton Vander Esch", "LB", 2022, 83, { TKL: 90, SACKS: 1 }),
+      P("Malik Hooker", "S", 2022, 83, { INT: 3, TKL: 61 })
     ]
   },
   {
-    name: "'70s Doomsday Cowboys",
+    team: "DAL",
+    era: "2016–2020",
     players: [
-      { name: "Roger Staubach", pos: "QB", rating: 94 },
-      { name: "Tony Dorsett", pos: "RB", rating: 93 },
-      { name: "Drew Pearson", pos: "WR", rating: 90 },
-      { name: "Billy Joe DuPree", pos: "TE", rating: 86 },
-      { name: "Rayfield Wright", pos: "OL", rating: 92 },
-      { name: "Bob Lilly", pos: "DL", rating: 96 },
-      { name: "Randy White", pos: "DL", rating: 95 },
-      { name: "Chuck Howley", pos: "LB", rating: 93 },
-      { name: "Cliff Harris", pos: "DB", rating: 91 },
-      { name: "Mel Renfro", pos: "DB", rating: 93 }
+      P("Dak Prescott", "QB", 2016, 89, { YDS: 3667, TD: 23, INT: 4, RTG: 104.9 }),
+      P("Ezekiel Elliott", "RB", 2016, 94, { RUYDS: 1631, TD: 15, YPC: 5.1 }),
+      P("Amari Cooper", "WR", 2019, 88, { REC: 79, YDS: 1189, TD: 8 }),
+      P("Michael Gallup", "WR", 2019, 84, { REC: 66, YDS: 1107, TD: 6 }),
+      P("Jason Witten", "TE", 2017, 85, { REC: 63, YDS: 560, TD: 5 }),
+      P("DeMarcus Lawrence", "EDGE", 2017, 91, { SACKS: 14.5, TKL: 58, FF: 4 }),
+      P("Maliek Collins", "DT", 2018, 82, { SACKS: 3, TKL: 25 }),
+      P("Jaylon Smith", "LB", 2019, 84, { TKL: 142, SACKS: 2.5 }),
+      P("Sean Lee", "LB", 2016, 89, { TKL: 145, INT: 1 }),
+      P("Byron Jones", "CB", 2018, 87, { PD: 14, TKL: 67 }),
+      P("Xavier Woods", "S", 2018, 82, { INT: 2, TKL: 56 })
     ]
   },
   {
-    name: "'80s 49ers",
+    team: "DAL",
+    era: "1991–1995",
     players: [
-      { name: "Joe Montana", pos: "QB", rating: 97 },
-      { name: "Roger Craig", pos: "RB", rating: 90 },
-      { name: "Jerry Rice", pos: "WR", rating: 99 },
-      { name: "Dwight Clark", pos: "WR", rating: 87 },
-      { name: "Brent Jones", pos: "TE", rating: 85 },
-      { name: "Randy Cross", pos: "OL", rating: 88 },
-      { name: "Jesse Sapolu", pos: "OL", rating: 84 },
-      { name: "Fred Dean", pos: "DL", rating: 89 },
-      { name: "Charles Haley", pos: "LB", rating: 91 },
-      { name: "Ronnie Lott", pos: "DB", rating: 97 },
-      { name: "Eric Wright", pos: "DB", rating: 86 }
+      P("Troy Aikman", "QB", 1992, 93, { YDS: 3445, TD: 23, INT: 14, RTG: 89.5 }),
+      P("Emmitt Smith", "RB", 1995, 98, { RUYDS: 1773, TD: 25, YPC: 4.7 }),
+      P("Michael Irvin", "WR", 1995, 95, { REC: 111, YDS: 1603, TD: 10 }),
+      P("Alvin Harper", "WR", 1994, 84, { REC: 33, YDS: 821, TD: 8 }),
+      P("Jay Novacek", "TE", 1992, 87, { REC: 68, YDS: 630, TD: 6 }),
+      P("Charles Haley", "EDGE", 1994, 93, { SACKS: 12.5, TKL: 58 }),
+      P("Leon Lett", "DT", 1994, 87, { SACKS: 5, TKL: 44 }),
+      P("Ken Norton Jr.", "LB", 1993, 89, { TKL: 159, SACKS: 2 }),
+      P("Darrin Smith", "LB", 1994, 83, { TKL: 96, SACKS: 3 }),
+      P("Deion Sanders", "CB", 1995, 98, { INT: 2, PD: 12, TD: 1 }),
+      P("Darren Woodson", "S", 1994, 93, { TKL: 121, INT: 5 })
     ]
   },
   {
-    name: "'85 Bears",
+    team: "PHI",
+    era: "2021–2025",
     players: [
-      { name: "Jim McMahon", pos: "QB", rating: 84 },
-      { name: "Walter Payton", pos: "RB", rating: 98 },
-      { name: "Willie Gault", pos: "WR", rating: 85 },
-      { name: "Emery Moorehead", pos: "TE", rating: 80 },
-      { name: "Jimbo Covert", pos: "OL", rating: 91 },
-      { name: "Richard Dent", pos: "DL", rating: 93 },
-      { name: "Dan Hampton", pos: "DL", rating: 92 },
-      { name: "Mike Singletary", pos: "LB", rating: 95 },
-      { name: "Otis Wilson", pos: "LB", rating: 87 },
-      { name: "Dave Duerson", pos: "DB", rating: 86 },
-      { name: "Gary Fencik", pos: "DB", rating: 85 }
+      P("Jalen Hurts", "QB", 2022, 92, { YDS: 3701, TD: 22, INT: 6, RTG: 101.5, RUYDS: 760 }),
+      P("Saquon Barkley", "RB", 2024, 97, { RUYDS: 2005, TD: 13, YPC: 5.8 }),
+      P("A.J. Brown", "WR", 2022, 93, { REC: 88, YDS: 1496, TD: 11 }),
+      P("DeVonta Smith", "WR", 2022, 88, { REC: 95, YDS: 1196, TD: 7 }),
+      P("Dallas Goedert", "TE", 2022, 86, { REC: 55, YDS: 702, TD: 3 }),
+      P("D'Andre Swift", "RB", 2023, 84, { RUYDS: 1049, TD: 5, YPC: 4.6 }),
+      P("Haason Reddick", "EDGE", 2022, 92, { SACKS: 16, TKL: 49, FF: 5 }),
+      P("Fletcher Cox", "DT", 2021, 88, { SACKS: 3.5, TKL: 35 }),
+      P("T.J. Edwards", "LB", 2022, 85, { TKL: 159, SACKS: 2 }),
+      P("Darius Slay", "CB", 2021, 89, { INT: 3, PD: 13, TD: 2 }),
+      P("C.J. Gardner-Johnson", "S", 2022, 86, { INT: 6, TKL: 67 })
     ]
   },
   {
-    name: "'86 Giants",
+    team: "PHI",
+    era: "2001–2005",
     players: [
-      { name: "Phil Simms", pos: "QB", rating: 86 },
-      { name: "Joe Morris", pos: "RB", rating: 85 },
-      { name: "Lionel Manuel", pos: "WR", rating: 80 },
-      { name: "Mark Bavaro", pos: "TE", rating: 90 },
-      { name: "Brad Benson", pos: "OL", rating: 82 },
-      { name: "Leonard Marshall", pos: "DL", rating: 87 },
-      { name: "Lawrence Taylor", pos: "LB", rating: 99 },
-      { name: "Harry Carson", pos: "LB", rating: 90 },
-      { name: "Carl Banks", pos: "LB", rating: 88 },
-      { name: "Mark Collins", pos: "DB", rating: 84 }
+      P("Donovan McNabb", "QB", 2004, 91, { YDS: 3875, TD: 31, INT: 8, RTG: 104.7 }),
+      P("Brian Westbrook", "RB", 2004, 88, { RUYDS: 812, TD: 9, REC: 73, RECYDS: 703 }),
+      P("Terrell Owens", "WR", 2004, 95, { REC: 77, YDS: 1200, TD: 14 }),
+      P("Todd Pinkston", "WR", 2004, 79, { REC: 36, YDS: 676, TD: 1 }),
+      P("Chad Lewis", "TE", 2004, 80, { REC: 29, YDS: 267, TD: 3 }),
+      P("Jevon Kearse", "EDGE", 2004, 87, { SACKS: 7.5, TKL: 39 }),
+      P("Corey Simon", "DT", 2003, 84, { SACKS: 7.5, TKL: 45 }),
+      P("Jeremiah Trotter", "LB", 2004, 87, { TKL: 89, SACKS: 1 }),
+      P("Lito Sheppard", "CB", 2004, 86, { INT: 5, PD: 14, TD: 2 }),
+      P("Brian Dawkins", "S", 2004, 94, { INT: 4, TKL: 78, FF: 3 })
     ]
   },
   {
-    name: "'90s Cowboys Dynasty",
+    team: "ARI",
+    era: "2016–2020",
     players: [
-      { name: "Troy Aikman", pos: "QB", rating: 93 },
-      { name: "Emmitt Smith", pos: "RB", rating: 97 },
-      { name: "Michael Irvin", pos: "WR", rating: 94 },
-      { name: "Jay Novacek", pos: "TE", rating: 87 },
-      { name: "Larry Allen", pos: "OL", rating: 98 },
-      { name: "Erik Williams", pos: "OL", rating: 90 },
-      { name: "Charles Haley", pos: "DL", rating: 92 },
-      { name: "Ken Norton Jr.", pos: "LB", rating: 88 },
-      { name: "Deion Sanders", pos: "DB", rating: 98 },
-      { name: "Darren Woodson", pos: "DB", rating: 92 }
+      P("Kyler Murray", "QB", 2020, 88, { YDS: 3971, TD: 26, INT: 12, RUYDS: 819 }),
+      P("David Johnson", "RB", 2016, 93, { RUYDS: 1239, TD: 16, REC: 80, RECYDS: 879 }),
+      P("Kenyan Drake", "RB", 2019, 84, { RUYDS: 817, TD: 8, YPC: 4.8, REC: 50 }),
+      P("Larry Fitzgerald", "WR", 2016, 90, { REC: 107, YDS: 1023, TD: 6 }),
+      P("DeAndre Hopkins", "WR", 2020, 93, { REC: 115, YDS: 1407, TD: 6 }),
+      P("Ricky Seals-Jones", "TE", 2018, 78, { REC: 34, YDS: 343, TD: 1 }),
+      P("Chandler Jones", "EDGE", 2017, 94, { SACKS: 17, TKL: 61, FF: 2 }),
+      P("Calais Campbell", "DT", 2016, 91, { SACKS: 8, TKL: 53 }),
+      P("Deone Bucannon", "LB", 2016, 83, { TKL: 89, SACKS: 2 }),
+      P("Patrick Peterson", "CB", 2016, 93, { INT: 3, PD: 12 }),
+      P("Budda Baker", "S", 2019, 89, { TKL: 147, PD: 6 })
     ]
   },
   {
-    name: "'90s Packers",
+    team: "KC",
+    era: "2018–2022",
     players: [
-      { name: "Brett Favre", pos: "QB", rating: 94 },
-      { name: "Dorsey Levens", pos: "RB", rating: 84 },
-      { name: "Antonio Freeman", pos: "WR", rating: 86 },
-      { name: "Robert Brooks", pos: "WR", rating: 84 },
-      { name: "Mark Chmura", pos: "TE", rating: 84 },
-      { name: "Frank Winters", pos: "OL", rating: 84 },
-      { name: "Reggie White", pos: "DL", rating: 98 },
-      { name: "Santana Dotson", pos: "DL", rating: 84 },
-      { name: "Wayne Simmons", pos: "LB", rating: 82 },
-      { name: "LeRoy Butler", pos: "DB", rating: 91 }
+      P("Patrick Mahomes", "QB", 2018, 99, { YDS: 5097, TD: 50, INT: 12, RTG: 113.8 }),
+      P("Travis Kelce", "TE", 2022, 97, { REC: 110, YDS: 1338, TD: 12 }),
+      P("Tyreek Hill", "WR", 2020, 94, { REC: 87, YDS: 1276, TD: 15 }),
+      P("JuJu Smith-Schuster", "WR", 2022, 82, { REC: 78, YDS: 933, TD: 3 }),
+      P("Clyde Edwards-Helaire", "RB", 2020, 80, { RUYDS: 803, TD: 4, YPC: 4.4 }),
+      P("Jerick McKinnon", "RB", 2022, 79, { RUYDS: 291, TD: 1, REC: 56, RECTD: 9 }),
+      P("Chris Jones", "DT", 2022, 95, { SACKS: 15.5, TKL: 44 }),
+      P("Frank Clark", "EDGE", 2019, 85, { SACKS: 8, TKL: 37 }),
+      P("Nick Bolton", "LB", 2022, 86, { TKL: 180, SACKS: 2 }),
+      P("L'Jarius Sneed", "CB", 2022, 87, { INT: 3, PD: 11, SACKS: 3.5 }),
+      P("Tyrann Mathieu", "S", 2020, 90, { INT: 6, TKL: 62 })
     ]
   },
   {
-    name: "'90s Lions",
+    team: "NE",
+    era: "2007–2011",
     players: [
-      { name: "Scott Mitchell", pos: "QB", rating: 78 },
-      { name: "Barry Sanders", pos: "RB", rating: 99 },
-      { name: "Herman Moore", pos: "WR", rating: 89 },
-      { name: "Brett Perriman", pos: "WR", rating: 83 },
-      { name: "David Sloan", pos: "TE", rating: 78 },
-      { name: "Lomas Brown", pos: "OL", rating: 89 },
-      { name: "Robert Porcher", pos: "DL", rating: 85 },
-      { name: "Chris Spielman", pos: "LB", rating: 87 },
-      { name: "Bennie Blades", pos: "DB", rating: 83 }
+      P("Tom Brady", "QB", 2007, 99, { YDS: 4806, TD: 50, INT: 8, RTG: 117.2 }),
+      P("Randy Moss", "WR", 2007, 98, { REC: 98, YDS: 1493, TD: 23 }),
+      P("Wes Welker", "WR", 2009, 90, { REC: 123, YDS: 1348, TD: 4 }),
+      P("Rob Gronkowski", "TE", 2011, 96, { REC: 90, YDS: 1327, TD: 17 }),
+      P("BenJarvus Green-Ellis", "RB", 2010, 81, { RUYDS: 1008, TD: 13, YPC: 4.4 }),
+      P("Kevin Faulk", "RB", 2008, 79, { RUYDS: 507, REC: 58, TD: 6 }),
+      P("Vince Wilfork", "DT", 2010, 91, { TKL: 57, SACKS: 2 }),
+      P("Mike Vrabel", "EDGE", 2007, 88, { SACKS: 12.5, TKL: 76 }),
+      P("Jerod Mayo", "LB", 2010, 87, { TKL: 175, SACKS: 2 }),
+      P("Asante Samuel", "CB", 2007, 89, { INT: 6, PD: 17 }),
+      P("Brandon Meriweather", "S", 2009, 82, { INT: 5, TKL: 66 })
     ]
   },
   {
-    name: "'99 Rams (Greatest Show)",
+    team: "NE",
+    era: "2001–2005",
     players: [
-      { name: "Kurt Warner", pos: "QB", rating: 92 },
-      { name: "Marshall Faulk", pos: "RB", rating: 96 },
-      { name: "Isaac Bruce", pos: "WR", rating: 92 },
-      { name: "Torry Holt", pos: "WR", rating: 91 },
-      { name: "Roland Williams", pos: "TE", rating: 80 },
-      { name: "Orlando Pace", pos: "OL", rating: 96 },
-      { name: "Kevin Carter", pos: "DL", rating: 90 },
-      { name: "D'Marco Farr", pos: "DL", rating: 84 },
-      { name: "London Fletcher", pos: "LB", rating: 88 },
-      { name: "Todd Lyght", pos: "DB", rating: 85 }
+      P("Tom Brady", "QB", 2004, 95, { YDS: 3692, TD: 28, INT: 14, RTG: 92.6 }),
+      P("Corey Dillon", "RB", 2004, 90, { RUYDS: 1635, TD: 12, YPC: 4.7 }),
+      P("Deion Branch", "WR", 2005, 84, { REC: 78, YDS: 998, TD: 5 }),
+      P("Troy Brown", "WR", 2001, 87, { REC: 101, YDS: 1199, TD: 5 }),
+      P("Daniel Graham", "TE", 2004, 80, { REC: 30, YDS: 364, TD: 7 }),
+      P("Willie McGinest", "EDGE", 2005, 87, { SACKS: 9.5, TKL: 48 }),
+      P("Richard Seymour", "DT", 2003, 93, { SACKS: 8, TKL: 57 }),
+      P("Tedy Bruschi", "LB", 2004, 88, { TKL: 122, INT: 3 }),
+      P("Ty Law", "CB", 2003, 92, { INT: 6, PD: 23 }),
+      P("Rodney Harrison", "S", 2004, 90, { TKL: 138, INT: 2, SACKS: 3 })
     ]
   },
   {
-    name: "'00 Ravens Defense",
+    team: "SF",
+    era: "1984–1989",
     players: [
-      { name: "Trent Dilfer", pos: "QB", rating: 78 },
-      { name: "Jamal Lewis", pos: "RB", rating: 89 },
-      { name: "Qadry Ismail", pos: "WR", rating: 81 },
-      { name: "Shannon Sharpe", pos: "TE", rating: 92 },
-      { name: "Jonathan Ogden", pos: "OL", rating: 97 },
-      { name: "Sam Adams", pos: "DL", rating: 87 },
-      { name: "Tony Siragusa", pos: "DL", rating: 84 },
-      { name: "Ray Lewis", pos: "LB", rating: 99 },
-      { name: "Peter Boulware", pos: "LB", rating: 87 },
-      { name: "Rod Woodson", pos: "DB", rating: 94 },
-      { name: "Chris McAlister", pos: "DB", rating: 88 }
+      P("Joe Montana", "QB", 1989, 97, { YDS: 3521, TD: 26, INT: 8, RTG: 112.4 }),
+      P("Jerry Rice", "WR", 1987, 99, { REC: 65, YDS: 1078, TD: 22 }),
+      P("Roger Craig", "RB", 1988, 91, { RUYDS: 1502, TD: 9, REC: 76 }),
+      P("John Taylor", "WR", 1989, 86, { REC: 60, YDS: 1077, TD: 10 }),
+      P("Brent Jones", "TE", 1989, 84, { REC: 40, YDS: 500, TD: 4 }),
+      P("Charles Haley", "EDGE", 1989, 91, { SACKS: 10.5, TKL: 51 }),
+      P("Michael Carter", "DT", 1987, 86, { SACKS: 5, TKL: 43 }),
+      P("Riki Ellison", "LB", 1985, 80, { TKL: 90 }),
+      P("Ronnie Lott", "S", 1986, 97, { INT: 10, TKL: 77 }),
+      P("Eric Wright", "CB", 1985, 86, { INT: 2, PD: 10 }),
+      P("Don Griffin", "CB", 1988, 82, { INT: 1, PD: 12 })
     ]
   },
   {
-    name: "'00s Patriots",
+    team: "SF",
+    era: "2019–2023",
     players: [
-      { name: "Tom Brady", pos: "QB", rating: 99 },
-      { name: "Corey Dillon", pos: "RB", rating: 88 },
-      { name: "Randy Moss", pos: "WR", rating: 97 },
-      { name: "Troy Brown", pos: "WR", rating: 85 },
-      { name: "Ben Watson", pos: "TE", rating: 82 },
-      { name: "Matt Light", pos: "OL", rating: 86 },
-      { name: "Richard Seymour", pos: "DL", rating: 93 },
-      { name: "Vince Wilfork", pos: "DL", rating: 90 },
-      { name: "Tedy Bruschi", pos: "LB", rating: 88 },
-      { name: "Ty Law", pos: "DB", rating: 92 },
-      { name: "Rodney Harrison", pos: "DB", rating: 90 }
+      P("Brock Purdy", "QB", 2023, 88, { YDS: 4280, TD: 31, INT: 11, RTG: 113.0 }),
+      P("Christian McCaffrey", "RB", 2023, 97, { RUYDS: 1459, TD: 21, REC: 67, RECYDS: 564 }),
+      P("Deebo Samuel", "WR", 2021, 92, { REC: 77, YDS: 1405, TD: 14, RUYDS: 365 }),
+      P("Brandon Aiyuk", "WR", 2023, 88, { REC: 75, YDS: 1342, TD: 7 }),
+      P("George Kittle", "TE", 2019, 94, { REC: 85, YDS: 1053, TD: 5 }),
+      P("Nick Bosa", "EDGE", 2022, 96, { SACKS: 18.5, TKL: 51 }),
+      P("Arik Armstead", "DT", 2019, 87, { SACKS: 10, TKL: 54 }),
+      P("Fred Warner", "LB", 2021, 96, { TKL: 137, INT: 2, SACKS: 1 }),
+      P("Charvarius Ward", "CB", 2023, 88, { INT: 5, PD: 23 }),
+      P("Talanoa Hufanga", "S", 2022, 87, { INT: 4, TKL: 97 })
     ]
   },
   {
-    name: "'00s Colts",
+    team: "CHI",
+    era: "1984–1988",
     players: [
-      { name: "Peyton Manning", pos: "QB", rating: 98 },
-      { name: "Edgerrin James", pos: "RB", rating: 92 },
-      { name: "Marvin Harrison", pos: "WR", rating: 96 },
-      { name: "Reggie Wayne", pos: "WR", rating: 92 },
-      { name: "Dallas Clark", pos: "TE", rating: 88 },
-      { name: "Jeff Saturday", pos: "OL", rating: 90 },
-      { name: "Dwight Freeney", pos: "DL", rating: 93 },
-      { name: "Robert Mathis", pos: "DL", rating: 90 },
-      { name: "Gary Brackett", pos: "LB", rating: 82 },
-      { name: "Bob Sanders", pos: "DB", rating: 89 }
+      P("Jim McMahon", "QB", 1985, 83, { YDS: 2392, TD: 15, INT: 11 }),
+      P("Walter Payton", "RB", 1985, 97, { RUYDS: 1551, TD: 9, YPC: 4.8 }),
+      P("Willie Gault", "WR", 1985, 85, { REC: 33, YDS: 704, TD: 1 }),
+      P("Dennis McKinnon", "WR", 1985, 80, { REC: 31, YDS: 555, TD: 7 }),
+      P("Emery Moorehead", "TE", 1985, 79, { REC: 35, YDS: 481, TD: 1 }),
+      P("Richard Dent", "EDGE", 1985, 94, { SACKS: 17, TKL: 54, FF: 7 }),
+      P("Dan Hampton", "DT", 1985, 92, { SACKS: 6.5, TKL: 57 }),
+      P("Steve McMichael", "DT", 1985, 89, { SACKS: 8, TKL: 51 }),
+      P("Mike Singletary", "LB", 1985, 96, { TKL: 113, INT: 1 }),
+      P("Wilber Marshall", "LB", 1986, 89, { TKL: 117, SACKS: 5.5, INT: 5 }),
+      P("Gary Fencik", "S", 1985, 86, { INT: 5, TKL: 87 })
     ]
   },
   {
-    name: "'00s Cowboys Grit",
+    team: "PIT",
+    era: "1972–1979",
     players: [
-      { name: "Tony Romo", pos: "QB", rating: 89 },
-      { name: "Marion Barber", pos: "RB", rating: 84 },
-      { name: "Terrell Owens", pos: "WR", rating: 93 },
-      { name: "Jason Witten", pos: "TE", rating: 93 },
-      { name: "Flozell Adams", pos: "OL", rating: 87 },
-      { name: "La'Roi Glover", pos: "DL", rating: 88 },
-      { name: "DeMarcus Ware", pos: "LB", rating: 96 },
-      { name: "Terence Newman", pos: "DB", rating: 86 },
-      { name: "Roy Williams", pos: "DB", rating: 87 }
+      P("Terry Bradshaw", "QB", 1978, 88, { YDS: 2915, TD: 28, INT: 20 }),
+      P("Franco Harris", "RB", 1975, 90, { RUYDS: 1246, TD: 10, YPC: 4.8 }),
+      P("Lynn Swann", "WR", 1975, 88, { REC: 49, YDS: 781, TD: 11 }),
+      P("John Stallworth", "WR", 1979, 89, { REC: 70, YDS: 1183, TD: 8 }),
+      P("Bennie Cunningham", "TE", 1978, 79, { REC: 16, YDS: 321, TD: 2 }),
+      P("L.C. Greenwood", "EDGE", 1974, 90, { SACKS: 11, TKL: 48 }),
+      P("Joe Greene", "DT", 1972, 97, { SACKS: 11, TKL: 60 }),
+      P("Jack Lambert", "LB", 1976, 96, { TKL: 130, INT: 2 }),
+      P("Jack Ham", "LB", 1975, 94, { TKL: 98, INT: 3 }),
+      P("Mel Blount", "CB", 1975, 95, { INT: 11, PD: 15 }),
+      P("Donnie Shell", "S", 1979, 88, { INT: 5, TKL: 80 })
     ]
   },
   {
-    name: "'10s Seahawks (LOB)",
+    team: "BAL",
+    era: "2000–2004",
     players: [
-      { name: "Russell Wilson", pos: "QB", rating: 90 },
-      { name: "Marshawn Lynch", pos: "RB", rating: 93 },
-      { name: "Doug Baldwin", pos: "WR", rating: 87 },
-      { name: "Zach Miller", pos: "TE", rating: 83 },
-      { name: "Max Unger", pos: "OL", rating: 88 },
-      { name: "Michael Bennett", pos: "DL", rating: 88 },
-      { name: "Cliff Avril", pos: "DL", rating: 86 },
-      { name: "Bobby Wagner", pos: "LB", rating: 95 },
-      { name: "Richard Sherman", pos: "DB", rating: 94 },
-      { name: "Earl Thomas", pos: "DB", rating: 95 },
-      { name: "Kam Chancellor", pos: "DB", rating: 91 }
+      P("Trent Dilfer", "QB", 2000, 76, { YDS: 1502, TD: 12, INT: 11 }),
+      P("Jamal Lewis", "RB", 2003, 94, { RUYDS: 2066, TD: 14, YPC: 5.3 }),
+      P("Travis Taylor", "WR", 2002, 78, { REC: 61, YDS: 869, TD: 6 }),
+      P("Shannon Sharpe", "TE", 2000, 89, { REC: 67, YDS: 810, TD: 5 }),
+      P("Todd Heap", "TE", 2002, 84, { REC: 68, YDS: 836, TD: 6 }),
+      P("Peter Boulware", "EDGE", 2001, 89, { SACKS: 15, TKL: 44 }),
+      P("Sam Adams", "DT", 2000, 87, { SACKS: 3, TKL: 41 }),
+      P("Ray Lewis", "LB", 2000, 99, { TKL: 137, INT: 2, SACKS: 3 }),
+      P("Chris McAlister", "CB", 2003, 89, { INT: 3, PD: 15 }),
+      P("Ed Reed", "S", 2004, 96, { INT: 9, PD: 17, TD: 1 }),
+      P("Rod Woodson", "S", 2001, 91, { INT: 4, TKL: 82 })
     ]
   },
   {
-    name: "'10s Patriots",
+    team: "STL",
+    era: "1999–2003",
     players: [
-      { name: "Tom Brady", pos: "QB", rating: 98 },
-      { name: "LeGarrette Blount", pos: "RB", rating: 84 },
-      { name: "Julian Edelman", pos: "WR", rating: 87 },
-      { name: "Rob Gronkowski", pos: "TE", rating: 97 },
-      { name: "Nate Solder", pos: "OL", rating: 85 },
-      { name: "Chandler Jones", pos: "DL", rating: 89 },
-      { name: "Dont'a Hightower", pos: "LB", rating: 88 },
-      { name: "Devin McCourty", pos: "DB", rating: 89 },
-      { name: "Stephon Gilmore", pos: "DB", rating: 93 }
+      P("Kurt Warner", "QB", 2001, 95, { YDS: 4830, TD: 36, INT: 22, RTG: 101.4 }),
+      P("Marshall Faulk", "RB", 2000, 97, { RUYDS: 1359, TD: 26, REC: 81, RECYDS: 830 }),
+      P("Isaac Bruce", "WR", 1999, 91, { REC: 77, YDS: 1165, TD: 12 }),
+      P("Torry Holt", "WR", 2003, 93, { REC: 117, YDS: 1696, TD: 12 }),
+      P("Ernie Conwell", "TE", 2000, 78, { REC: 34, YDS: 431, TD: 3 }),
+      P("Grant Wistrom", "EDGE", 2001, 84, { SACKS: 9, TKL: 51 }),
+      P("D'Marco Farr", "DT", 1999, 82, { SACKS: 8.5, TKL: 39 }),
+      P("London Fletcher", "LB", 2001, 88, { TKL: 145, SACKS: 2.5 }),
+      P("Aeneas Williams", "CB", 2001, 91, { INT: 4, PD: 14, TD: 2 }),
+      P("Adam Archuleta", "S", 2002, 80, { TKL: 95, SACKS: 3 })
     ]
   },
   {
-    name: "'10s Cowboys",
+    team: "IND",
+    era: "2003–2007",
     players: [
-      { name: "Dak Prescott", pos: "QB", rating: 88 },
-      { name: "Ezekiel Elliott", pos: "RB", rating: 92 },
-      { name: "Dez Bryant", pos: "WR", rating: 91 },
-      { name: "Jason Witten", pos: "TE", rating: 89 },
-      { name: "Tyron Smith", pos: "OL", rating: 95 },
-      { name: "Zack Martin", pos: "OL", rating: 96 },
-      { name: "Travis Frederick", pos: "OL", rating: 93 },
-      { name: "DeMarcus Lawrence", pos: "DL", rating: 89 },
-      { name: "Sean Lee", pos: "LB", rating: 90 },
-      { name: "Byron Jones", pos: "DB", rating: 87 }
+      P("Peyton Manning", "QB", 2004, 99, { YDS: 4557, TD: 49, INT: 10, RTG: 121.1 }),
+      P("Edgerrin James", "RB", 2004, 91, { RUYDS: 1548, TD: 9, YPC: 4.6 }),
+      P("Marvin Harrison", "WR", 2002, 97, { REC: 143, YDS: 1722, TD: 11 }),
+      P("Reggie Wayne", "WR", 2007, 92, { REC: 104, YDS: 1510, TD: 10 }),
+      P("Dallas Clark", "TE", 2007, 86, { REC: 58, YDS: 616, TD: 11 }),
+      P("Dwight Freeney", "EDGE", 2004, 93, { SACKS: 16, TKL: 39, FF: 4 }),
+      P("Robert Mathis", "EDGE", 2005, 89, { SACKS: 11.5, TKL: 41, FF: 6 }),
+      P("Booger McFarland", "DT", 2006, 81, { SACKS: 2, TKL: 30 }),
+      P("Cato June", "LB", 2005, 83, { TKL: 111, INT: 5 }),
+      P("Nick Harper", "CB", 2005, 80, { INT: 2, PD: 11 }),
+      P("Bob Sanders", "S", 2005, 92, { TKL: 118, INT: 1 })
     ]
   },
   {
-    name: "'20s Chiefs",
+    team: "SEA",
+    era: "2012–2016",
     players: [
-      { name: "Patrick Mahomes", pos: "QB", rating: 99 },
-      { name: "Isiah Pacheco", pos: "RB", rating: 84 },
-      { name: "Tyreek Hill", pos: "WR", rating: 96 },
-      { name: "Travis Kelce", pos: "TE", rating: 98 },
-      { name: "Creed Humphrey", pos: "OL", rating: 92 },
-      { name: "Chris Jones", pos: "DL", rating: 95 },
-      { name: "Frank Clark", pos: "DL", rating: 85 },
-      { name: "Nick Bolton", pos: "LB", rating: 87 },
-      { name: "Trent McDuffie", pos: "DB", rating: 89 },
-      { name: "Justin Reid", pos: "DB", rating: 84 }
+      P("Russell Wilson", "QB", 2015, 92, { YDS: 4024, TD: 34, INT: 8, RTG: 110.1 }),
+      P("Marshawn Lynch", "RB", 2012, 93, { RUYDS: 1590, TD: 11, YPC: 5.0 }),
+      P("Doug Baldwin", "WR", 2015, 88, { REC: 78, YDS: 1069, TD: 14 }),
+      P("Tyler Lockett", "WR", 2016, 84, { REC: 41, YDS: 597, TD: 1 }),
+      P("Jimmy Graham", "TE", 2016, 85, { REC: 65, YDS: 923, TD: 6 }),
+      P("Cliff Avril", "EDGE", 2016, 87, { SACKS: 11.5, TKL: 38, FF: 3 }),
+      P("Michael Bennett", "DT", 2015, 89, { SACKS: 10, TKL: 52 }),
+      P("Bobby Wagner", "LB", 2014, 96, { TKL: 104, SACKS: 2 }),
+      P("Richard Sherman", "CB", 2013, 96, { INT: 8, PD: 16 }),
+      P("Earl Thomas", "S", 2013, 96, { INT: 5, TKL: 105 }),
+      P("Kam Chancellor", "S", 2014, 92, { TKL: 81, INT: 1, FF: 2 })
     ]
   },
   {
-    name: "'20s 49ers",
+    team: "GB",
+    era: "1994–1998",
     players: [
-      { name: "Brock Purdy", pos: "QB", rating: 86 },
-      { name: "Christian McCaffrey", pos: "RB", rating: 96 },
-      { name: "Deebo Samuel", pos: "WR", rating: 89 },
-      { name: "Brandon Aiyuk", pos: "WR", rating: 87 },
-      { name: "George Kittle", pos: "TE", rating: 95 },
-      { name: "Trent Williams", pos: "OL", rating: 97 },
-      { name: "Nick Bosa", pos: "DL", rating: 95 },
-      { name: "Fred Warner", pos: "LB", rating: 96 },
-      { name: "Charvarius Ward", pos: "DB", rating: 88 },
-      { name: "Talanoa Hufanga", pos: "DB", rating: 85 }
+      P("Brett Favre", "QB", 1996, 95, { YDS: 3899, TD: 39, INT: 13, RTG: 95.8 }),
+      P("Dorsey Levens", "RB", 1997, 86, { RUYDS: 1435, TD: 7, YPC: 4.4 }),
+      P("Edgar Bennett", "RB", 1995, 81, { RUYDS: 1067, TD: 3, YPC: 3.4 }),
+      P("Antonio Freeman", "WR", 1998, 89, { REC: 84, YDS: 1424, TD: 14 }),
+      P("Robert Brooks", "WR", 1995, 85, { REC: 102, YDS: 1497, TD: 13 }),
+      P("Mark Chmura", "TE", 1995, 84, { REC: 54, YDS: 679, TD: 7 }),
+      P("Reggie White", "EDGE", 1998, 98, { SACKS: 16, TKL: 47, FF: 2 }),
+      P("Santana Dotson", "DT", 1996, 84, { SACKS: 5.5, TKL: 41 }),
+      P("Wayne Simmons", "LB", 1996, 82, { TKL: 76, SACKS: 3 }),
+      P("Craig Newsome", "CB", 1996, 81, { INT: 2, PD: 14 }),
+      P("LeRoy Butler", "S", 1996, 92, { INT: 5, TKL: 90, SACKS: 6.5 })
     ]
   },
   {
-    name: "'20s Cowboys Stars",
+    team: "DET",
+    era: "1994–1998",
     players: [
-      { name: "Dak Prescott", pos: "QB", rating: 90 },
-      { name: "Tony Pollard", pos: "RB", rating: 86 },
-      { name: "CeeDee Lamb", pos: "WR", rating: 94 },
-      { name: "Jake Ferguson", pos: "TE", rating: 84 },
-      { name: "Zack Martin", pos: "OL", rating: 94 },
-      { name: "Osa Odighizuwa", pos: "DL", rating: 85 },
-      { name: "Micah Parsons", pos: "LB", rating: 97 },
-      { name: "Trevon Diggs", pos: "DB", rating: 90 },
-      { name: "DaRon Bland", pos: "DB", rating: 89 }
+      P("Scott Mitchell", "QB", 1995, 84, { YDS: 4338, TD: 32, INT: 12 }),
+      P("Barry Sanders", "RB", 1997, 99, { RUYDS: 2053, TD: 11, YPC: 6.1 }),
+      P("Herman Moore", "WR", 1995, 92, { REC: 123, YDS: 1686, TD: 14 }),
+      P("Brett Perriman", "WR", 1995, 84, { REC: 108, YDS: 1488, TD: 9 }),
+      P("David Sloan", "TE", 1997, 78, { REC: 29, YDS: 264, TD: 0 }),
+      P("Robert Porcher", "EDGE", 1997, 87, { SACKS: 12.5, TKL: 42 }),
+      P("Luther Elliss", "DT", 1996, 84, { SACKS: 6, TKL: 48 }),
+      P("Chris Spielman", "LB", 1994, 88, { TKL: 148, SACKS: 1 }),
+      P("Ryan McNeil", "CB", 1997, 82, { INT: 9, PD: 16 }),
+      P("Bennie Blades", "S", 1995, 84, { TKL: 102, INT: 1 })
+    ]
+  },
+  {
+    team: "NYG",
+    era: "1984–1990",
+    players: [
+      P("Phil Simms", "QB", 1986, 86, { YDS: 3487, TD: 21, INT: 22 }),
+      P("Joe Morris", "RB", 1986, 87, { RUYDS: 1516, TD: 14, YPC: 4.4 }),
+      P("Lionel Manuel", "WR", 1988, 80, { REC: 65, YDS: 1029, TD: 4 }),
+      P("Stephen Baker", "WR", 1988, 78, { REC: 40, YDS: 656, TD: 7 }),
+      P("Mark Bavaro", "TE", 1986, 91, { REC: 66, YDS: 1001, TD: 4 }),
+      P("Lawrence Taylor", "EDGE", 1986, 99, { SACKS: 20.5, TKL: 105, FF: 2 }),
+      P("Leonard Marshall", "DT", 1985, 88, { SACKS: 15.5, TKL: 66 }),
+      P("Harry Carson", "LB", 1986, 90, { TKL: 118, SACKS: 2 }),
+      P("Carl Banks", "LB", 1987, 88, { TKL: 120, SACKS: 9 }),
+      P("Mark Collins", "CB", 1990, 84, { INT: 2, PD: 13 }),
+      P("Terry Kinard", "S", 1988, 82, { INT: 5, TKL: 84 })
+    ]
+  },
+  {
+    team: "MIN",
+    era: "1996–2000",
+    players: [
+      P("Randall Cunningham", "QB", 1998, 91, { YDS: 3704, TD: 34, INT: 10, RTG: 106.0 }),
+      P("Robert Smith", "RB", 1997, 87, { RUYDS: 1266, TD: 6, YPC: 5.5 }),
+      P("Randy Moss", "WR", 1998, 96, { REC: 69, YDS: 1313, TD: 17 }),
+      P("Cris Carter", "WR", 1999, 92, { REC: 90, YDS: 1241, TD: 13 }),
+      P("Andrew Glover", "TE", 1998, 78, { REC: 35, YDS: 522, TD: 5 }),
+      P("Derrick Alexander", "EDGE", 1997, 80, { SACKS: 6, TKL: 39 }),
+      P("John Randle", "DT", 1997, 94, { SACKS: 15.5, TKL: 53 }),
+      P("Dwayne Rudd", "LB", 1999, 81, { TKL: 87, SACKS: 2, TD: 2 }),
+      P("Corey Fuller", "CB", 1998, 79, { INT: 2, PD: 12 }),
+      P("Orlando Thomas", "S", 1997, 81, { INT: 3, TKL: 89 })
+    ]
+  },
+  {
+    team: "DEN",
+    era: "1996–1998",
+    players: [
+      P("John Elway", "QB", 1997, 92, { YDS: 3635, TD: 27, INT: 11 }),
+      P("Terrell Davis", "RB", 1998, 97, { RUYDS: 2008, TD: 21, YPC: 5.1 }),
+      P("Rod Smith", "WR", 1997, 89, { REC: 70, YDS: 1180, TD: 12 }),
+      P("Ed McCaffrey", "WR", 1998, 87, { REC: 64, YDS: 1053, TD: 10 }),
+      P("Shannon Sharpe", "TE", 1997, 93, { REC: 72, YDS: 1107, TD: 3 }),
+      P("Alfred Williams", "EDGE", 1996, 84, { SACKS: 13, TKL: 46 }),
+      P("Trevor Pryce", "DT", 1998, 87, { SACKS: 8.5, TKL: 40 }),
+      P("John Mobley", "LB", 1997, 84, { TKL: 111, SACKS: 3 }),
+      P("Ray Crockett", "CB", 1997, 81, { INT: 4, PD: 13 }),
+      P("Steve Atwater", "S", 1996, 90, { TKL: 100, INT: 3 })
+    ]
+  },
+  {
+    team: "BUF",
+    era: "2020–2024",
+    players: [
+      P("Josh Allen", "QB", 2020, 95, { YDS: 4544, TD: 37, INT: 10, RUYDS: 421 }),
+      P("James Cook", "RB", 2024, 86, { RUYDS: 1009, TD: 16, YPC: 4.9 }),
+      P("Stefon Diggs", "WR", 2020, 93, { REC: 127, YDS: 1535, TD: 8 }),
+      P("Gabe Davis", "WR", 2022, 82, { REC: 48, YDS: 836, TD: 7 }),
+      P("Dawson Knox", "TE", 2021, 82, { REC: 49, YDS: 587, TD: 9 }),
+      P("Von Miller", "EDGE", 2022, 88, { SACKS: 8, TKL: 21 }),
+      P("Ed Oliver", "DT", 2023, 86, { SACKS: 9.5, TKL: 51 }),
+      P("Matt Milano", "LB", 2022, 88, { TKL: 99, INT: 3 }),
+      P("Tre'Davious White", "CB", 2019, 89, { INT: 6, PD: 17 }),
+      P("Jordan Poyer", "S", 2021, 87, { INT: 5, TKL: 93 })
     ]
   }
 ];
 
-const SLOTS = ["QB", "RB", "WR", "TE", "OL", "DL", "LB", "DB"];
+// ── Roster shape ────────────────────────────────────────────────
+
+const SLOT_DEFS = [
+  { id: "QB", label: "QB", side: "OFF", accepts: ["QB"], mult: 1.5 },
+  { id: "RB", label: "RB", side: "OFF", accepts: ["RB"], mult: 1 },
+  { id: "WR", label: "WR", side: "OFF", accepts: ["WR"], mult: 1 },
+  { id: "TE", label: "TE", side: "OFF", accepts: ["TE"], mult: 1 },
+  { id: "FLEX1", label: "FLEX", side: "OFF", accepts: ["RB", "WR", "TE"], mult: 1 },
+  { id: "FLEX2", label: "FLEX", side: "OFF", accepts: ["RB", "WR", "TE"], mult: 1 },
+  { id: "EDGE", label: "EDGE", side: "DEF", accepts: ["EDGE"], mult: 1.2 },
+  { id: "DT", label: "DT", side: "DEF", accepts: ["DT"], mult: 1 },
+  { id: "LB", label: "LB", side: "DEF", accepts: ["LB"], mult: 1 },
+  { id: "CB", label: "CB", side: "DEF", accepts: ["CB"], mult: 1.2 },
+  { id: "S", label: "S", side: "DEF", accepts: ["S"], mult: 1 },
+  { id: "DFLEX", label: "D-FLEX", side: "DEF", accepts: ["EDGE", "DT", "LB", "CB", "S"], mult: 1 }
+];
+
+const ROUNDS = 12;
+const REROLLS = 2;
+const SIMS = 10000;
 
 const OPPONENTS = [
   { name: "'03 Panthers", rating: 87 },
@@ -325,6 +462,8 @@ const OPPONENTS = [
   { name: "'85 Bears", rating: 97 }
 ];
 
+// ── Helpers ─────────────────────────────────────────────────────
+
 function shuffle(list) {
   const a = [...list];
   for (let i = a.length - 1; i > 0; i--) {
@@ -335,52 +474,105 @@ function shuffle(list) {
 }
 
 function buildSchedule() {
-  // 17 regular-season games easiest-to-hardest-ish, then 3 playoff monsters.
   const pool = shuffle(OPPONENTS);
   const regular = pool.slice(0, 17).sort((x, y) => x.rating - y.rating);
   const playoffs = shuffle(OPPONENTS.filter((o) => o.rating >= 94)).slice(0, 3);
-  return regular.concat(playoffs).map((o, i) => ({
-    ...o,
-    week: i + 1,
-    playoff: i >= 17
-  }));
+  return regular.concat(playoffs).map((o, i) => ({ ...o, week: i + 1, playoff: i >= 17 }));
 }
 
-function rollPool(era, roster) {
-  const openSlots = new Set(SLOTS.filter((s) => !roster[s]));
-  const pool = shuffle(era.players).slice(0, 7);
-  // Guarantee at least one pickable card so the draft can't dead-end —
-  // rescue from this era first, then from anywhere in the league.
-  if (!pool.some((p) => openSlots.has(p.pos))) {
-    const rescue =
-      era.players.find((p) => openSlots.has(p.pos)) ||
-      shuffle(ERAS.flatMap((e) => e.players)).find((p) => openSlots.has(p.pos));
-    if (rescue) pool[0] = rescue;
+function roundSide(round) {
+  return round <= 6 ? "OFF" : "DEF";
+}
+
+function eligibleSlots(roster, player) {
+  if (!player) return [];
+  return SLOT_DEFS.filter(
+    (slot) => !roster[slot.id] && slot.accepts.includes(player.pos)
+  ).map((s) => s.id);
+}
+
+function sidePlayers(pool, side) {
+  const allowed = side === "OFF" ? OFF_POS : DEF_POS;
+  return pool.players.filter((p) => allowed.has(p.pos));
+}
+
+// A round's pool must contain at least one placeable player; rescue from the
+// same side league-wide if the spun team-era can't cover the open slots.
+function rollRound(roster, side) {
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const pool = POOLS[Math.floor(Math.random() * POOLS.length)];
+    const players = sidePlayers(pool, side);
+    if (players.some((p) => eligibleSlots(roster, p).length > 0)) {
+      return { team: pool.team, era: pool.era, players: shuffle(players).slice(0, 8) };
+    }
   }
-  return pool;
+  const everyone = shuffle(
+    POOLS.flatMap((pool) =>
+      sidePlayers(pool, side).map((p) => ({ ...p, team: pool.team, era: pool.era }))
+    )
+  );
+  const rescue = everyone.filter((p) => eligibleSlots(roster, p).length > 0).slice(0, 8);
+  return { team: "NFL", era: "All-time", players: rescue };
 }
 
-function teamRating(roster) {
-  const picks = SLOTS.map((s) => roster[s]).filter(Boolean);
-  if (!picks.length) return 0;
-  return picks.reduce((sum, p) => sum + p.rating, 0) / picks.length;
+function teamScore(roster) {
+  let total = 0;
+  let weight = 0;
+  for (const slot of SLOT_DEFS) {
+    const p = roster[slot.id];
+    if (p) {
+      total += p.rating * slot.mult;
+      weight += slot.mult;
+    }
+  }
+  return weight ? total / weight : 0;
 }
 
-function winProbability(team, opp) {
-  return 1 / (1 + Math.pow(10, (opp - (team + 1.5)) / 10));
+function winProbability(score, oppRating) {
+  return 1 / (1 + Math.pow(10, (oppRating - (score + 1.5)) / 10));
 }
+
+// Monte Carlo: SIMS full seasons over the same schedule shape.
+function runMonteCarlo(score, schedule) {
+  const bins = new Array(schedule.length + 1).fill(0);
+  let totalWins = 0;
+  const probs = schedule.map((g) => winProbability(score, g.rating));
+  for (let s = 0; s < SIMS; s++) {
+    let wins = 0;
+    for (let g = 0; g < probs.length; g++) {
+      if (Math.random() < probs[g]) wins++;
+    }
+    bins[wins]++;
+    totalWins += wins;
+  }
+  return {
+    bins,
+    meanWins: totalWins / SIMS,
+    pPerfect: bins[schedule.length] / SIMS
+  };
+}
+
+function statCols(player) {
+  return Object.entries(player.stats).slice(0, 5);
+}
+
+// ── Component ───────────────────────────────────────────────────
 
 export default function PerfectSeason({ onReward }) {
-  const [phase, setPhase] = useState("idle"); // idle | spin | draft | ready | season | done
-  const [era, setEra] = useState(null);
-  const [spinName, setSpinName] = useState(ERAS[0].name);
+  const [phase, setPhase] = useState("idle"); // idle | spin | draft | engine | season | done
+  const [round, setRound] = useState(1);
+  const [roundPool, setRoundPool] = useState(null); // { team, era, players }
+  const [spinLabel, setSpinLabel] = useState({ team: "DAL", era: "1991–1995" });
   const [roster, setRoster] = useState({});
-  const [pool, setPool] = useState([]);
-  const [skips, setSkips] = useState(3);
+  const [selected, setSelected] = useState(null);
+  const [rerolls, setRerolls] = useState(REROLLS);
+  const [sortBy, setSortBy] = useState("pos");
+  const [filterPos, setFilterPos] = useState("All");
   const [schedule, setSchedule] = useState([]);
+  const [mc, setMc] = useState(null); // Monte Carlo result
   const [gameIndex, setGameIndex] = useState(0);
-  const [results, setResults] = useState([]); // "W" | "L"
-  const [stamp, setStamp] = useState(null); // result of the game on screen
+  const [results, setResults] = useState([]);
+  const [stamp, setStamp] = useState(null);
   const [reward, setReward] = useState(null);
   const timers = useRef([]);
 
@@ -389,27 +581,45 @@ export default function PerfectSeason({ onReward }) {
     timers.current.push(setTimeout(fn, ms));
   }
 
-  const rosterFull = SLOTS.every((s) => roster[s]);
   const wins = results.filter((r) => r === "W").length;
   const losses = results.filter((r) => r === "L").length;
+  const score = teamScore(roster);
+  const highlight = new Set(eligibleSlots(roster, selected));
 
-  function spinWheel(nextRoster) {
+  const displayPool = useMemo(() => {
+    if (!roundPool) return [];
+    let list = [...roundPool.players];
+    if (filterPos !== "All") list = list.filter((p) => p.pos === filterPos);
+    if (sortBy === "rating") list.sort((a, b) => b.rating - a.rating);
+    else if (sortBy === "year") list.sort((a, b) => a.year - b.year);
+    else list.sort((a, b) => a.pos.localeCompare(b.pos) || b.rating - a.rating);
+    return list;
+  }, [roundPool, sortBy, filterPos]);
+
+  const poolPositions = useMemo(() => {
+    if (!roundPool) return [];
+    return [...new Set(roundPool.players.map((p) => p.pos))];
+  }, [roundPool]);
+
+  function spinRound(nextRoster, nextRound) {
     setPhase("spin");
+    setSelected(null);
+    setFilterPos("All");
     let ticks = 0;
     const interval = setInterval(() => {
-      ticks += 1;
-      setSpinName(ERAS[Math.floor(Math.random() * ERAS.length)].name);
-      if (ticks >= 12) {
+      ticks++;
+      const random = POOLS[Math.floor(Math.random() * POOLS.length)];
+      setSpinLabel({ team: random.team, era: random.era });
+      if (ticks >= 10) {
         clearInterval(interval);
-        const landed = ERAS[Math.floor(Math.random() * ERAS.length)];
-        setEra(landed);
-        setSpinName(landed.name);
+        const rolled = rollRound(nextRoster, roundSide(nextRound));
+        setSpinLabel({ team: rolled.team, era: rolled.era });
         later(() => {
-          setPool(rollPool(landed, nextRoster));
+          setRoundPool(rolled);
           setPhase("draft");
-        }, 350);
+        }, 320);
       }
-    }, 90);
+    }, 85);
     timers.current.push(interval);
   }
 
@@ -419,57 +629,59 @@ export default function PerfectSeason({ onReward }) {
     setGameIndex(0);
     setStamp(null);
     setReward(null);
-    setSkips(3);
-    spinWheel({});
+    setMc(null);
+    setRerolls(REROLLS);
+    setRound(1);
+    spinRound({}, 1);
   }
 
-  function pick(player) {
-    if (roster[player.pos]) return;
-    const next = { ...roster, [player.pos]: player };
+  function reroll() {
+    if (rerolls < 1) return;
+    setRerolls(rerolls - 1);
+    spinRound(roster, round);
+  }
+
+  function place(slotId) {
+    if (!selected || !highlight.has(slotId)) return;
+    const next = { ...roster, [slotId]: selected };
     setRoster(next);
-    if (SLOTS.every((s) => next[s])) {
-      setPhase("ready");
+    setSelected(null);
+    if (round >= ROUNDS) {
+      const sched = buildSchedule();
+      setSchedule(sched);
+      setPhase("engine");
+      later(() => setMc(runMonteCarlo(teamScore(next), sched)), 500);
     } else {
-      spinWheel(next);
+      const nextRound = round + 1;
+      setRound(nextRound);
+      spinRound(next, nextRound);
     }
   }
 
-  function skip() {
-    if (skips < 1 || !era) return;
-    setSkips(skips - 1);
-    spinWheel(roster);
-  }
-
   function playSeason() {
-    const sched = buildSchedule();
-    setSchedule(sched);
     setResults([]);
     setGameIndex(0);
     setStamp(null);
     setPhase("season");
-    playGame(sched, 0, [], teamRating(roster));
+    playGame(schedule, 0, [], score);
   }
 
-  function playGame(sched, index, resultsSoFar, rating) {
+  function playGame(sched, index, resultsSoFar, teamSc) {
     setGameIndex(index);
     setStamp(null);
     later(() => {
-      const won = Math.random() < winProbability(rating, sched[index].rating);
+      const won = Math.random() < winProbability(teamSc, sched[index].rating);
       const outcome = won ? "W" : "L";
       const nextResults = [...resultsSoFar, outcome];
       setStamp(outcome);
       setResults(nextResults);
       later(() => {
-        if (!won || index + 1 >= sched.length) {
-          setPhase("done");
-        } else {
-          playGame(sched, index + 1, nextResults, rating);
-        }
+        if (!won || index + 1 >= sched.length) setPhase("done");
+        else playGame(sched, index + 1, nextResults, teamSc);
       }, 1250);
     }, 950);
   }
 
-  // Claim Star Coins once when the season ends.
   useEffect(() => {
     if (phase !== "done" || reward !== null) return;
     let cancelled = false;
@@ -478,9 +690,7 @@ export default function PerfectSeason({ onReward }) {
         const data = await api.claimSeasonReward(wins);
         if (!cancelled) {
           setReward(data);
-          if (onReward && data && typeof data.balance === "number") {
-            onReward(data.balance);
-          }
+          if (onReward && data && typeof data.balance === "number") onReward(data.balance);
         }
       } catch (_err) {
         if (!cancelled) setReward({ ok: false });
@@ -492,108 +702,222 @@ export default function PerfectSeason({ onReward }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  const perfect = phase === "done" && wins === schedule.length && losses === 0;
+  const perfect = phase === "done" && losses === 0 && wins === schedule.length;
   const currentGame = schedule[gameIndex];
+  const maxBin = mc ? Math.max(...mc.bins) : 1;
+
+  // ── Render ────────────────────────────────────────────────────
+
+  const rosterTray = (
+    <div className="ps2-tray">
+      {["DEF", "OFF"].map((side) => (
+        <div className="ps2-tray__row" key={side}>
+          <span className="ps2-tray__side">{side}</span>
+          {SLOT_DEFS.filter((s) => s.side === side).map((slot) => {
+            const filled = roster[slot.id];
+            const hot = highlight.has(slot.id);
+            return (
+              <button
+                key={slot.id}
+                className={`ps2-slot ${filled ? "is-filled" : ""} ${hot ? "is-hot" : ""}`}
+                onClick={() => place(slot.id)}
+                disabled={!hot}
+              >
+                <span className="ps2-slot__label">
+                  {filled ? filled.pos : slot.label}
+                  {slot.mult !== 1 ? <em>×{slot.mult}</em> : null}
+                </span>
+                <span className="ps2-slot__name">
+                  {filled ? filled.name : "—"}
+                </span>
+                {filled ? <span className="ps2-slot__rating">{filled.rating}</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="ps">
       {phase === "idle" ? (
         <div className="ps-splash ps-pop">
-          <div className="ps-kicker">Game mode</div>
+          <div className="ps-kicker">Game mode · powered by the Quantum Engine</div>
           <h2 className="ps-headline">
             Can you go <span className="ps-score">20–0</span>?
           </h2>
           <p className="ps-copy">
-            Spin the wheel for a legendary NFL team-era — the '70s Steelers,
-            the '85 Bears, the '00s Patriots, the Doomsday Cowboys. Draft an
-            all-time roster, one pool at a time. Then survive twenty of the
-            greatest teams ever assembled — lose once and the season is over.
-            Every win pays Star Coins.
+            Twelve rounds. Each spin reveals an NFL team and era — draft one
+            player per round into a full two-way roster. Premium slots pay
+            premium weight (QB ×1.5, EDGE and CB ×1.2). Then the Quantum
+            Engine runs your squad through 10,000 Monte Carlo seasons before
+            you play the real one — lose once and it's over. Every win pays
+            Star Coins.
           </p>
           <button className="wr-btn ps-cta" onClick={startDraft}>
-            Spin the wheel
+            Start the draft
           </button>
         </div>
       ) : null}
 
-      {phase === "spin" ? (
-        <div className="ps-spin ps-pop">
-          <div className="ps-kicker">Scouting era…</div>
-          <div className="ps-slot" aria-live="polite">
-            <span className="ps-slot__name">{spinName}</span>
+      {phase === "spin" || phase === "draft" ? (
+        <div className="ps2-draft">
+          <div className="ps2-head">
+            <span className="ps2-round">
+              Round <strong>{round}</strong>
+              <em>/{ROUNDS}</em>
+            </span>
+            <span className={`ps2-side ps2-side--${roundSide(round).toLowerCase()}`}>
+              {roundSide(round)}
+            </span>
+            <span className={`ps2-chip ps2-chip--team ${phase === "spin" ? "is-spinning" : ""}`}>
+              <em>Team</em>
+              {spinLabel.team}
+            </span>
+            <span className={`ps2-chip ps2-chip--era ${phase === "spin" ? "is-spinning" : ""}`}>
+              <em>Era</em>
+              {spinLabel.era}
+            </span>
+            <button
+              className="ps-skip"
+              onClick={reroll}
+              disabled={rerolls < 1 || phase === "spin"}
+            >
+              Reroll · {rerolls}
+            </button>
           </div>
+          <div className="ps2-hint">
+            {selected
+              ? `Tap a highlighted slot to place ${selected.name}.`
+              : "Select a player, then tap a highlighted position."}
+          </div>
+
+          {phase === "draft" && roundPool ? (
+            <>
+              <div className="ps2-controls">
+                <label className="ps2-sort">
+                  Sort
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="pos">Position</option>
+                    <option value="rating">Rating</option>
+                    <option value="year">Year</option>
+                  </select>
+                </label>
+                <div className="ps2-filters">
+                  {["All", ...poolPositions].map((pos) => (
+                    <button
+                      key={pos}
+                      className={`ps2-filter ${filterPos === pos ? "is-active" : ""}`}
+                      onClick={() => setFilterPos(pos)}
+                    >
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="ps2-pool">
+                {displayPool.map((p, i) => {
+                  const canPlace = eligibleSlots(roster, p).length > 0;
+                  const isSel = selected && selected.name === p.name && selected.year === p.year;
+                  return (
+                    <button
+                      key={`${p.name}-${p.year}`}
+                      className={`ps2-row ${isSel ? "is-selected" : ""} ${
+                        !canPlace ? "is-blocked" : ""
+                      }`}
+                      style={{ animationDelay: `${i * 45}ms` }}
+                      onClick={() => canPlace && setSelected(isSel ? null : p)}
+                      disabled={!canPlace}
+                    >
+                      <span className="ps2-row__pos">{p.pos}</span>
+                      <span className="ps2-row__who">
+                        <span className="ps2-row__name">{p.name}</span>
+                        <span className="ps2-row__meta">
+                          {roundPool.team} · {p.year}
+                          {!canPlace ? " · no open slot" : ""}
+                        </span>
+                      </span>
+                      <span className="ps2-row__stats">
+                        {statCols(p).map(([k, v]) => (
+                          <span className="ps2-stat" key={k}>
+                            <strong>{v}</strong>
+                            <em>{k}</em>
+                          </span>
+                        ))}
+                      </span>
+                      <span className="ps2-row__rating">{p.rating}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="ps2-spinwait">Scouting the league…</div>
+          )}
+
+          {rosterTray}
         </div>
       ) : null}
 
-      {phase === "draft" || phase === "ready" ? (
-        <div className="ps-draft ps-pop">
-          <div className="ps-draft__head">
-            <div>
-              <div className="ps-kicker">{era ? era.name : ""} · draft board</div>
-              <h3 className="ps-subhead">
-                {phase === "ready"
-                  ? "Roster complete."
-                  : "Pick one player to fill an open slot."}
-              </h3>
-            </div>
-            {phase === "draft" ? (
-              <button
-                className="ps-skip"
-                onClick={skip}
-                disabled={skips < 1}
-                title="Re-spin this pool"
-              >
-                Skip pool · {skips} left
-              </button>
-            ) : null}
-          </div>
-
-          {phase === "draft" ? (
-            <div className="ps-pool">
-              {pool.map((p, i) => {
-                const taken = Boolean(roster[p.pos]);
-                return (
-                  <button
-                    key={`${p.name}-${i}`}
-                    className={`ps-card ${taken ? "is-taken" : ""}`}
-                    style={{ animationDelay: `${i * 60}ms` }}
-                    onClick={() => pick(p)}
-                    disabled={taken}
-                  >
-                    <span className="ps-card__pos">{p.pos}</span>
-                    <span className="ps-card__name">{p.name}</span>
-                    <span className="ps-card__rating">{p.rating}</span>
-                    {taken ? <span className="ps-card__note">slot filled</span> : null}
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-
-          <div className="ps-roster">
-            {SLOTS.map((s) => (
-              <div key={s} className={`ps-slotbox ${roster[s] ? "is-filled" : ""}`}>
-                <span className="ps-slotbox__pos">{s}</span>
-                <span className="ps-slotbox__name">
-                  {roster[s] ? roster[s].name : "—"}
-                </span>
-                {roster[s] ? (
-                  <span className="ps-slotbox__rating">{roster[s].rating}</span>
-                ) : null}
+      {phase === "engine" ? (
+        <div className="ps2-engine ps-pop">
+          <div className="ps-kicker">Quantum Engine · Monte Carlo</div>
+          <h3 className="ps-subhead">
+            {mc ? "10,000 seasons, simulated." : "Simulating 10,000 seasons…"}
+          </h3>
+          {mc ? (
+            <>
+              <div className="ps2-engine__tiles">
+                <div className="ps2-etile">
+                  <span className="ps2-etile__label">Team score</span>
+                  <span className="ps2-etile__value">{score.toFixed(1)}</span>
+                </div>
+                <div className="ps2-etile">
+                  <span className="ps2-etile__label">Expected wins</span>
+                  <span className="ps2-etile__value">{mc.meanWins.toFixed(1)}</span>
+                </div>
+                <div className="ps2-etile">
+                  <span className="ps2-etile__label">Odds of 20-0</span>
+                  <span className="ps2-etile__value">
+                    {mc.pPerfect > 0
+                      ? `1 in ${Math.max(1, Math.round(1 / mc.pPerfect)).toLocaleString("en-US")}`
+                      : `< 1 in ${SIMS.toLocaleString("en-US")}`}
+                  </span>
+                </div>
               </div>
-            ))}
-          </div>
-
-          {phase === "ready" ? (
-            <div className="ps-ready ps-pop">
-              <div className="ps-ready__rating">
-                Team rating <strong>{teamRating(roster).toFixed(1)}</strong>
+              <div className="ps2-hist" role="img" aria-label="Win distribution across 10,000 simulated seasons">
+                {mc.bins.map((count, w) => (
+                  <div className="ps2-hist__col" key={w}>
+                    <div
+                      className={`ps2-hist__bar ${w === 20 ? "is-perfect" : ""}`}
+                      style={{
+                        height: `${Math.max(2, (count / maxBin) * 100)}%`,
+                        animationDelay: `${w * 35}ms`
+                      }}
+                      title={`${w} wins: ${((count / SIMS) * 100).toFixed(1)}%`}
+                    />
+                    {w % 5 === 0 || w === 20 ? (
+                      <span className="ps2-hist__tick">{w}</span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+              <div className="ps2-hist__caption">
+                Wins per simulated season · the red bar is immortality
               </div>
               <button className="wr-btn ps-cta" onClick={playSeason}>
-                Play the season
+                Play your season
               </button>
+            </>
+          ) : (
+            <div className="ps2-simload">
+              <span />
+              <span />
+              <span />
             </div>
-          ) : null}
+          )}
         </div>
       ) : null}
 
@@ -602,6 +926,8 @@ export default function PerfectSeason({ onReward }) {
           <div className="ps-scoreline">
             <span className="ps-kicker">
               {currentGame.playoff ? "Playoffs" : `Week ${currentGame.week}`}
+              {" · engine gives you "}
+              {Math.round(winProbability(score, currentGame.rating) * 100)}%
             </span>
             <span className="ps-record">
               {wins}–{losses}
@@ -610,7 +936,7 @@ export default function PerfectSeason({ onReward }) {
           <div className="ps-matchup ps-pop" key={gameIndex}>
             <div className="ps-matchup__side">
               <span className="ps-matchup__team">Your Squad</span>
-              <span className="ps-matchup__rating">{teamRating(roster).toFixed(0)}</span>
+              <span className="ps-matchup__rating">{score.toFixed(0)}</span>
             </div>
             <span className="ps-matchup__vs">vs</span>
             <div className="ps-matchup__side">
@@ -650,10 +976,7 @@ export default function PerfectSeason({ onReward }) {
               {Array.from({ length: 26 }).map((_, i) => (
                 <span
                   key={i}
-                  style={{
-                    left: `${(i * 137) % 100}%`,
-                    animationDelay: `${(i % 9) * 0.18}s`
-                  }}
+                  style={{ left: `${(i * 137) % 100}%`, animationDelay: `${(i % 9) * 0.18}s` }}
                 />
               ))}
             </div>
@@ -666,9 +989,15 @@ export default function PerfectSeason({ onReward }) {
           </h2>
           <p className="ps-copy">
             {perfect
-              ? "A perfect season. Canton is calling — they're naming a wing after you."
+              ? `A perfect season — the engine had it at ${
+                  mc && mc.pPerfect > 0
+                    ? `1 in ${Math.max(1, Math.round(1 / mc.pPerfect)).toLocaleString("en-US")}`
+                    : "longer than 1 in 10,000"
+                }. Canton is calling.`
               : losses
-              ? `${schedule[gameIndex] ? schedule[gameIndex].name : "The football gods"} ended the dream${wins > 0 ? ` at ${wins}–0` : ""}. Spin again, coach.`
+              ? `${schedule[gameIndex] ? schedule[gameIndex].name : "The football gods"} ended the dream${
+                  wins > 0 ? ` at ${wins}–0` : ""
+                }. The engine expected ${mc ? mc.meanWins.toFixed(1) : "—"} wins — run it back.`
               : "Season complete."}
           </p>
           <div className="ps-reward">
