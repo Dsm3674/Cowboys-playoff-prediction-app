@@ -1,19 +1,102 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
+const fetch = require("node-fetch");
 const db = require("../databases");
 
 const router = express.Router();
 
+// ---------------------------------------------------------------------------
+// Stripe — War Room Pro subscriptions ($1/month)
+// The default price ID below is the $1/month recurring price created in the
+// Stripe dashboard; STRIPE_PRICE_ID_WAR_ROOM_PRO overrides it if set. If both
+// are empty, checkout falls back to inline price_data at $1/month.
+// ---------------------------------------------------------------------------
 const stripeSecret = process.env.STRIPE_SECRET_KEY || "";
 const stripe = stripeSecret ? require("stripe")(stripeSecret) : null;
-const PRO_PRICE_ID = process.env.STRIPE_PRICE_ID_WAR_ROOM_PRO || "";
+const PRO_PRICE_ID =
+  process.env.STRIPE_PRICE_ID_WAR_ROOM_PRO || "price_1TpbFC0TdeU5Fnp9lwCh7S7m";
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
+const PRO_PRICE_USD_CENTS = 100; // $1/month
 
 function publicBaseUrl(req) {
   if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/+$/, "");
   const proto = (req.headers["x-forwarded-proto"] || req.protocol || "https").split(",")[0].trim();
   const host = req.headers["x-forwarded-host"] || req.get("host");
   return `${proto}://${host}`;
+}
+
+// ---------------------------------------------------------------------------
+// Email notifications via Resend
+// When a new access request lands, fire-and-forget an email to the team so
+// they can follow up manually. Falls back silently if Resend isn't configured.
+// ---------------------------------------------------------------------------
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+const NOTIFICATION_EMAIL_TO =
+  process.env.NOTIFICATION_EMAIL_TO || "divyanshusomasekhar1@gmail.com";
+const NOTIFICATION_EMAIL_FROM =
+  process.env.NOTIFICATION_EMAIL_FROM || "LoneStar AI <onboarding@resend.dev>";
+
+async function notifyAccessRequest(record) {
+  if (!RESEND_API_KEY) return; // Not configured — skip silently.
+
+  const subject = `[LoneStar AI] New ${record.plan} from ${record.email}`;
+  const lines = [
+    `Plan:    ${record.plan}`,
+    `Email:   ${record.email}`,
+    `Name:    ${record.name || "(not provided)"}`,
+    `Price:   ${record.price}`,
+    `When:    ${record.created_at || new Date().toISOString()}`,
+    `ID:      ${record.request_id || "(unknown)"}`
+  ];
+  const text = lines.join("\n");
+  const html =
+    `<div style="font-family: -apple-system, system-ui, sans-serif; font-size: 14px; line-height: 1.6;">` +
+    `<h2 style="margin: 0 0 16px;">New access request — ${escapeHtml(record.plan)}</h2>` +
+    `<table style="border-collapse: collapse;">` +
+    lines
+      .map((line) => {
+        const idx = line.indexOf(":");
+        const label = line.slice(0, idx).trim();
+        const value = line.slice(idx + 1).trim();
+        return `<tr><td style="padding: 4px 16px 4px 0; color: #666; vertical-align: top;">${escapeHtml(label)}</td><td style="padding: 4px 0;"><strong>${escapeHtml(value)}</strong></td></tr>`;
+      })
+      .join("") +
+    `</table>` +
+    `<p style="margin-top: 20px;"><a href="mailto:${encodeURIComponent(record.email)}">Reply to ${escapeHtml(record.email)}</a></p>` +
+    `</div>`;
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        from: NOTIFICATION_EMAIL_FROM,
+        to: [NOTIFICATION_EMAIL_TO],
+        reply_to: record.email,
+        subject,
+        text,
+        html
+      })
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("[billing] resend send failed:", res.status, body);
+    }
+  } catch (err) {
+    console.error("[billing] resend send threw:", err.message);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 const requestLimiter = rateLimit({
@@ -122,15 +205,25 @@ router.post("/access-request", requestLimiter, async (req, res) => {
         plan,
         price,
         {
-          paymentMode: "secure_provider_pending",
+          paymentMode: "stripe_checkout",
           storesCardData: false
         }
       ]
     );
 
+    const saved = result.rows[0];
+
+    // Fire-and-forget email notification — don't block the response on it.
+    notifyAccessRequest({
+      ...saved,
+      name: name || null
+    }).catch((err) => {
+      console.error("[billing] notifyAccessRequest unhandled:", err.message);
+    });
+
     return res.status(201).json({
       ok: true,
-      request: result.rows[0],
+      request: saved,
       message: "Access request saved. No card data was collected or stored."
     });
   } catch (error) {
@@ -144,9 +237,9 @@ router.post("/access-request", requestLimiter, async (req, res) => {
 // Stripe Checkout — creates a hosted-checkout session for War Room Pro
 // and returns the URL the client should redirect to.
 router.post("/create-checkout-session", requestLimiter, async (req, res) => {
-  if (!stripe || !PRO_PRICE_ID) {
+  if (!stripe) {
     return res.status(503).json({
-      error: "Payments are not configured. Set STRIPE_SECRET_KEY and STRIPE_PRICE_ID_WAR_ROOM_PRO."
+      error: "Payments are not configured. Set STRIPE_SECRET_KEY."
     });
   }
 
@@ -158,10 +251,25 @@ router.post("/create-checkout-session", requestLimiter, async (req, res) => {
   const email = normalizeEmail(req.body.email);
   const base = publicBaseUrl(req);
 
+  const lineItem = PRO_PRICE_ID
+    ? { price: PRO_PRICE_ID, quantity: 1 }
+    : {
+        price_data: {
+          currency: "usd",
+          unit_amount: PRO_PRICE_USD_CENTS,
+          recurring: { interval: "month" },
+          product_data: {
+            name: "War Room Pro",
+            description: "LoneStar AI · premium playoff modeling, saved scenarios, weekly intel drops."
+          }
+        },
+        quantity: 1
+      };
+
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      line_items: [{ price: PRO_PRICE_ID, quantity: 1 }],
+      line_items: [lineItem],
       customer_email: email || undefined,
       allow_promotion_codes: true,
       success_url: `${base}/pro-success.html?session_id={CHECKOUT_SESSION_ID}`,

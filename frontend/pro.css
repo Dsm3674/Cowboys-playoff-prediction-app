@@ -24,6 +24,185 @@
 
 .pro-hero {
   position: relative;
+  overflow: hidden;
+}
+
+.pro-hero > :not(.pro-war-room-orbit) {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes pro-radar-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pro-radar-pulse {
+  0%, 100% {
+    opacity: 0.22;
+    transform: translate(-50%, -50%) scale(0.78);
+  }
+  50% {
+    opacity: 0.65;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes pro-node-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -9px, 0); }
+}
+
+@keyframes pro-ticker-scan {
+  0% { transform: translateX(-16%); }
+  100% { transform: translateX(16%); }
+}
+
+@keyframes pro-card-sheen {
+  0% { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+  18% { opacity: 0.5; }
+  42%, 100% { transform: translateX(135%) skewX(-18deg); opacity: 0; }
+}
+
+.pro-war-room-orbit {
+  position: absolute;
+  top: 4.5rem;
+  right: 0;
+  z-index: 0;
+  width: min(34vw, 390px);
+  aspect-ratio: 1;
+  pointer-events: none;
+  opacity: 0.92;
+  filter: drop-shadow(0 28px 48px rgba(0, 0, 0, 0.28));
+}
+
+.pro-war-room-orbit__radar,
+.pro-war-room-orbit__ring {
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+}
+
+.pro-war-room-orbit__radar {
+  background:
+    conic-gradient(from 0deg, rgba(78, 160, 255, 0), rgba(78, 160, 255, 0.42), rgba(245, 198, 105, 0.08), rgba(78, 160, 255, 0)),
+    radial-gradient(circle, rgba(78, 160, 255, 0.22), transparent 62%);
+  mask-image: radial-gradient(circle, transparent 0 24%, #000 25% 100%);
+  animation: pro-radar-spin 9s linear infinite;
+}
+
+.pro-war-room-orbit__ring {
+  border: 1px solid rgba(190, 202, 219, 0.18);
+  background:
+    radial-gradient(circle, rgba(78, 160, 255, 0.08), transparent 58%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
+}
+
+.pro-war-room-orbit__ring--one::before,
+.pro-war-room-orbit__ring--two::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 78%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(78, 160, 255, 0.26);
+  transform: translate(-50%, -50%);
+  animation: pro-radar-pulse 3.8s ease-in-out infinite;
+}
+
+.pro-war-room-orbit__ring--two {
+  inset: 26%;
+  border-style: dashed;
+  border-color: rgba(245, 198, 105, 0.24);
+}
+
+.pro-war-room-orbit__ring--two::before {
+  width: 145%;
+  border-color: rgba(245, 198, 105, 0.18);
+  animation-delay: -1.9s;
+}
+
+.pro-war-room-orbit__node {
+  position: absolute;
+  display: grid;
+  gap: 0.1rem;
+  min-width: 78px;
+  padding: 0.62rem 0.75rem;
+  border-radius: 14px;
+  border: 1px solid rgba(190, 202, 219, 0.18);
+  background: rgba(7, 13, 27, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: pro-node-float 4.5s ease-in-out infinite;
+}
+
+.pro-war-room-orbit__node span,
+.pro-war-room-orbit__ticker span {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  color: #99abc1;
+}
+
+.pro-war-room-orbit__node b {
+  font-family: "Fraunces", serif;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #f4f7fb;
+}
+
+.pro-war-room-orbit__node--one {
+  top: 12%;
+  right: 8%;
+}
+
+.pro-war-room-orbit__node--two {
+  left: 0;
+  top: 45%;
+  animation-delay: -1.4s;
+}
+
+.pro-war-room-orbit__node--three {
+  right: 12%;
+  bottom: 10%;
+  animation-delay: -2.7s;
+}
+
+.pro-war-room-orbit__ticker {
+  position: absolute;
+  left: 12%;
+  right: 2%;
+  bottom: 30%;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.72rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(78, 160, 255, 0.22);
+  background: rgba(10, 20, 42, 0.74);
+  overflow: hidden;
+}
+
+.pro-war-room-orbit__ticker::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(78, 160, 255, 0.22), transparent);
+  animation: pro-ticker-scan 2.7s ease-in-out infinite alternate;
+}
+
+.pro-war-room-orbit__ticker strong {
+  position: relative;
+  z-index: 1;
+  color: #f5c669;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.72rem;
+}
+
+.pro-war-room-orbit__ticker span {
+  position: relative;
+  z-index: 1;
 }
 
 /* ---------- Pricing comparison grid ---------- */
@@ -63,6 +242,28 @@
     linear-gradient(160deg, rgba(31, 71, 142, 0.55), rgba(13, 32, 70, 0.85));
   border-color: rgba(78, 160, 255, 0.45);
   box-shadow: 0 30px 70px -30px rgba(78, 160, 255, 0.45);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.pro-pricing-card--featured::before {
+  content: "";
+  position: absolute;
+  inset: -20% auto -20% 0;
+  width: 38%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: pro-card-sheen 5.8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pro-pricing-card--featured::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 21px;
+  border: 1px solid rgba(245, 198, 105, 0.16);
+  pointer-events: none;
 }
 
 .pro-pricing-card--featured:hover {
@@ -166,10 +367,23 @@
 /* ---------- Mobile ---------- */
 
 @media (max-width: 720px) {
+  .pro-war-room-orbit {
+    position: relative;
+    inset: auto;
+    width: min(100%, 340px);
+    margin: -1.25rem auto 2rem;
+  }
   .pro-pricing-card {
     padding: 1.8rem 1.4rem;
   }
   .pro-pricing-card__price strong {
     font-size: 2.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pro-war-room-orbit *,
+  .pro-pricing-card--featured::before {
+    animation: none !important;
   }
 }

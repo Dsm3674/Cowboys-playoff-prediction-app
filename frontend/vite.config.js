@@ -43,9 +43,9 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, "index.html"),
         educators: resolve(__dirname, "educators.html"),
-        investors: resolve(__dirname, "investors.html"),
         pro: resolve(__dirname, "pro.html"),
         proSuccess: resolve(__dirname, "pro-success.html"),
+        investors: resolve(__dirname, "investors.html"),
         privacy: resolve(__dirname, "privacy.html"),
         terms: resolve(__dirname, "terms.html"),
         cookies: resolve(__dirname, "cookies.html"),

@@ -68,8 +68,16 @@ CREATE TABLE IF NOT EXISTS predictions (
     superbowl_probability DECIMAL(5,2),
     model_version VARCHAR(20),
     confidence_score DECIMAL(5,2),
-    factors_json JSONB
+    factors_json JSONB,
+    user_email VARCHAR(255),
+    history_client_id VARCHAR(128)
 );
+
+CREATE INDEX IF NOT EXISTS idx_predictions_user_email_date
+    ON predictions (user_email, prediction_date DESC);
+
+CREATE INDEX IF NOT EXISTS idx_predictions_history_client_date
+    ON predictions (history_client_id, prediction_date DESC);
 
 -- 6. USERS (New Feature)
 CREATE TABLE IF NOT EXISTS users (
