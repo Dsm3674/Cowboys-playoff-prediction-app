@@ -1923,3 +1923,110 @@
     animation: none;
   }
 }
+
+/* ── Game mode gets the full page width ────────────────────── */
+
+.wr-layout--wide {
+  grid-template-columns: 1fr;
+}
+
+.wr-layout--wide .wr-left {
+  padding-right: 0;
+}
+
+.wr-layout--wide .wr-chat {
+  border-left: 0;
+  padding-left: 0;
+  border-top: 3px double var(--wr-rule-dark);
+  padding-top: 20px;
+  margin-top: 28px;
+  position: static;
+  max-height: 480px;
+}
+
+/* Breathing room throughout the game */
+.ps {
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.ps2-head {
+  padding: 22px 0 10px;
+  gap: 14px;
+}
+
+.ps2-hint {
+  padding: 6px 0 16px;
+  font-size: 12.5px;
+}
+
+.ps2-controls {
+  padding: 18px 0 14px;
+  gap: 18px;
+}
+
+.ps2-pool {
+  margin-bottom: 26px;
+}
+
+.ps2-row {
+  padding: 15px 12px;
+  gap: 18px;
+}
+
+.ps2-row__stats {
+  gap: 22px;
+}
+
+.ps2-tray {
+  padding: 18px 0 8px;
+  gap: 10px;
+}
+
+.ps2-tray__row {
+  gap: 8px;
+}
+
+.ps2-slot {
+  min-height: 54px;
+  padding: 9px 10px;
+}
+
+.ps2-engine {
+  padding: 40px 0;
+}
+
+.ps2-engine__tiles {
+  margin-bottom: 30px;
+}
+
+.ps2-etile {
+  padding: 4px 34px;
+}
+
+.ps2-hist {
+  height: 150px;
+  max-width: 640px;
+}
+
+.ps2-hist__caption {
+  margin: 12px 0 30px;
+}
+
+.ps-splash,
+.ps-final {
+  padding: 56px 0 36px;
+}
+
+.ps-season {
+  padding: 34px 0;
+}
+
+.ps-matchup {
+  padding: 44px 16px;
+}
+
+.ps-strip {
+  padding: 22px 0 8px;
+}
