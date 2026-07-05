@@ -45,7 +45,14 @@ const POOLS = [
       P("DaRon Bland", "CB", 2023, 90, { INT: 9, PD: 14, TD: 5 }),
       P("Osa Odighizuwa", "DT", 2023, 85, { SACKS: 2, TKL: 42 }),
       P("Leighton Vander Esch", "LB", 2022, 83, { TKL: 90, SACKS: 1 }),
-      P("Malik Hooker", "S", 2022, 83, { INT: 3, TKL: 61 })
+      P("Malik Hooker", "S", 2022, 83, { INT: 3, TKL: 61 }),
+      P("Ezekiel Elliott", "RB", 2021, 85, { RUYDS: 1002, TD: 10, YPC: 4.2 }),
+      P("Dalton Schultz", "TE", 2021, 85, { REC: 78, YDS: 808, TD: 8 }),
+      P("Michael Gallup", "WR", 2021, 80, { REC: 35, YDS: 445, TD: 2 }),
+      P("Sam Williams", "EDGE", 2023, 80, { SACKS: 4.5, TKL: 25 }),
+      P("Jourdan Lewis", "CB", 2023, 82, { INT: 2, PD: 8, TKL: 64 }),
+      P("Donovan Wilson", "S", 2022, 84, { TKL: 101, SACKS: 5, INT: 1 }),
+      P("DeMarvion Overshown", "LB", 2024, 84, { TKL: 90, SACKS: 5 })
     ]
   },
   {
@@ -62,7 +69,15 @@ const POOLS = [
       P("Jaylon Smith", "LB", 2019, 84, { TKL: 142, SACKS: 2.5 }),
       P("Sean Lee", "LB", 2016, 89, { TKL: 145, INT: 1 }),
       P("Byron Jones", "CB", 2018, 87, { PD: 14, TKL: 67 }),
-      P("Xavier Woods", "S", 2018, 82, { INT: 2, TKL: 56 })
+      P("Xavier Woods", "S", 2018, 82, { INT: 2, TKL: 56 }),
+      P("Cole Beasley", "WR", 2016, 82, { REC: 75, YDS: 833, TD: 5 }),
+      P("Blake Jarwin", "TE", 2019, 78, { REC: 31, YDS: 365, TD: 3 }),
+      P("Tony Pollard", "RB", 2019, 79, { RUYDS: 455, TD: 2, YPC: 5.3 }),
+      P("Randy Gregory", "EDGE", 2018, 80, { SACKS: 6, TKL: 25 }),
+      P("Antwaun Woods", "DT", 2018, 78, { TKL: 35, SACKS: 1 }),
+      P("Leighton Vander Esch", "LB", 2018, 87, { TKL: 140, INT: 2 }),
+      P("Chidobe Awuzie", "CB", 2019, 82, { PD: 10, TKL: 79 }),
+      P("Jeff Heath", "S", 2017, 79, { INT: 3, TKL: 66 })
     ]
   },
   {
@@ -79,7 +94,15 @@ const POOLS = [
       P("Ken Norton Jr.", "LB", 1993, 89, { TKL: 159, SACKS: 2 }),
       P("Darrin Smith", "LB", 1994, 83, { TKL: 96, SACKS: 3 }),
       P("Deion Sanders", "CB", 1995, 98, { INT: 2, PD: 12, TD: 1 }),
-      P("Darren Woodson", "S", 1994, 93, { TKL: 121, INT: 5 })
+      P("Darren Woodson", "S", 1994, 93, { TKL: 121, INT: 5 }),
+      P("Daryl Johnston", "RB", 1993, 82, { RUYDS: 74, REC: 50, RECYDS: 372 }),
+      P("Kevin Williams", "WR", 1993, 79, { REC: 20, YDS: 151, TD: 2 }),
+      P("Tony Tolbert", "EDGE", 1992, 84, { SACKS: 8.5, TKL: 60 }),
+      P("Jim Jeffcoat", "EDGE", 1991, 84, { SACKS: 10.5, TKL: 43 }),
+      P("Russell Maryland", "DT", 1992, 85, { SACKS: 4.5, TKL: 51 }),
+      P("Robert Jones", "LB", 1992, 82, { TKL: 107 }),
+      P("Larry Brown", "CB", 1995, 85, { INT: 6, PD: 12 }),
+      P("James Washington", "S", 1994, 83, { TKL: 90, INT: 2 })
     ]
   },
   {
@@ -96,7 +119,17 @@ const POOLS = [
       P("Fletcher Cox", "DT", 2021, 88, { SACKS: 3.5, TKL: 35 }),
       P("T.J. Edwards", "LB", 2022, 85, { TKL: 159, SACKS: 2 }),
       P("Darius Slay", "CB", 2021, 89, { INT: 3, PD: 13, TD: 2 }),
-      P("C.J. Gardner-Johnson", "S", 2022, 86, { INT: 6, TKL: 67 })
+      P("C.J. Gardner-Johnson", "S", 2022, 86, { INT: 6, TKL: 67 }),
+      P("Miles Sanders", "RB", 2022, 86, { RUYDS: 1269, TD: 11, YPC: 4.9 }),
+      P("Kenneth Gainwell", "RB", 2023, 79, { RUYDS: 364, TD: 2, REC: 30, RECYDS: 183 }),
+      P("Quez Watkins", "WR", 2021, 78, { REC: 43, YDS: 647, TD: 1 }),
+      P("Zach Ertz", "TE", 2021, 84, { REC: 74, YDS: 763, TD: 5 }),
+      P("Josh Sweat", "EDGE", 2022, 87, { SACKS: 11, TKL: 48 }),
+      P("Jalen Carter", "DT", 2023, 88, { SACKS: 6, TKL: 33 }),
+      P("Jordan Davis", "DT", 2023, 83, { TKL: 39, SACKS: 2 }),
+      P("Zack Baun", "LB", 2024, 91, { TKL: 151, INT: 1, FF: 5 }),
+      P("James Bradberry", "CB", 2022, 87, { INT: 3, PD: 17 }),
+      P("Reed Blankenship", "S", 2023, 82, { INT: 3, TKL: 106 })
     ]
   },
   {
@@ -112,7 +145,16 @@ const POOLS = [
       P("Corey Simon", "DT", 2003, 84, { SACKS: 7.5, TKL: 45 }),
       P("Jeremiah Trotter", "LB", 2004, 87, { TKL: 89, SACKS: 1 }),
       P("Lito Sheppard", "CB", 2004, 86, { INT: 5, PD: 14, TD: 2 }),
-      P("Brian Dawkins", "S", 2004, 94, { INT: 4, TKL: 78, FF: 3 })
+      P("Brian Dawkins", "S", 2004, 94, { INT: 4, TKL: 78, FF: 3 }),
+      P("Duce Staley", "RB", 2002, 83, { RUYDS: 1029, TD: 5, REC: 51 }),
+      P("Correll Buckhalter", "RB", 2003, 79, { RUYDS: 542, TD: 8 }),
+      P("Freddie Mitchell", "WR", 2004, 77, { REC: 22, YDS: 377, TD: 2 }),
+      P("L.J. Smith", "TE", 2004, 79, { REC: 34, YDS: 377, TD: 5 }),
+      P("Hugh Douglas", "EDGE", 2002, 87, { SACKS: 12.5, TKL: 52 }),
+      P("Darwin Walker", "DT", 2002, 81, { SACKS: 7.5, TKL: 40 }),
+      P("Dhani Jones", "LB", 2004, 79, { TKL: 89 }),
+      P("Sheldon Brown", "CB", 2004, 82, { INT: 2, PD: 15 }),
+      P("Michael Lewis", "S", 2004, 83, { TKL: 88, INT: 1 })
     ]
   },
   {
@@ -129,7 +171,16 @@ const POOLS = [
       P("Calais Campbell", "DT", 2016, 91, { SACKS: 8, TKL: 53 }),
       P("Deone Bucannon", "LB", 2016, 83, { TKL: 89, SACKS: 2 }),
       P("Patrick Peterson", "CB", 2016, 93, { INT: 3, PD: 12 }),
-      P("Budda Baker", "S", 2019, 89, { TKL: 147, PD: 6 })
+      P("Budda Baker", "S", 2019, 89, { TKL: 147, PD: 6 }),
+      P("Christian Kirk", "WR", 2019, 80, { REC: 68, YDS: 709, TD: 3 }),
+      P("Chase Edmonds", "RB", 2020, 81, { RUYDS: 448, TD: 1, REC: 53, RECYDS: 402 }),
+      P("Dan Arnold", "TE", 2020, 78, { REC: 31, YDS: 438, TD: 4 }),
+      P("Markus Golden", "EDGE", 2016, 86, { SACKS: 12.5, TKL: 51 }),
+      P("Corey Peters", "DT", 2018, 80, { TKL: 46, SACKS: 1.5 }),
+      P("Haason Reddick", "LB", 2020, 87, { SACKS: 12.5, TKL: 61 }),
+      P("Jordan Hicks", "LB", 2019, 85, { TKL: 150, SACKS: 3 }),
+      P("Byron Murphy", "CB", 2020, 81, { PD: 11, TKL: 78 }),
+      P("Tyrann Mathieu", "S", 2016, 87, { INT: 1, TKL: 68 })
     ]
   },
   {
@@ -146,7 +197,17 @@ const POOLS = [
       P("Frank Clark", "EDGE", 2019, 85, { SACKS: 8, TKL: 37 }),
       P("Nick Bolton", "LB", 2022, 86, { TKL: 180, SACKS: 2 }),
       P("L'Jarius Sneed", "CB", 2022, 87, { INT: 3, PD: 11, SACKS: 3.5 }),
-      P("Tyrann Mathieu", "S", 2020, 90, { INT: 6, TKL: 62 })
+      P("Tyrann Mathieu", "S", 2020, 90, { INT: 6, TKL: 62 }),
+      P("Kareem Hunt", "RB", 2018, 86, { RUYDS: 824, TD: 14, YPC: 4.6 }),
+      P("Damien Williams", "RB", 2019, 80, { RUYDS: 498, TD: 7, REC: 30 }),
+      P("Sammy Watkins", "WR", 2019, 81, { REC: 52, YDS: 673, TD: 3 }),
+      P("Mecole Hardman", "WR", 2019, 81, { REC: 26, YDS: 538, TD: 6 }),
+      P("Blake Bell", "TE", 2019, 76, { REC: 8, YDS: 67, TD: 0 }),
+      P("Melvin Ingram", "EDGE", 2021, 81, { SACKS: 1, TKL: 24 }),
+      P("Tershawn Wharton", "DT", 2021, 78, { SACKS: 2, TKL: 27 }),
+      P("Willie Gay", "LB", 2021, 81, { TKL: 48, INT: 1 }),
+      P("Charvarius Ward", "CB", 2021, 84, { PD: 10, TKL: 67 }),
+      P("Juan Thornhill", "S", 2019, 82, { INT: 3, TKL: 58 })
     ]
   },
   {
@@ -163,7 +224,16 @@ const POOLS = [
       P("Mike Vrabel", "EDGE", 2007, 88, { SACKS: 12.5, TKL: 76 }),
       P("Jerod Mayo", "LB", 2010, 87, { TKL: 175, SACKS: 2 }),
       P("Asante Samuel", "CB", 2007, 89, { INT: 6, PD: 17 }),
-      P("Brandon Meriweather", "S", 2009, 82, { INT: 5, TKL: 66 })
+      P("Brandon Meriweather", "S", 2009, 82, { INT: 5, TKL: 66 }),
+      P("Laurence Maroney", "RB", 2007, 79, { RUYDS: 835, TD: 6, YPC: 4.5 }),
+      P("Donte Stallworth", "WR", 2007, 81, { REC: 46, YDS: 697, TD: 3 }),
+      P("Aaron Hernandez", "TE", 2011, 87, { REC: 79, YDS: 910, TD: 7 }),
+      P("Ty Warren", "DT", 2007, 85, { TKL: 59, SACKS: 4 }),
+      P("Richard Seymour", "DT", 2007, 90, { SACKS: 1.5, TKL: 37 }),
+      P("Adalius Thomas", "EDGE", 2007, 85, { SACKS: 6.5, TKL: 71 }),
+      P("Brandon Spikes", "LB", 2010, 80, { TKL: 62 }),
+      P("Devin McCourty", "CB", 2010, 88, { INT: 7, PD: 17 }),
+      P("Patrick Chung", "S", 2010, 82, { TKL: 96, INT: 3 })
     ]
   },
   {
@@ -179,7 +249,17 @@ const POOLS = [
       P("Richard Seymour", "DT", 2003, 93, { SACKS: 8, TKL: 57 }),
       P("Tedy Bruschi", "LB", 2004, 88, { TKL: 122, INT: 3 }),
       P("Ty Law", "CB", 2003, 92, { INT: 6, PD: 23 }),
-      P("Rodney Harrison", "S", 2004, 90, { TKL: 138, INT: 2, SACKS: 3 })
+      P("Rodney Harrison", "S", 2004, 90, { TKL: 138, INT: 2, SACKS: 3 }),
+      P("Antowain Smith", "RB", 2001, 83, { RUYDS: 1157, TD: 12, YPC: 4.0 }),
+      P("Kevin Faulk", "RB", 2003, 79, { RUYDS: 638, REC: 48, TD: 1 }),
+      P("David Givens", "WR", 2004, 81, { REC: 56, YDS: 874, TD: 3 }),
+      P("David Patten", "WR", 2001, 80, { REC: 51, YDS: 749, TD: 4 }),
+      P("Christian Fauria", "TE", 2002, 78, { REC: 27, YDS: 253, TD: 7 }),
+      P("Jarvis Green", "EDGE", 2003, 79, { SACKS: 2.5, TKL: 21 }),
+      P("Mike Vrabel", "LB", 2003, 87, { SACKS: 9.5, TKL: 67, INT: 2 }),
+      P("Roman Phifer", "LB", 2001, 80, { TKL: 90 }),
+      P("Asante Samuel", "CB", 2004, 84, { INT: 1, PD: 12 }),
+      P("Eugene Wilson", "S", 2003, 81, { INT: 4, TKL: 69 })
     ]
   },
   {
@@ -196,7 +276,16 @@ const POOLS = [
       P("Riki Ellison", "LB", 1985, 80, { TKL: 90 }),
       P("Ronnie Lott", "S", 1986, 97, { INT: 10, TKL: 77 }),
       P("Eric Wright", "CB", 1985, 86, { INT: 2, PD: 10 }),
-      P("Don Griffin", "CB", 1988, 82, { INT: 1, PD: 12 })
+      P("Don Griffin", "CB", 1988, 82, { INT: 1, PD: 12 }),
+      P("Wendell Tyler", "RB", 1984, 84, { RUYDS: 1262, TD: 7, YPC: 5.1 }),
+      P("Tom Rathman", "RB", 1987, 80, { RUYDS: 257, REC: 30, TD: 4 }),
+      P("Mike Wilson", "WR", 1985, 77, { REC: 10, YDS: 165, TD: 2 }),
+      P("Russ Francis", "TE", 1984, 81, { REC: 23, YDS: 285, TD: 2 }),
+      P("Dwaine Board", "EDGE", 1984, 83, { SACKS: 10, TKL: 45 }),
+      P("Jeff Stover", "DT", 1986, 79, { SACKS: 8, TKL: 32 }),
+      P("Keena Turner", "LB", 1986, 84, { TKL: 75, INT: 2 }),
+      P("Tim McKyer", "CB", 1986, 84, { INT: 6, PD: 14 }),
+      P("Carlton Williamson", "S", 1984, 82, { INT: 4, TKL: 60 })
     ]
   },
   {
@@ -212,7 +301,17 @@ const POOLS = [
       P("Arik Armstead", "DT", 2019, 87, { SACKS: 10, TKL: 54 }),
       P("Fred Warner", "LB", 2021, 96, { TKL: 137, INT: 2, SACKS: 1 }),
       P("Charvarius Ward", "CB", 2023, 88, { INT: 5, PD: 23 }),
-      P("Talanoa Hufanga", "S", 2022, 87, { INT: 4, TKL: 97 })
+      P("Talanoa Hufanga", "S", 2022, 87, { INT: 4, TKL: 97 }),
+      P("Raheem Mostert", "RB", 2019, 84, { RUYDS: 772, TD: 8, YPC: 5.6 }),
+      P("Elijah Mitchell", "RB", 2021, 82, { RUYDS: 963, TD: 5, YPC: 4.7 }),
+      P("Jauan Jennings", "WR", 2023, 80, { REC: 19, YDS: 265, TD: 1 }),
+      P("Ross Dwelley", "TE", 2021, 76, { REC: 5, YDS: 26, TD: 1 }),
+      P("Javon Hargrave", "DT", 2023, 86, { SACKS: 7, TKL: 32 }),
+      P("Samson Ebukam", "EDGE", 2022, 81, { SACKS: 5, TKL: 44 }),
+      P("Dre Greenlaw", "LB", 2022, 86, { TKL: 127, INT: 2 }),
+      P("Emmanuel Moseley", "CB", 2021, 82, { PD: 8, TKL: 47 }),
+      P("Deommodore Lenoir", "CB", 2023, 82, { INT: 1, PD: 10, TKL: 84 }),
+      P("Jimmie Ward", "S", 2021, 84, { INT: 2, TKL: 68 })
     ]
   },
   {
@@ -229,7 +328,16 @@ const POOLS = [
       P("Steve McMichael", "DT", 1985, 89, { SACKS: 8, TKL: 51 }),
       P("Mike Singletary", "LB", 1985, 96, { TKL: 113, INT: 1 }),
       P("Wilber Marshall", "LB", 1986, 89, { TKL: 117, SACKS: 5.5, INT: 5 }),
-      P("Gary Fencik", "S", 1985, 86, { INT: 5, TKL: 87 })
+      P("Gary Fencik", "S", 1985, 86, { INT: 5, TKL: 87 }),
+      P("Neal Anderson", "RB", 1988, 85, { RUYDS: 1106, TD: 12, YPC: 4.3 }),
+      P("Matt Suhey", "RB", 1985, 78, { RUYDS: 471, REC: 33, TD: 1 }),
+      P("Dennis Gentry", "WR", 1986, 76, { REC: 19, YDS: 238, TD: 1 }),
+      P("Tim Wrightman", "TE", 1985, 76, { REC: 24, YDS: 407, TD: 1 }),
+      P("William Perry", "DT", 1985, 82, { SACKS: 5, TKL: 51, TD: 2 }),
+      P("Mike Hartenstine", "EDGE", 1985, 79, { SACKS: 5.5, TKL: 38 }),
+      P("Ron Rivera", "LB", 1986, 78, { TKL: 44 }),
+      P("Mike Richardson", "CB", 1986, 81, { INT: 7, PD: 12 }),
+      P("Todd Bell", "S", 1984, 83, { INT: 4, TKL: 86 })
     ]
   },
   {
@@ -246,7 +354,16 @@ const POOLS = [
       P("Jack Lambert", "LB", 1976, 96, { TKL: 130, INT: 2 }),
       P("Jack Ham", "LB", 1975, 94, { TKL: 98, INT: 3 }),
       P("Mel Blount", "CB", 1975, 95, { INT: 11, PD: 15 }),
-      P("Donnie Shell", "S", 1979, 88, { INT: 5, TKL: 80 })
+      P("Donnie Shell", "S", 1979, 88, { INT: 5, TKL: 80 }),
+      P("Rocky Bleier", "RB", 1976, 82, { RUYDS: 1036, TD: 5, YPC: 4.7 }),
+      P("Frank Lewis", "WR", 1973, 78, { REC: 28, YDS: 409, TD: 4 }),
+      P("Randy Grossman", "TE", 1978, 76, { REC: 37, YDS: 448, TD: 1 }),
+      P("Dwight White", "EDGE", 1972, 86, { SACKS: 10, TKL: 52 }),
+      P("Ernie Holmes", "DT", 1974, 87, { SACKS: 8, TKL: 55 }),
+      P("Andy Russell", "LB", 1974, 87, { TKL: 90, INT: 2 }),
+      P("J.T. Thomas", "CB", 1975, 79, { INT: 3, PD: 10 }),
+      P("Mike Wagner", "S", 1973, 85, { INT: 8, TKL: 60 }),
+      P("Glen Edwards", "S", 1974, 82, { INT: 5, TKL: 55 })
     ]
   },
   {
@@ -263,7 +380,16 @@ const POOLS = [
       P("Ray Lewis", "LB", 2000, 99, { TKL: 137, INT: 2, SACKS: 3 }),
       P("Chris McAlister", "CB", 2003, 89, { INT: 3, PD: 15 }),
       P("Ed Reed", "S", 2004, 96, { INT: 9, PD: 17, TD: 1 }),
-      P("Rod Woodson", "S", 2001, 91, { INT: 4, TKL: 82 })
+      P("Rod Woodson", "S", 2001, 91, { INT: 4, TKL: 82 }),
+      P("Chester Taylor", "RB", 2003, 78, { RUYDS: 276, TD: 1, YPC: 4.6 }),
+      P("Priest Holmes", "RB", 2000, 80, { RUYDS: 588, YPC: 4.3, REC: 32 }),
+      P("Brandon Stokley", "WR", 2000, 78, { REC: 11, YDS: 184, TD: 2 }),
+      P("Michael McCrary", "EDGE", 2000, 83, { SACKS: 6.5, TKL: 44 }),
+      P("Kelly Gregg", "DT", 2002, 82, { TKL: 71, SACKS: 2 }),
+      P("Jamie Sharper", "LB", 2000, 84, { TKL: 111, SACKS: 3 }),
+      P("Adalius Thomas", "LB", 2003, 84, { SACKS: 8, TKL: 57 }),
+      P("Duane Starks", "CB", 2000, 83, { INT: 6, PD: 14 }),
+      P("Gary Baxter", "CB", 2003, 80, { PD: 12, TKL: 63 })
     ]
   },
   {
@@ -279,7 +405,17 @@ const POOLS = [
       P("D'Marco Farr", "DT", 1999, 82, { SACKS: 8.5, TKL: 39 }),
       P("London Fletcher", "LB", 2001, 88, { TKL: 145, SACKS: 2.5 }),
       P("Aeneas Williams", "CB", 2001, 91, { INT: 4, PD: 14, TD: 2 }),
-      P("Adam Archuleta", "S", 2002, 80, { TKL: 95, SACKS: 3 })
+      P("Adam Archuleta", "S", 2002, 80, { TKL: 95, SACKS: 3 }),
+      P("Trung Canidate", "RB", 2001, 77, { RUYDS: 441, TD: 2, YPC: 5.7 }),
+      P("Az-Zahir Hakim", "WR", 1999, 81, { REC: 36, YDS: 677, TD: 8 }),
+      P("Ricky Proehl", "WR", 2001, 79, { REC: 40, YDS: 563, TD: 5 }),
+      P("Jeff Robinson", "TE", 2000, 76, { REC: 16, YDS: 220, TD: 4 }),
+      P("Leonard Little", "EDGE", 2001, 88, { SACKS: 14.5, TKL: 42 }),
+      P("Ryan Pickett", "DT", 2002, 79, { TKL: 46, SACKS: 1 }),
+      P("Mike Jones", "LB", 1999, 83, { TKL: 96, INT: 4 }),
+      P("Tommy Polley", "LB", 2001, 78, { TKL: 88, INT: 2 }),
+      P("Dexter McCleon", "CB", 1999, 79, { INT: 4, PD: 13 }),
+      P("Kim Herring", "S", 2001, 78, { INT: 3, TKL: 60 })
     ]
   },
   {
@@ -296,7 +432,17 @@ const POOLS = [
       P("Booger McFarland", "DT", 2006, 81, { SACKS: 2, TKL: 30 }),
       P("Cato June", "LB", 2005, 83, { TKL: 111, INT: 5 }),
       P("Nick Harper", "CB", 2005, 80, { INT: 2, PD: 11 }),
-      P("Bob Sanders", "S", 2005, 92, { TKL: 118, INT: 1 })
+      P("Bob Sanders", "S", 2005, 92, { TKL: 118, INT: 1 }),
+      P("Joseph Addai", "RB", 2006, 85, { RUYDS: 1081, TD: 7, YPC: 4.8 }),
+      P("Dominic Rhodes", "RB", 2006, 79, { RUYDS: 641, TD: 5, YPC: 3.4 }),
+      P("Brandon Stokley", "WR", 2004, 85, { REC: 68, YDS: 1077, TD: 10 }),
+      P("Ben Utecht", "TE", 2006, 76, { REC: 37, YDS: 377, TD: 0 }),
+      P("Raheem Brock", "DT", 2005, 80, { SACKS: 6, TKL: 42 }),
+      P("Montae Reagor", "DT", 2004, 78, { SACKS: 4.5, TKL: 33 }),
+      P("David Thornton", "LB", 2005, 80, { TKL: 106, SACKS: 2 }),
+      P("Jason David", "CB", 2005, 78, { INT: 4, PD: 12 }),
+      P("Antoine Bethea", "S", 2007, 84, { TKL: 96, INT: 4 }),
+      P("Mike Doss", "S", 2004, 78, { TKL: 71, INT: 2 })
     ]
   },
   {
@@ -313,7 +459,18 @@ const POOLS = [
       P("Bobby Wagner", "LB", 2014, 96, { TKL: 104, SACKS: 2 }),
       P("Richard Sherman", "CB", 2013, 96, { INT: 8, PD: 16 }),
       P("Earl Thomas", "S", 2013, 96, { INT: 5, TKL: 105 }),
-      P("Kam Chancellor", "S", 2014, 92, { TKL: 81, INT: 1, FF: 2 })
+      P("Kam Chancellor", "S", 2014, 92, { TKL: 81, INT: 1, FF: 2 }),
+      P("Thomas Rawls", "RB", 2015, 81, { RUYDS: 830, TD: 4, YPC: 5.6 }),
+      P("Christine Michael", "RB", 2016, 76, { RUYDS: 469, TD: 6, YPC: 3.9 }),
+      P("Golden Tate", "WR", 2013, 83, { REC: 64, YDS: 898, TD: 5 }),
+      P("Percy Harvin", "WR", 2014, 78, { REC: 22, YDS: 133, TD: 0 }),
+      P("Luke Willson", "TE", 2014, 77, { REC: 22, YDS: 362, TD: 3 }),
+      P("Bruce Irvin", "EDGE", 2012, 82, { SACKS: 8, TKL: 22 }),
+      P("Frank Clark", "EDGE", 2016, 84, { SACKS: 10, TKL: 47 }),
+      P("Brandon Mebane", "DT", 2013, 83, { TKL: 42, SACKS: 0.5 }),
+      P("K.J. Wright", "LB", 2016, 86, { TKL: 126, SACKS: 2 }),
+      P("Malcolm Smith", "LB", 2013, 79, { TKL: 46, INT: 2, TD: 1 }),
+      P("Byron Maxwell", "CB", 2014, 81, { INT: 2, PD: 12 })
     ]
   },
   {
@@ -330,7 +487,17 @@ const POOLS = [
       P("Santana Dotson", "DT", 1996, 84, { SACKS: 5.5, TKL: 41 }),
       P("Wayne Simmons", "LB", 1996, 82, { TKL: 76, SACKS: 3 }),
       P("Craig Newsome", "CB", 1996, 81, { INT: 2, PD: 14 }),
-      P("LeRoy Butler", "S", 1996, 92, { INT: 5, TKL: 90, SACKS: 6.5 })
+      P("LeRoy Butler", "S", 1996, 92, { INT: 5, TKL: 90, SACKS: 6.5 }),
+      P("William Henderson", "RB", 1997, 78, { RUYDS: 113, REC: 41, TD: 1 }),
+      P("Don Beebe", "WR", 1996, 79, { REC: 39, YDS: 699, TD: 4 }),
+      P("Derrick Mayes", "WR", 1997, 76, { REC: 18, YDS: 290, TD: 0 }),
+      P("Keith Jackson", "TE", 1996, 85, { REC: 40, YDS: 505, TD: 10 }),
+      P("Sean Jones", "EDGE", 1996, 85, { SACKS: 5, TKL: 42 }),
+      P("Gilbert Brown", "DT", 1996, 86, { TKL: 58, SACKS: 1 }),
+      P("George Koonce", "LB", 1996, 80, { TKL: 97, SACKS: 1 }),
+      P("Brian Williams", "LB", 1997, 79, { TKL: 90 }),
+      P("Doug Evans", "CB", 1996, 80, { INT: 5, PD: 15 }),
+      P("Eugene Robinson", "S", 1996, 84, { INT: 6, TKL: 78 })
     ]
   },
   {
@@ -346,7 +513,16 @@ const POOLS = [
       P("Luther Elliss", "DT", 1996, 84, { SACKS: 6, TKL: 48 }),
       P("Chris Spielman", "LB", 1994, 88, { TKL: 148, SACKS: 1 }),
       P("Ryan McNeil", "CB", 1997, 82, { INT: 9, PD: 16 }),
-      P("Bennie Blades", "S", 1995, 84, { TKL: 102, INT: 1 })
+      P("Bennie Blades", "S", 1995, 84, { TKL: 102, INT: 1 }),
+      P("Johnnie Morton", "WR", 1997, 84, { REC: 80, YDS: 1057, TD: 6 }),
+      P("Ron Rivers", "RB", 1997, 76, { RUYDS: 166, YPC: 4.6, REC: 12 }),
+      P("Pete Metzelaars", "TE", 1996, 76, { REC: 21, YDS: 193, TD: 2 }),
+      P("Tracy Scroggins", "EDGE", 1995, 81, { SACKS: 9.5, TKL: 37 }),
+      P("Henry Thomas", "DT", 1997, 84, { SACKS: 8, TKL: 48 }),
+      P("Reggie Brown", "LB", 1997, 82, { TKL: 112 }),
+      P("Stephen Boyd", "LB", 1997, 84, { TKL: 142, INT: 1 }),
+      P("Corey Raymond", "CB", 1996, 77, { INT: 3, PD: 9 }),
+      P("Ron Rice", "S", 1997, 78, { TKL: 81, INT: 2 })
     ]
   },
   {
@@ -363,7 +539,18 @@ const POOLS = [
       P("Harry Carson", "LB", 1986, 90, { TKL: 118, SACKS: 2 }),
       P("Carl Banks", "LB", 1987, 88, { TKL: 120, SACKS: 9 }),
       P("Mark Collins", "CB", 1990, 84, { INT: 2, PD: 13 }),
-      P("Terry Kinard", "S", 1988, 82, { INT: 5, TKL: 84 })
+      P("Terry Kinard", "S", 1988, 82, { INT: 5, TKL: 84 }),
+      P("Ottis Anderson", "RB", 1989, 83, { RUYDS: 1023, TD: 14, YPC: 3.9 }),
+      P("Rodney Hampton", "RB", 1990, 82, { RUYDS: 455, TD: 2, YPC: 4.3 }),
+      P("Dave Meggett", "RB", 1989, 81, { REC: 34, RECYDS: 531, TD: 4 }),
+      P("Odessa Turner", "WR", 1988, 76, { REC: 10, YDS: 128, TD: 1 }),
+      P("Zeke Mowatt", "TE", 1985, 78, { REC: 48, YDS: 597, TD: 2 }),
+      P("Jim Burt", "DT", 1986, 84, { TKL: 61, SACKS: 3 }),
+      P("Erik Howard", "DT", 1990, 83, { SACKS: 4, TKL: 50 }),
+      P("Pepper Johnson", "LB", 1990, 86, { TKL: 102, SACKS: 3.5 }),
+      P("Gary Reasons", "LB", 1986, 80, { TKL: 80, INT: 2 }),
+      P("Perry Williams", "CB", 1986, 79, { INT: 2, PD: 11 }),
+      P("Terry Kinard", "S", 1986, 82, { INT: 4, TKL: 70 })
     ]
   },
   {
@@ -379,7 +566,17 @@ const POOLS = [
       P("John Randle", "DT", 1997, 94, { SACKS: 15.5, TKL: 53 }),
       P("Dwayne Rudd", "LB", 1999, 81, { TKL: 87, SACKS: 2, TD: 2 }),
       P("Corey Fuller", "CB", 1998, 79, { INT: 2, PD: 12 }),
-      P("Orlando Thomas", "S", 1997, 81, { INT: 3, TKL: 89 })
+      P("Orlando Thomas", "S", 1997, 81, { INT: 3, TKL: 89 }),
+      P("Daunte Culpepper", "QB", 2000, 90, { YDS: 3937, TD: 33, INT: 16, RUYDS: 470 }),
+      P("Leroy Hoard", "RB", 1998, 78, { RUYDS: 479, TD: 9, YPC: 4.4 }),
+      P("Jake Reed", "WR", 1996, 85, { REC: 72, YDS: 1320, TD: 7 }),
+      P("Matthew Hatchette", "WR", 1999, 76, { REC: 21, YDS: 308, TD: 2 }),
+      P("Hunter Goodwin", "TE", 1997, 74, { REC: 6, YDS: 56, TD: 0 }),
+      P("Duane Clemons", "EDGE", 1999, 78, { SACKS: 5, TKL: 36 }),
+      P("Tony Williams", "DT", 1999, 77, { SACKS: 4, TKL: 30 }),
+      P("Ed McDaniel", "LB", 1998, 82, { TKL: 118, SACKS: 3 }),
+      P("Jimmy Hitchcock", "CB", 1998, 82, { INT: 7, PD: 14, TD: 3 }),
+      P("Robert Griffith", "S", 1998, 84, { TKL: 100, INT: 3 })
     ]
   },
   {
@@ -395,7 +592,17 @@ const POOLS = [
       P("Trevor Pryce", "DT", 1998, 87, { SACKS: 8.5, TKL: 40 }),
       P("John Mobley", "LB", 1997, 84, { TKL: 111, SACKS: 3 }),
       P("Ray Crockett", "CB", 1997, 81, { INT: 4, PD: 13 }),
-      P("Steve Atwater", "S", 1996, 90, { TKL: 100, INT: 3 })
+      P("Steve Atwater", "S", 1996, 90, { TKL: 100, INT: 3 }),
+      P("Derek Loville", "RB", 1997, 77, { RUYDS: 124, TD: 2, YPC: 4.4 }),
+      P("Vaughn Hebron", "RB", 1998, 76, { RUYDS: 222, YPC: 4.7 }),
+      P("Willie Green", "WR", 1997, 76, { REC: 19, YDS: 240, TD: 2 }),
+      P("Dwayne Carswell", "TE", 1998, 76, { REC: 12, YDS: 106, TD: 1 }),
+      P("Neil Smith", "EDGE", 1997, 86, { SACKS: 8.5, TKL: 40 }),
+      P("Keith Traylor", "DT", 1997, 80, { TKL: 41, SACKS: 2 }),
+      P("Bill Romanowski", "LB", 1997, 85, { TKL: 90, SACKS: 3, INT: 2 }),
+      P("Allen Aldridge", "LB", 1997, 78, { TKL: 85 }),
+      P("Darrien Gordon", "CB", 1997, 82, { INT: 4, PD: 12 }),
+      P("Tyrone Braxton", "S", 1997, 84, { INT: 9, TKL: 70 })
     ]
   },
   {
@@ -411,7 +618,17 @@ const POOLS = [
       P("Ed Oliver", "DT", 2023, 86, { SACKS: 9.5, TKL: 51 }),
       P("Matt Milano", "LB", 2022, 88, { TKL: 99, INT: 3 }),
       P("Tre'Davious White", "CB", 2019, 89, { INT: 6, PD: 17 }),
-      P("Jordan Poyer", "S", 2021, 87, { INT: 5, TKL: 93 })
+      P("Jordan Poyer", "S", 2021, 87, { INT: 5, TKL: 93 }),
+      P("Devin Singletary", "RB", 2021, 81, { RUYDS: 870, TD: 7, YPC: 4.6 }),
+      P("Zack Moss", "RB", 2020, 77, { RUYDS: 481, TD: 4, YPC: 4.3 }),
+      P("Cole Beasley", "WR", 2020, 84, { REC: 82, YDS: 967, TD: 4 }),
+      P("Khalil Shakir", "WR", 2024, 82, { REC: 76, YDS: 821, TD: 4 }),
+      P("Dalton Kincaid", "TE", 2023, 81, { REC: 73, YDS: 673, TD: 2 }),
+      P("Greg Rousseau", "EDGE", 2023, 84, { SACKS: 8, TKL: 42 }),
+      P("DaQuan Jones", "DT", 2022, 82, { TKL: 44, SACKS: 2 }),
+      P("Terrel Bernard", "LB", 2023, 85, { TKL: 143, SACKS: 6.5, INT: 3 }),
+      P("Taron Johnson", "CB", 2023, 85, { TKL: 90, PD: 8 }),
+      P("Damar Hamlin", "S", 2022, 78, { TKL: 91 })
     ]
   }
 ];
@@ -730,7 +947,6 @@ export default function PerfectSeason({ onReward }) {
                 <span className="ps2-slot__name">
                   {filled ? filled.name : "—"}
                 </span>
-                {filled ? <span className="ps2-slot__rating">{filled.rating}</span> : null}
               </button>
             );
           })}
@@ -847,7 +1063,6 @@ export default function PerfectSeason({ onReward }) {
                           </span>
                         ))}
                       </span>
-                      <span className="ps2-row__rating">{p.rating}</span>
                     </button>
                   );
                 })}
