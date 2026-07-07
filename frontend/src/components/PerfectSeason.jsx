@@ -13,10 +13,13 @@ import { api } from "../api";
  *     QB x1.5, EDGE x1.2, CB x1.2.
  *   · Select a player, then tap a highlighted slot to place them. Sort and
  *     filter the pool; 2 rerolls per draft.
- *   · The Quantum Engine runs a 10,000-season Monte Carlo on the finished
- *     roster — win distribution, expected wins, and the odds of 20-0 —
- *     before the live season plays out one reveal at a time.
- *   · Wins pay Star Coins into the same wallet as the markets.
+ *   · The Quantum Engine runs a 10,000-run sudden-death Monte Carlo on the
+ *     finished roster — run-length distribution, expected run, and the odds
+ *     of 20-0 — before the live season plays out one reveal at a time.
+ *   · The schedule runs easy→hard (regular season, then 94+ playoff bosses),
+ *     which leaves the odds of 20-0 untouched but lets runs build.
+ *   · Wins pay Star Coins into the same wallet as the markets, with
+ *     milestone bonuses at 5, 10, and 15 wins.
  *
  * Stat lines are approximate historical season numbers — game data, not a
  * record book.
@@ -692,10 +695,15 @@ function shuffle(list) {
 }
 
 function buildSchedule() {
-  // 17 random regular-season games, then 3 playoff monsters.
+  // 17 random regular-season games, then 3 playoff monsters. Both stretches
+  // run easy→hard: the odds of 20-0 are a product of per-game probabilities,
+  // so ordering doesn't change them — but runs build momentum instead of
+  // dying to a week-2 buzzsaw, and the toughest boss waits at the end.
   const pool = shuffle(OPPONENTS);
-  const regular = pool.slice(0, 17);
-  const playoffs = shuffle(OPPONENTS.filter((o) => o.rating >= 94)).slice(0, 3);
+  const regular = pool.slice(0, 17).sort((a, b) => a.rating - b.rating);
+  const playoffs = shuffle(OPPONENTS.filter((o) => o.rating >= 94))
+    .slice(0, 3)
+    .sort((a, b) => a.rating - b.rating);
   return regular.concat(playoffs).map((o, i) => ({ ...o, week: i + 1, playoff: i >= 17 }));
 }
 
@@ -751,7 +759,9 @@ function winProbability(score, oppRating) {
   return 1 / (1 + Math.pow(10, (oppRating - (score + 1.5)) / 10));
 }
 
-// Monte Carlo: SIMS full seasons over the same schedule shape.
+// Monte Carlo: SIMS sudden-death runs over the same schedule. A run ends at
+// the first loss — exactly how the live season plays out — so the expected
+// wins and distribution describe the game you're actually about to play.
 function runMonteCarlo(score, schedule) {
   const bins = new Array(schedule.length + 1).fill(0);
   let totalWins = 0;
@@ -759,7 +769,8 @@ function runMonteCarlo(score, schedule) {
   for (let s = 0; s < SIMS; s++) {
     let wins = 0;
     for (let g = 0; g < probs.length; g++) {
-      if (Math.random() < probs[g]) wins++;
+      if (Math.random() >= probs[g]) break;
+      wins++;
     }
     bins[wins]++;
     totalWins += wins;
@@ -1016,8 +1027,9 @@ export default function PerfectSeason({ onReward }) {
             player per round into a full two-way roster. Premium slots pay
             premium weight (QB ×1.5, EDGE and CB ×1.2). Then the Quantum
             Engine runs your squad through 10,000 Monte Carlo seasons before
-            you play the real one — lose once and it's over. Every win pays
-            Star Coins.
+            you play the real one — lose once and it's over. The schedule
+            climbs from cupcakes to the all-time monsters. Every win pays
+            Star Coins, with milestone bonuses at 5, 10, and 15 wins.
           </p>
           <button className="wr-btn ps-cta" onClick={startDraft}>
             Start the draft
@@ -1145,8 +1157,8 @@ export default function PerfectSeason({ onReward }) {
                   <span className="ps2-etile__value">{score.toFixed(1)}</span>
                 </div>
                 <div className="ps2-etile">
-                  <span className="ps2-etile__label">Expected wins</span>
-                  <span className="ps2-etile__value">{mc.meanWins.toFixed(1)}</span>
+                  <span className="ps2-etile__label">Expected run</span>
+                  <span className="ps2-etile__value">{mc.meanWins.toFixed(1)} wins</span>
                 </div>
                 <div className="ps2-etile">
                   <span className="ps2-etile__label">Odds of 20-0</span>
@@ -1157,7 +1169,7 @@ export default function PerfectSeason({ onReward }) {
                   </span>
                 </div>
               </div>
-              <div className="ps2-hist" role="img" aria-label="Win distribution across 10,000 simulated seasons">
+              <div className="ps2-hist" role="img" aria-label="Run length across 10,000 simulated sudden-death seasons">
                 {mc.bins.map((count, w) => (
                   <div className="ps2-hist__col" key={w}>
                     <div
@@ -1175,7 +1187,7 @@ export default function PerfectSeason({ onReward }) {
                 ))}
               </div>
               <div className="ps2-hist__caption">
-                Wins per simulated season · the red bar is immortality
+                Wins before each simulated run ended · the red bar is immortality
               </div>
               <button className="wr-btn ps-cta" onClick={playSeason}>
                 Play your season
@@ -1273,7 +1285,12 @@ export default function PerfectSeason({ onReward }) {
           <div className="ps-reward">
             {reward && reward.ok !== false ? (
               <>
-                +{reward.reward} Star Coins{perfect ? " · perfect-season bonus included" : ""}
+                +{reward.reward} Star Coins
+                {perfect
+                  ? " · perfect-season bonus included"
+                  : reward.milestones && reward.milestones.length
+                  ? ` · ${reward.milestones.length === 1 ? "milestone bonus" : "milestone bonuses"} included`
+                  : ""}
               </>
             ) : reward ? (
               "Reward unavailable right now — coins next time."
