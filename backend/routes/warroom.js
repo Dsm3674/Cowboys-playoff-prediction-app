@@ -538,10 +538,17 @@ router.post("/markets/:id/resolve", async (req, res) => {
 
 // ---------------------------------------------------------------------------
 // Perfect Season game — pays Star Coins for a completed season.
-// 5 coins per win, +500 for a perfect 20-0. One reward per minute per user.
+// 5 coins per win, milestone bonuses at 5/10/15 wins (+25/+75/+200, stacking),
+// +500 for a perfect 20-0. One reward per minute per user.
 // ---------------------------------------------------------------------------
 
 const seasonRewardAt = new Map(); // email -> last reward timestamp
+
+const SEASON_MILESTONES = [
+  [5, 25],
+  [10, 75],
+  [15, 200]
+];
 
 router.post("/season/reward", requirePro, async (req, res) => {
   try {
@@ -560,7 +567,9 @@ router.post("/season/reward", requirePro, async (req, res) => {
     seasonRewardAt.set(req.warRoomEmail, Date.now());
 
     const perfect = wins === 20;
-    const reward = wins * 5 + (perfect ? 500 : 0);
+    let reward = wins * 5 + (perfect ? 500 : 0);
+    const milestones = SEASON_MILESTONES.filter(([need]) => wins >= need);
+    for (const [, bonus] of milestones) reward += bonus;
     await getWallet(req.warRoomEmail);
     const { rows } = await db.query(
       `UPDATE wr_wallets SET balance = balance + $2, updated_at = CURRENT_TIMESTAMP
@@ -571,6 +580,7 @@ router.post("/season/reward", requirePro, async (req, res) => {
       ok: true,
       reward,
       perfect,
+      milestones: milestones.map(([need, bonus]) => ({ wins: need, bonus })),
       balance: Number(rows[0].balance)
     });
   } catch (error) {
