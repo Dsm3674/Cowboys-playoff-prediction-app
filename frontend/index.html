@@ -76,7 +76,10 @@
     .lp-modal--compact{max-width:392px;padding:26px 24px}.lp-modal--compact .lp-modal__title{font-size:24px}.lp-modal--compact .lp-modal__sub{font-size:13px;margin-bottom:18px}.lp-modal--compact .lp-tabs{margin-bottom:16px}.lp-modal--compact .lp-methods{margin-bottom:14px}.lp-modal--compact .lp-anon-copy{font-size:12.5px;margin-bottom:14px}.lp-modal--compact .lp-btn--primary{padding:13px}.lp-modal--compact .lp-modal__divider{margin:16px 0}.lp-modal--compact .lp-anon-id{font-size:17px;padding:13px 10px;margin-bottom:14px}.lp-modal--compact .lp-anon-warn{margin:10px 0 12px}
     .lp-methods{display:flex;gap:8px;margin:-6px 0 18px}.lp-method{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 12px;font:600 12px/1 var(--lp-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--lp-ink-soft);background:transparent;border:1px dashed var(--lp-line);border-radius:999px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}.lp-method:hover{color:var(--lp-ink);border-color:var(--lp-ink-muted)}.lp-method.is-active{color:#fff;background:var(--lp-cowboys-nav);border:1px solid var(--lp-cowboys-nav)}
     .lp-anon-copy{font-size:13.5px;line-height:1.55;color:var(--lp-ink-soft);margin:0 0 16px}
-    .lp-anon-device{display:flex;align-items:center;gap:8px;font:600 13px/1.4 var(--lp-ui);color:var(--lp-success);background:rgba(46,138,74,.08);border:1px solid rgba(46,138,74,.25);border-radius:12px;padding:12px 14px;margin-bottom:16px}
+    .lp-anon-revealed{display:flex;align-items:center;gap:8px;font:600 13px/1.4 var(--lp-ui);color:var(--lp-success);background:rgba(46,138,74,.08);border:1px solid rgba(46,138,74,.25);border-radius:12px;padding:12px 14px;margin-bottom:16px;word-break:break-all}
+    .lp-anon-forgot{display:block;font:500 13px/1 var(--lp-ui);color:var(--lp-cowboys-blue);background:none;border:0;padding:0 0 16px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.lp-anon-forgot:hover{color:var(--lp-ink)}
+    .lp-anon-reveal{width:100%;justify-content:center;margin:0 0 14px}
+    #lp-anon-id-input{font-family:var(--lp-mono);letter-spacing:.08em;text-transform:lowercase}
     .lp-anon-textarea{width:100%;font:500 12px/1.5 var(--lp-mono);color:var(--lp-ink);padding:12px 14px;border:1px solid var(--lp-line);border-radius:12px;background:#fff;resize:none;word-break:break-all;transition:border-color .15s,box-shadow .15s}.lp-anon-textarea:focus{outline:none;border-color:var(--lp-cowboys-blue);box-shadow:0 0 0 4px rgba(0,53,148,.12)}
     .lp-anon-id{font:700 20px/1.2 var(--lp-mono);letter-spacing:.06em;text-align:center;color:var(--lp-cowboys-blue);background:rgba(0,53,148,.06);border:1px dashed rgba(0,53,148,.35);border-radius:12px;padding:16px 12px;margin:0 0 18px;user-select:all}
     .lp-anon-copy-btn{width:100%;justify-content:center;margin:10px 0 4px}
@@ -135,18 +138,23 @@
       </div>
       <div id="lp-anon-fields" style="display:none">
         <p class="lp-anon-copy" id="lp-anon-copy">No email. No password. No name. Your browser forges a cryptographic keypair — the private key never leaves this device, and your identity is just the fingerprint of the public key.</p>
-        <div class="lp-anon-device" id="lp-anon-device" style="display:none">🔑 Identity key found on this device — one tap to unlock.</div>
-        <div class="lp-field" id="lp-anon-recovery-field" style="display:none"><label class="lp-field__label" for="lp-anon-recovery">Recovery key</label><textarea id="lp-anon-recovery" class="lp-anon-textarea" rows="3" placeholder="Paste the recovery key you saved at signup" spellcheck="false"></textarea></div>
+        <div class="lp-field" id="lp-anon-id-field" style="display:none"><label class="lp-field__label" for="lp-anon-id-input">Identity key</label><input type="text" id="lp-anon-id-input" placeholder="anon-xxxx-xxxx-xxxx" autocomplete="off" autocapitalize="off" spellcheck="false" /></div>
+        <button type="button" class="lp-anon-forgot" id="lp-anon-forgot" style="display:none">Don't remember your identity key?</button>
+        <div id="lp-anon-recovery-section" style="display:none">
+          <div class="lp-field"><label class="lp-field__label" for="lp-anon-recovery">Recovery key</label><textarea id="lp-anon-recovery" class="lp-anon-textarea" rows="3" placeholder="Paste the recovery key you saved at signup" spellcheck="false"></textarea></div>
+          <button type="button" class="lp-btn lp-btn--ghost lp-anon-reveal" id="lp-anon-reveal">Reveal my identity key</button>
+          <div class="lp-anon-revealed" id="lp-anon-revealed" style="display:none"></div>
+        </div>
       </div>
       <button type="submit" class="lp-btn lp-btn--primary"><span id="lp-submit-label">Enter the Game App</span><span class="lp-btn__arrow">-></span></button>
     </form>
     <div id="lp-anon-issued" style="display:none">
-      <p class="lp-anon-copy">Identity forged. This is you now — no email attached, cryptographically yours:</p>
+      <p class="lp-anon-copy">Identity forged. Memorize this identity key — you'll type it to log in:</p>
       <div class="lp-anon-id" id="lp-anon-issued-id">anon-....-....-....</div>
       <label class="lp-field__label" for="lp-anon-issued-key">Recovery key (your private key)</label>
       <textarea id="lp-anon-issued-key" class="lp-anon-textarea" rows="3" readonly spellcheck="false"></textarea>
       <button type="button" class="lp-btn lp-btn--ghost lp-anon-copy-btn" id="lp-anon-copy-btn">Copy recovery key</button>
-      <p class="lp-anon-warn">Save it somewhere safe. Anonymous means anonymous — there is no email reset. Lose the key on every device and the identity is gone forever.</p>
+      <p class="lp-anon-warn">Save the recovery key somewhere safe — if you forget your identity key, it's the only way to see it again. Anonymous means anonymous: no email reset. Lose both and the identity is gone forever.</p>
       <button type="button" class="lp-btn lp-btn--primary" id="lp-anon-enter">I saved it — enter the War Room <span class="lp-btn__arrow">-></span></button>
     </div>
     <div class="lp-modal__divider" id="lp-modal-divider">or</div>
@@ -202,9 +210,13 @@
       var methodButtons = document.querySelectorAll(".lp-method");
       var gmailFields = document.getElementById("lp-gmail-fields");
       var anonFields = document.getElementById("lp-anon-fields");
-      var anonDeviceNote = document.getElementById("lp-anon-device");
-      var anonRecoveryField = document.getElementById("lp-anon-recovery-field");
+      var anonCopyEl = document.getElementById("lp-anon-copy");
+      var anonIdField = document.getElementById("lp-anon-id-field");
+      var anonIdInput = document.getElementById("lp-anon-id-input");
+      var anonForgotBtn = document.getElementById("lp-anon-forgot");
+      var anonRecoverySection = document.getElementById("lp-anon-recovery-section");
       var anonRecoveryInput = document.getElementById("lp-anon-recovery");
+      var anonRevealed = document.getElementById("lp-anon-revealed");
       var anonIssued = document.getElementById("lp-anon-issued");
       var anonIssuedId = document.getElementById("lp-anon-issued-id");
       var anonIssuedKey = document.getElementById("lp-anon-issued-key");
@@ -263,6 +275,23 @@
           var jwk = JSON.parse(atob(String(text || "").trim()));
           return jwk && jwk.kty === "EC" && jwk.d ? jwk : null;
         } catch (e) { return null; }
+      }
+
+      // Mirrors the server's identity derivation: SHA-256 of the SPKI public
+      // key, first 12 bytes mapped through the same alphabet. Used to check
+      // that the identity key the user types matches the private key we hold.
+      async function anonIdFromPrivateJwk(privateJwk) {
+        var publicKey = await crypto.subtle.importKey(
+          "jwk", { kty: "EC", crv: "P-256", x: privateJwk.x, y: privateJwk.y },
+          { name: "ECDSA", namedCurve: "P-256" },
+          true, ["verify"]
+        );
+        var spki = await crypto.subtle.exportKey("spki", publicKey);
+        var digest = new Uint8Array(await crypto.subtle.digest("SHA-256", spki));
+        var alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+        var id = "";
+        for (var i = 0; i < 12; i++) id += alphabet[digest[i] % alphabet.length];
+        return "anon-" + id.slice(0, 4) + "-" + id.slice(4, 8) + "-" + id.slice(8, 12);
       }
 
       async function anonChallengeSignVerify(privateKey, publicKey) {
@@ -435,11 +464,13 @@
           b.classList.toggle("is-active", b.dataset.method === currentMethod);
         });
 
-        // Reset the post-signup "identity forged" panel whenever the user
-        // switches tabs or methods.
+        // Reset the post-signup "identity forged" panel and any typed anon
+        // credentials whenever the user switches tabs or methods.
         pendingAnonSession = null;
         form.style.display = "";
         anonIssued.style.display = "none";
+        anonIdInput.value = "";
+        anonRecoveryInput.value = "";
 
         var isAnon = currentMethod === "anon";
         var modalBox = modal.querySelector(".lp-modal");
@@ -448,19 +479,22 @@
         anonFields.style.display = isAnon ? "" : "none";
 
         if (isAnon) {
+          anonRecoverySection.style.display = "none";
+          anonRevealed.style.display = "none";
           if (currentTab === "signup") {
             modalTitle.textContent = "Go ghost";
             modalSub.textContent = "Forge an anonymous cryptographic identity. Zero personal data.";
             submitLabel.textContent = "Forge anonymous identity";
-            anonDeviceNote.style.display = "none";
-            anonRecoveryField.style.display = "none";
+            anonCopyEl.textContent = "No email. No password. No name. Your browser forges a cryptographic keypair — the private key never leaves this device, and your identity is just the fingerprint of the public key.";
+            anonIdField.style.display = "none";
+            anonForgotBtn.style.display = "none";
           } else {
             modalTitle.textContent = "Welcome back, ghost";
-            modalSub.textContent = "Unlock with the key on this device or your recovery key.";
+            modalSub.textContent = "Enter your identity key to unlock.";
             submitLabel.textContent = "Unlock anonymously";
-            var hasDeviceKey = !!loadAnonKey();
-            anonDeviceNote.style.display = hasDeviceKey ? "" : "none";
-            anonRecoveryField.style.display = hasDeviceKey ? "none" : "";
+            anonCopyEl.textContent = "Type the identity key you were issued at signup.";
+            anonIdField.style.display = "";
+            anonForgotBtn.style.display = "";
           }
           return;
         }
@@ -627,10 +661,28 @@
               modalSub.textContent = "Anonymous. Cryptographic. Yours alone.";
               submitLabel.textContent = restoreLabel;
             } else {
-              var jwk = loadAnonKey() || parseRecoveryKey(anonRecoveryInput.value);
+              var enteredId = (anonIdInput.value || "").trim().toLowerCase();
+              if (!isAnonId(enteredId)) {
+                submitLabel.textContent = restoreLabel;
+                showError("Enter your identity key — it looks like anon-xxxx-xxxx-xxxx. Don't remember it? Use your recovery key to see it.");
+                anonRecoverySection.style.display = "";
+                return;
+              }
+              var jwk = null;
+              var deviceJwk = loadAnonKey();
+              if (deviceJwk && (await anonIdFromPrivateJwk(deviceJwk)) === enteredId) {
+                jwk = deviceJwk;
+              }
+              if (!jwk) {
+                var recJwk = parseRecoveryKey(anonRecoveryInput.value);
+                if (recJwk && (await anonIdFromPrivateJwk(recJwk)) === enteredId) {
+                  jwk = recJwk;
+                }
+              }
               if (!jwk) {
                 submitLabel.textContent = restoreLabel;
-                showError("Paste the recovery key you saved at signup, or switch to Sign Up to forge a new identity.");
+                showError("No key matching that identity was found on this device. Paste the recovery key you saved at signup.");
+                anonRecoverySection.style.display = "";
                 return;
               }
               var anonSession = await anonSignIn(jwk);
@@ -680,6 +732,31 @@
           modalError.classList.remove("is-visible");
           setMethod(b.dataset.method);
         });
+      });
+
+      anonForgotBtn.addEventListener("click", function () {
+        modalError.classList.remove("is-visible");
+        var open = anonRecoverySection.style.display !== "none";
+        anonRecoverySection.style.display = open ? "none" : "";
+        anonRevealed.style.display = "none";
+      });
+
+      document.getElementById("lp-anon-reveal").addEventListener("click", async function () {
+        modalError.classList.remove("is-visible");
+        anonRevealed.style.display = "none";
+        var jwk = parseRecoveryKey(anonRecoveryInput.value);
+        if (!jwk) {
+          showError("That recovery key doesn't look right. Paste the full key you copied at signup.");
+          return;
+        }
+        try {
+          var id = await anonIdFromPrivateJwk(jwk);
+          anonIdInput.value = id;
+          anonRevealed.textContent = "🔑 Your identity key: " + id + " — filled in above, hit Unlock.";
+          anonRevealed.style.display = "";
+        } catch (err) {
+          showError("Could not read that recovery key. Paste the full key you copied at signup.");
+        }
       });
 
       document.getElementById("lp-anon-enter").addEventListener("click", function () {
