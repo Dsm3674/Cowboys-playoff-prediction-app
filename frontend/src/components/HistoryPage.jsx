@@ -10,9 +10,10 @@ function HistoryPage() {
   function getSignedInAccount() {
     try {
       const stored = JSON.parse(localStorage.getItem("cowboys_iq_auth_v3") || "null");
-      return /^[^@\s]+@gmail\.com$/i.test(stored?.user || "")
-        ? stored.user.trim().toLowerCase()
-        : "";
+      const user = String(stored?.user || "").trim().toLowerCase();
+      const isGmailUser = /^[^@\s]+@gmail\.com$/i.test(user);
+      const isAnonUser = /^anon-[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/.test(user);
+      return isGmailUser || isAnonUser ? user : "";
     } catch (_err) {
       return "";
     }

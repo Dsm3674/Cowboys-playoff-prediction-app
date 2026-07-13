@@ -90,9 +90,13 @@ function isGmail(email) {
   return /^[^@\s]+@gmail\.com$/i.test(email);
 }
 
+function isAnonIdentity(user) {
+  return /^anon-[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/i.test(user);
+}
+
 function requestEmail(req) {
   const email = normalizeEmail(req.headers["x-lonestar-user"]);
-  return isGmail(email) ? email : "";
+  return isGmail(email) || isAnonIdentity(email) ? email : "";
 }
 
 // ---------------------------------------------------------------------------

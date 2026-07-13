@@ -37,6 +37,14 @@
     return /^[^@\s]+@gmail\.com$/i.test(String(email || "").trim());
   }
 
+  function isAnonId(user) {
+    return /^anon-[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/i.test(String(user || "").trim());
+  }
+
+  function isKnownUser(user) {
+    return isGmail(user) || isAnonId(user);
+  }
+
   function readCookie(name) {
     if (typeof document === "undefined") return "";
     const prefix = `${name}=`;
@@ -74,17 +82,17 @@
   function getSignedInUser() {
     try {
       const stored = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
-      if (isGmail(stored?.user)) {
-        const email = stored.user.trim().toLowerCase();
-        writeCookie(USER_COOKIE, email);
-        return email;
+      if (isKnownUser(stored?.user)) {
+        const user = stored.user.trim().toLowerCase();
+        writeCookie(USER_COOKIE, user);
+        return user;
       }
     } catch (_err) {
       // Ignore malformed legacy auth data and fall back to the cookie.
     }
 
     const cookieUser = readCookie(USER_COOKIE);
-    return isGmail(cookieUser) ? cookieUser.trim().toLowerCase() : "";
+    return isKnownUser(cookieUser) ? cookieUser.trim().toLowerCase() : "";
   }
 
   function getIdentityHeaders() {

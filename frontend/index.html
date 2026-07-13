@@ -72,13 +72,22 @@
     @media(max-width:980px){.lp-hero{grid-template-columns:1fr;padding:48px 24px 24px;gap:40px}.lp-visual{min-height:460px;order:2}.lp-mockup{transform:rotateY(-6deg) rotateX(3deg);max-width:380px}.lp-nav__links{display:none}.lp-features{padding:64px 24px}.lp-feature-grid,.lp-pricing-grid,.lp-pulse__shell,.lp-story__grid{grid-template-columns:1fr;gap:16px}.lp-pricing{padding:8px 24px 64px}.lp-pulse{padding:0 24px 64px}.lp-story{padding:64px 24px}.lp-pricing__head{display:block}.lp-pricing__note{margin-top:12px}.lp-headline{font-size:clamp(40px,9vw,64px)}}
     @media(max-width:560px){.lp-nav__inner{padding:14px 16px;gap:10px}.lp-nav__cta{gap:8px}.lp-nav__cta .lp-link-btn{display:none}.lp-nav__cta .lp-btn{padding:11px 16px;font-size:13px;white-space:nowrap}#lp-signup-cta .lp-btn__text{display:none}#lp-signup-cta::before{content:"Get Started"}.lp-pulse__shell,.lp-story-card{padding:22px}.lp-vote-actions{display:grid}.lp-foot{flex-direction:column;align-items:flex-start}.lp-modal{padding:28px 22px}.lp-modal__title{font-size:26px}.lp-float--proj{left:0}.lp-float--seed{right:2%}.lp-signout{top:10px;right:12px;padding:8px 12px;font-size:11px}}
     @media(prefers-reduced-motion:reduce){.lp-headline em,.lp-eyebrow__pulse,.lp-float,.lp-rail__track,.lp-stars span{animation:none!important}}
+    .lp-modal .lp-modal__title{color:var(--lp-ink)}
+    .lp-methods{display:flex;gap:8px;margin:-6px 0 18px}.lp-method{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 12px;font:600 12px/1 var(--lp-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--lp-ink-soft);background:transparent;border:1px dashed var(--lp-line);border-radius:999px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}.lp-method:hover{color:var(--lp-ink);border-color:var(--lp-ink-muted)}.lp-method.is-active{color:#fff;background:var(--lp-cowboys-nav);border:1px solid var(--lp-cowboys-nav)}
+    .lp-anon-copy{font-size:13.5px;line-height:1.55;color:var(--lp-ink-soft);margin:0 0 16px}
+    .lp-anon-device{display:flex;align-items:center;gap:8px;font:600 13px/1.4 var(--lp-ui);color:var(--lp-success);background:rgba(46,138,74,.08);border:1px solid rgba(46,138,74,.25);border-radius:12px;padding:12px 14px;margin-bottom:16px}
+    .lp-anon-textarea{width:100%;font:500 12px/1.5 var(--lp-mono);color:var(--lp-ink);padding:12px 14px;border:1px solid var(--lp-line);border-radius:12px;background:#fff;resize:none;word-break:break-all;transition:border-color .15s,box-shadow .15s}.lp-anon-textarea:focus{outline:none;border-color:var(--lp-cowboys-blue);box-shadow:0 0 0 4px rgba(0,53,148,.12)}
+    .lp-anon-id{font:700 20px/1.2 var(--lp-mono);letter-spacing:.06em;text-align:center;color:var(--lp-cowboys-blue);background:rgba(0,53,148,.06);border:1px dashed rgba(0,53,148,.35);border-radius:12px;padding:16px 12px;margin:0 0 18px;user-select:all}
+    .lp-anon-copy-btn{width:100%;justify-content:center;margin:10px 0 4px}
+    .lp-anon-warn{font-size:12.5px;line-height:1.5;color:var(--lp-danger);background:rgba(192,69,69,.07);border:1px solid rgba(192,69,69,.2);border-radius:10px;padding:10px 12px;margin:12px 0 16px}
+    #lp-anon-issued .lp-btn--primary{width:100%;justify-content:center;padding:16px}
   </style>
   <link rel="stylesheet" href="./landing.css" />
 </head>
 <body class="lp-locked">
   <div class="lp-stage" id="lp-stage" role="region" aria-label="LoneStar AI Playoff Intelligence">
     <header class="lp-nav"><div class="lp-nav__inner"><a class="lp-logo" href="#"><div class="lp-logo__star">NFL</div><div class="lp-logo__text">LoneStar <em>AI</em></div></a><nav class="lp-nav__links" aria-label="Primary"><button class="lp-nav__link" data-scroll="features">Engines</button><button class="lp-nav__link" data-scroll="pricing">Pricing</button><button class="lp-nav__link" data-scroll="pulse">Fan Pulse</button><button class="lp-nav__link" data-scroll="story">Story</button></nav><div class="lp-nav__cta"><button class="lp-link-btn" id="lp-login-link">Log In</button><button class="lp-btn lp-btn--primary" id="lp-signup-cta"><span class="lp-btn__text">Enter the War Room</span><span class="lp-btn__arrow">-></span></button></div></div></header>
-    <section class="lp-hero"><div class="lp-hero__copy"><span class="lp-eyebrow"><span class="lp-eyebrow__pulse" aria-hidden="true"></span>LoneStar AI Playoff Intelligence</span><h1 class="lp-headline">32 teams.<br />One <em>intelligence</em> layer<span class="lp-headline__period">.</span></h1><p class="lp-subhead">NFL playoff intelligence for all 32 teams — Cowboys-first but league-wide. Live win probability, AI bracket projections, clutch analytics, and 100,000-simulation forecasts updated every snap, every Sunday.</p><div class="lp-cta-row"><button class="lp-btn lp-btn--primary" id="lp-cta-primary">Enter the War Room <span class="lp-btn__arrow">-></span></button><button class="lp-guest-link" id="lp-cta-guest">Sign up with Gmail -></button></div><div class="lp-agent-console" aria-hidden="true"><div class="lp-agent-card"><div class="lp-agent-card__label">Agent Scan</div><div class="lp-agent-card__value"><span class="lp-agent-card__pulse"></span>Live routes</div></div><div class="lp-agent-card"><div class="lp-agent-card__label">Win Model</div><div class="lp-agent-card__value"><span class="lp-agent-card__pulse"></span>Updating</div></div><div class="lp-agent-card"><div class="lp-agent-card__label">Access Gate</div><div class="lp-agent-card__value"><span class="lp-agent-card__pulse"></span>Ready</div></div></div><ul class="lp-checks" aria-label="Key features"><li><span class="lp-check" aria-hidden="true">✓</span>AI playoff bracket projections for all 32 NFL teams — Wild Card through Super Bowl</li><li><span class="lp-check" aria-hidden="true">✓</span>Interactive season timeline tracking every win, loss, injury and momentum shift</li><li><span class="lp-check" aria-hidden="true">✓</span>Scenario simulator mapping every postseason path with Quantum Engine forecasts</li></ul></div><div class="lp-visual" aria-hidden="true"><div class="lp-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div><div class="lp-orbit"><span></span><span></span><span></span></div><div class="lp-mockup"><div class="lp-mockup__top"><div class="lp-mockup__dots"><span></span><span></span><span></span></div><div>LoneStar AI · Command Center</div></div><div class="lp-mockup__title">Playoff Probability</div><div class="lp-mockup__sub">Quantum Forecast</div><div class="lp-gauge"><svg viewBox="0 0 200 110" aria-hidden="true"><defs><linearGradient id="lp-g" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#003594"/><stop offset="1" stop-color="#b0b7bc"/></linearGradient></defs><path d="M15,100 A85,85 0 0 1 185,100" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14" stroke-linecap="round"/><path id="playoff-bar" d="M15,100 A85,85 0 0 1 165,40" fill="none" stroke="url(#lp-g)" stroke-width="14" stroke-linecap="round" pathLength="100" stroke-dasharray="78 100"/><g stroke="rgba(255,255,255,0.25)" stroke-width="1"><line x1="20" y1="100" x2="22" y2="92"/><line x1="100" y1="15" x2="100" y2="23"/><line x1="180" y1="100" x2="178" y2="92"/></g></svg><div class="lp-gauge__readout"><div class="lp-gauge__num" id="playoff-prob">78<i>%</i></div><div class="lp-gauge__label">Make Postseason</div></div></div><div class="lp-stat-grid"><div class="lp-stat-card"><div class="lp-stat-card__label">Proj Wins</div><div class="lp-stat-card__value"><span id="proj-wins">11.2</span> <span class="lp-stat-card__delta lp-stat-card__delta--up">▲ 0.4</span></div></div><div class="lp-stat-card"><div class="lp-stat-card__label">Top Seed Odds</div><div class="lp-stat-card__value"><span id="division-prob">22%</span> <span class="lp-stat-card__delta lp-stat-card__delta--up">▲ 3</span></div></div><div class="lp-stat-card"><div class="lp-stat-card__label">SB Odds</div><div class="lp-stat-card__value"><span id="superbowl-prob">9.4%</span> <span class="lp-stat-card__delta lp-stat-card__delta--up">▲ 1.1</span></div></div><div class="lp-stat-card"><div class="lp-stat-card__label">SOS Rank</div><div class="lp-stat-card__value">#3 <span class="lp-stat-card__delta lp-stat-card__delta--down">▼ 2</span></div></div></div><div class="lp-spark"><div class="lp-spark__label"><span>Win Prob · Last 8 Wks</span><span style="color:#b0b7bc">+18.6</span></div><svg class="lp-spark__svg" viewBox="0 0 200 38" preserveAspectRatio="none"><polyline points="0,28 25,30 50,24 75,22 100,18 125,14 150,16 175,8 200,4" fill="none" stroke="#b0b7bc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="0,28 25,30 50,24 75,22 100,18 125,14 150,16 175,8 200,4 200,38 0,38" fill="rgba(176,183,188,0.12)" stroke="none"/></svg></div></div><div class="lp-float lp-float--proj"><div class="lp-float__label">Quantum Sims Run</div><div class="lp-float__value">100,000<em>/min</em></div></div><div class="lp-float lp-float--seed"><div class="lp-float__label">Teams Tracked</div><div class="lp-float__value">32 <em>NFL</em></div></div></div></section>
+    <section class="lp-hero"><div class="lp-hero__copy"><span class="lp-eyebrow"><span class="lp-eyebrow__pulse" aria-hidden="true"></span>LoneStar AI Playoff Intelligence</span><h1 class="lp-headline">32 teams.<br />One <em>intelligence</em> layer<span class="lp-headline__period">.</span></h1><p class="lp-subhead">NFL playoff intelligence for all 32 teams — Cowboys-first but league-wide. Live win probability, AI bracket projections, clutch analytics, and 100,000-simulation forecasts updated every snap, every Sunday.</p><div class="lp-cta-row"><button class="lp-btn lp-btn--primary" id="lp-cta-primary">Enter the War Room <span class="lp-btn__arrow">-></span></button><button class="lp-guest-link" id="lp-cta-guest">🕶 Go anonymous — no email needed -></button></div><div class="lp-agent-console" aria-hidden="true"><div class="lp-agent-card"><div class="lp-agent-card__label">Agent Scan</div><div class="lp-agent-card__value"><span class="lp-agent-card__pulse"></span>Live routes</div></div><div class="lp-agent-card"><div class="lp-agent-card__label">Win Model</div><div class="lp-agent-card__value"><span class="lp-agent-card__pulse"></span>Updating</div></div><div class="lp-agent-card"><div class="lp-agent-card__label">Access Gate</div><div class="lp-agent-card__value"><span class="lp-agent-card__pulse"></span>Ready</div></div></div><ul class="lp-checks" aria-label="Key features"><li><span class="lp-check" aria-hidden="true">✓</span>AI playoff bracket projections for all 32 NFL teams — Wild Card through Super Bowl</li><li><span class="lp-check" aria-hidden="true">✓</span>Interactive season timeline tracking every win, loss, injury and momentum shift</li><li><span class="lp-check" aria-hidden="true">✓</span>Scenario simulator mapping every postseason path with Quantum Engine forecasts</li></ul></div><div class="lp-visual" aria-hidden="true"><div class="lp-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div><div class="lp-orbit"><span></span><span></span><span></span></div><div class="lp-mockup"><div class="lp-mockup__top"><div class="lp-mockup__dots"><span></span><span></span><span></span></div><div>LoneStar AI · Command Center</div></div><div class="lp-mockup__title">Playoff Probability</div><div class="lp-mockup__sub">Quantum Forecast</div><div class="lp-gauge"><svg viewBox="0 0 200 110" aria-hidden="true"><defs><linearGradient id="lp-g" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#003594"/><stop offset="1" stop-color="#b0b7bc"/></linearGradient></defs><path d="M15,100 A85,85 0 0 1 185,100" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14" stroke-linecap="round"/><path id="playoff-bar" d="M15,100 A85,85 0 0 1 165,40" fill="none" stroke="url(#lp-g)" stroke-width="14" stroke-linecap="round" pathLength="100" stroke-dasharray="78 100"/><g stroke="rgba(255,255,255,0.25)" stroke-width="1"><line x1="20" y1="100" x2="22" y2="92"/><line x1="100" y1="15" x2="100" y2="23"/><line x1="180" y1="100" x2="178" y2="92"/></g></svg><div class="lp-gauge__readout"><div class="lp-gauge__num" id="playoff-prob">78<i>%</i></div><div class="lp-gauge__label">Make Postseason</div></div></div><div class="lp-stat-grid"><div class="lp-stat-card"><div class="lp-stat-card__label">Proj Wins</div><div class="lp-stat-card__value"><span id="proj-wins">11.2</span> <span class="lp-stat-card__delta lp-stat-card__delta--up">▲ 0.4</span></div></div><div class="lp-stat-card"><div class="lp-stat-card__label">Top Seed Odds</div><div class="lp-stat-card__value"><span id="division-prob">22%</span> <span class="lp-stat-card__delta lp-stat-card__delta--up">▲ 3</span></div></div><div class="lp-stat-card"><div class="lp-stat-card__label">SB Odds</div><div class="lp-stat-card__value"><span id="superbowl-prob">9.4%</span> <span class="lp-stat-card__delta lp-stat-card__delta--up">▲ 1.1</span></div></div><div class="lp-stat-card"><div class="lp-stat-card__label">SOS Rank</div><div class="lp-stat-card__value">#3 <span class="lp-stat-card__delta lp-stat-card__delta--down">▼ 2</span></div></div></div><div class="lp-spark"><div class="lp-spark__label"><span>Win Prob · Last 8 Wks</span><span style="color:#b0b7bc">+18.6</span></div><svg class="lp-spark__svg" viewBox="0 0 200 38" preserveAspectRatio="none"><polyline points="0,28 25,30 50,24 75,22 100,18 125,14 150,16 175,8 200,4" fill="none" stroke="#b0b7bc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="0,28 25,30 50,24 75,22 100,18 125,14 150,16 175,8 200,4 200,38 0,38" fill="rgba(176,183,188,0.12)" stroke="none"/></svg></div></div><div class="lp-float lp-float--proj"><div class="lp-float__label">Quantum Sims Run</div><div class="lp-float__value">100,000<em>/min</em></div></div><div class="lp-float lp-float--seed"><div class="lp-float__label">Teams Tracked</div><div class="lp-float__value">32 <em>NFL</em></div></div></div></section>
     <div class="lp-rail" aria-hidden="true"><div class="lp-rail__track"><div class="lp-rail__item"><span class="lp-rail__dot">★</span> AFC #1 <span class="lp-rail__val">KC 14-3</span> <span class="lp-rail__up">▲</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> NFC #1 <span class="lp-rail__val">DET 15-2</span> <span class="lp-rail__up">▲</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> SB Favorite <span class="lp-rail__val">KC 52%</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> DAL Proj Wins <span class="lp-rail__val">10.8</span> <span class="lp-rail__up">▲</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> DAL Playoff Odds <span class="lp-rail__val">74%</span> <span class="lp-rail__up">▲</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> Highest TSI <span class="lp-rail__val">BAL · 14.2</span> <span class="lp-rail__up">▲</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> Bubble <span class="lp-rail__val">SEA, LAR, DEN</span> <span class="lp-rail__down">▼</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> SOS Toughest <span class="lp-rail__val">DAL</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> DAL SB Odds <span class="lp-rail__val">9.4%</span> <span class="lp-rail__up">▲</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> AFC #1 <span class="lp-rail__val">KC 14-3</span> <span class="lp-rail__up">▲</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> NFC #1 <span class="lp-rail__val">DET 15-2</span> <span class="lp-rail__up">▲</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> SB Favorite <span class="lp-rail__val">KC 52%</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> DAL Proj Wins <span class="lp-rail__val">10.8</span> <span class="lp-rail__up">▲</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> DAL Playoff Odds <span class="lp-rail__val">74%</span> <span class="lp-rail__up">▲</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> Highest TSI <span class="lp-rail__val">BAL · 14.2</span> <span class="lp-rail__up">▲</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> Bubble <span class="lp-rail__val">SEA, LAR, DEN</span> <span class="lp-rail__down">▼</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> SOS Toughest <span class="lp-rail__val">DAL</span></div><div class="lp-rail__item"><span class="lp-rail__dot">★</span> DAL SB Odds <span class="lp-rail__val">9.4%</span> <span class="lp-rail__up">▲</span></div></div></div>
     <section class="lp-features" id="lp-features"><span class="lp-features__kicker">★ Inside the platform</span><h2 class="lp-features__title">Four engines. One <em>command center</em> built for January football.</h2><div class="lp-feature-grid" style="grid-template-columns:repeat(2,1fr)"><article class="lp-feature"><div class="lp-feature__no">01 · QUANTUM ENGINE</div><h3 class="lp-feature__title">Predictions</h3><p class="lp-feature__copy">100,000 Monte Carlo simulations per game. Strength-of-schedule, weather, injury decay, and rest are all priced in before a snap is taken.</p><div class="lp-feature__viz"><div class="lp-feature__bars"><span style="height:30%"></span><span style="height:48%"></span><span style="height:42%"></span><span style="height:62%"></span><span style="height:55%"></span><span style="height:78%"></span><span style="height:70%"></span><span style="height:88%"></span><span style="height:82%"></span><span style="height:96%"></span></div></div></article><article class="lp-feature"><div class="lp-feature__no">02 · PLAYOFF BRACKET</div><h3 class="lp-feature__title">All 32 Teams</h3><p class="lp-feature__copy">AI-projected playoff bracket for both conferences — Wild Card through Super Bowl. Win probabilities for every matchup, updated by the model each week.</p><div class="lp-feature__viz" style="justify-content:center;align-items:center;gap:6px"><div style="display:flex;flex-direction:column;gap:4px"><div style="width:60px;height:22px;border:1px solid rgba(0,53,148,.4);border-radius:4px;display:flex;align-items:center;padding:0 6px;font-size:9px;font-family:var(--lp-mono);color:var(--lp-cowboys-blue)">KC <b style="margin-left:auto">52%</b></div><div style="width:60px;height:22px;border:1px solid rgba(0,53,148,.15);border-radius:4px;display:flex;align-items:center;padding:0 6px;font-size:9px;font-family:var(--lp-mono);color:var(--lp-ink-muted)">PHI <b style="margin-left:auto">48%</b></div></div><div style="font-size:18px;margin:0 4px">🏆</div><div style="display:flex;flex-direction:column;gap:4px"><div style="width:60px;height:22px;border:1px solid rgba(0,53,148,.4);border-radius:4px;display:flex;align-items:center;padding:0 6px;font-size:9px;font-family:var(--lp-mono);color:var(--lp-cowboys-blue)">DET <b style="margin-left:auto">54%</b></div><div style="width:60px;height:22px;border:1px solid rgba(0,53,148,.15);border-radius:4px;display:flex;align-items:center;padding:0 6px;font-size:9px;font-family:var(--lp-mono);color:var(--lp-ink-muted)">BUF <b style="margin-left:auto">46%</b></div></div></div></article><article class="lp-feature"><div class="lp-feature__no">03 · SEASON TIMELINE</div><h3 class="lp-feature__title">Season Arc</h3><p class="lp-feature__copy">An interactive visual timeline that maps every win, loss, injury, trade, and momentum shift — plotted on a date axis with impact scoring across the full season.</p><div class="lp-feature__viz" style="flex-direction:column;justify-content:flex-end"><svg viewBox="0 0 200 50" style="width:100%;height:50px" aria-hidden="true"><line x1="0" y1="36" x2="200" y2="36" stroke="rgba(10,21,48,.12)" stroke-width="1.5"/><rect x="10" y="16" width="10" height="20" rx="2" fill="rgba(0,53,148,.7)" opacity=".7"/><rect x="30" y="10" width="10" height="26" rx="2" fill="rgba(0,212,170,.7)" opacity=".8"/><rect x="50" y="26" width="10" height="10" rx="2" fill="rgba(220,80,80,.7)" opacity=".7"/><rect x="70" y="8" width="10" height="28" rx="2" fill="rgba(0,212,170,.7)" opacity=".8"/><rect x="90" y="20" width="10" height="16" rx="2" fill="rgba(251,191,36,.7)" opacity=".7"/><rect x="110" y="6" width="10" height="30" rx="2" fill="rgba(0,212,170,.8)"/><rect x="130" y="22" width="10" height="14" rx="2" fill="rgba(220,80,80,.6)" opacity=".7"/><rect x="150" y="4" width="10" height="32" rx="2" fill="rgba(0,212,170,.9)"/><rect x="170" y="14" width="10" height="22" rx="2" fill="rgba(0,53,148,.8)"/></svg></div></article><article class="lp-feature"><div class="lp-feature__no">04 · CLUTCH INDEX</div><h3 class="lp-feature__title">Player Pressure</h3><p class="lp-feature__copy">A weighted score for every player on every roster: how they play with the game in the balance, the season on the line, the lights at their brightest.</p><div class="lp-feature__viz"><div class="lp-feature__stars"><i>★</i><i>★</i><i>★</i><i>★</i><i style="color:rgba(0,53,148,0.25)">★</i><span style="margin-left:auto">87.3 / 100</span></div></div></article></div></section>
     <section class="lp-pricing" id="lp-pricing"><div class="lp-pricing__shell"><div class="lp-pricing__head"><div><div class="lp-pricing__kicker">★ Pricing + backing</div><h2 class="lp-pricing__title">Built for classrooms, fans, and people who want to back the app.</h2></div><p class="lp-pricing__note">Free users can explore the core dashboard. Pro unlocks saved simulations, advanced model views, weekly reports, and export tools once payments are connected.</p></div><div class="lp-pricing-grid"><article class="lp-price-card"><div class="lp-price-card__tag">Educators</div><h3 class="lp-price-card__name">Classroom Lab</h3><div class="lp-price-card__price"><strong>$0</strong><span>/ pilot</span></div><p class="lp-price-card__copy">For teachers using sports analytics to teach probability, data literacy, and decision-making.</p><div class="lp-price-card__lock">Included: free pilot</div><ul class="lp-price-card__list"><li>Core dashboard access</li><li>Scenario simulator worksheets</li><li>Student-friendly analytics language</li></ul><div class="lp-price-card__action"><button class="lp-btn lp-btn--ghost lp-checkout-btn" data-plan="Educator pilot" data-price="$0 pilot">Request educator access</button></div></article><article class="lp-price-card lp-price-card--featured"><div class="lp-price-card__tag">Supporters</div><h3 class="lp-price-card__name">War Room Pro</h3><div class="lp-price-card__price"><strong>$1</strong><span>/ month</span></div><p class="lp-price-card__copy">For fans who want premium modeling, saved scenarios, and weekly playoff intelligence drops.</p><div class="lp-price-card__lock">Locked behind Pro</div><ul class="lp-price-card__list"><li>Premium Quantum Engine model views</li><li>Saved matchup and playoff scenarios</li><li>Weekly intelligence report + exports</li></ul><div class="lp-card-row"><div class="lp-mini-ledger"><b>100k</b><span>sims/run</span></div><div class="lp-mini-ledger"><b>32</b><span>teams</span></div></div><div class="lp-price-card__action"><button class="lp-btn lp-btn--primary lp-checkout-btn" data-plan="War Room Pro" data-price="$1/month">Request Pro access</button></div></article><article class="lp-price-card"><div class="lp-price-card__tag">Investors</div><h3 class="lp-price-card__name">Back LoneStar AI</h3><div class="lp-price-card__price"><strong>Talk</strong><span>/ deck</span></div><p class="lp-price-card__copy">For people interested in investing, sponsoring, or helping turn the prototype into a sports analytics product.</p><div class="lp-price-card__lock">Investor lane</div><ul class="lp-price-card__list"><li>Product roadmap preview</li><li>Market + classroom use cases</li><li>Sponsor/investor inquiry path</li></ul><div class="lp-price-card__action"><button class="lp-btn lp-btn--ghost lp-checkout-btn" data-plan="Investor inquiry" data-price="Deck request">Request investor info</button></div></article></div></div></section>
@@ -113,11 +122,39 @@
     </script>
   </div>
 
-  <div class="lp-modal-backdrop" id="lp-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="lp-modal-title"><div class="lp-modal"><button class="lp-modal__close" id="lp-modal-close" aria-label="Close">×</button><div class="lp-modal__eyebrow">★ LoneStar AI Access</div><h2 class="lp-modal__title" id="lp-modal-title">Welcome back</h2><p class="lp-modal__sub" id="lp-modal-sub">Sign in to your command center.</p><div class="lp-tabs" role="tablist"><button class="lp-tab is-active" data-tab="signin" role="tab" aria-selected="true">Sign In</button><button class="lp-tab" data-tab="signup" role="tab" aria-selected="false">Sign Up</button></div><div class="lp-modal__error" id="lp-modal-error">Please enter your Gmail and password.</div><form id="lp-auth-form" autocomplete="on" novalidate><div class="lp-field" id="lp-name-field" style="display:none"><label class="lp-field__label" for="lp-name">Name</label><input type="text" id="lp-name" name="name" placeholder="Jerry Jones" autocomplete="name" /></div><div class="lp-field"><label class="lp-field__label" for="lp-email">Gmail</label><input type="email" id="lp-email" name="email" placeholder="you@gmail.com" required autocomplete="email" /></div><div class="lp-field"><label class="lp-field__label" for="lp-pass">Password</label><input type="password" id="lp-pass" name="password" placeholder="••••••••" required autocomplete="current-password" minlength="6" /></div><div class="lp-field__row"><label><input type="checkbox" id="lp-remember" checked /> Remember me</label><a href="#">Forgot password?</a></div><button type="submit" class="lp-btn lp-btn--primary"><span id="lp-submit-label">Enter the Game App</span><span class="lp-btn__arrow">-></span></button></form><div class="lp-modal__divider">Gmail access required</div><button class="lp-modal__guest" id="lp-modal-guest">Create an account with Gmail</button></div></div>
+  <div class="lp-modal-backdrop" id="lp-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="lp-modal-title"><div class="lp-modal"><button class="lp-modal__close" id="lp-modal-close" aria-label="Close">×</button><div class="lp-modal__eyebrow">★ LoneStar AI Access</div><h2 class="lp-modal__title" id="lp-modal-title">Welcome back</h2><p class="lp-modal__sub" id="lp-modal-sub">Sign in to your command center.</p><div class="lp-tabs" role="tablist"><button class="lp-tab is-active" data-tab="signin" role="tab" aria-selected="true">Sign In</button><button class="lp-tab" data-tab="signup" role="tab" aria-selected="false">Sign Up</button></div>
+    <div class="lp-methods" role="group" aria-label="Access method"><button type="button" class="lp-method is-active" data-method="gmail">Gmail</button><button type="button" class="lp-method" data-method="anon">🕶 Anonymous</button></div>
+    <div class="lp-modal__error" id="lp-modal-error">Please enter your Gmail and password.</div>
+    <form id="lp-auth-form" autocomplete="on" novalidate>
+      <div id="lp-gmail-fields">
+        <div class="lp-field" id="lp-name-field" style="display:none"><label class="lp-field__label" for="lp-name">Name</label><input type="text" id="lp-name" name="name" placeholder="Jerry Jones" autocomplete="name" /></div>
+        <div class="lp-field"><label class="lp-field__label" for="lp-email">Gmail</label><input type="email" id="lp-email" name="email" placeholder="you@gmail.com" autocomplete="email" /></div>
+        <div class="lp-field"><label class="lp-field__label" for="lp-pass">Password</label><input type="password" id="lp-pass" name="password" placeholder="••••••••" autocomplete="current-password" minlength="6" /></div>
+        <div class="lp-field__row"><label><input type="checkbox" id="lp-remember" checked /> Remember me</label><a href="#">Forgot password?</a></div>
+      </div>
+      <div id="lp-anon-fields" style="display:none">
+        <p class="lp-anon-copy" id="lp-anon-copy">No email. No password. No name. Your browser forges a cryptographic keypair — the private key never leaves this device, and your identity is just the fingerprint of the public key.</p>
+        <div class="lp-anon-device" id="lp-anon-device" style="display:none">🔑 Identity key found on this device — one tap to unlock.</div>
+        <div class="lp-field" id="lp-anon-recovery-field" style="display:none"><label class="lp-field__label" for="lp-anon-recovery">Recovery key</label><textarea id="lp-anon-recovery" class="lp-anon-textarea" rows="3" placeholder="Paste the recovery key you saved at signup" spellcheck="false"></textarea></div>
+      </div>
+      <button type="submit" class="lp-btn lp-btn--primary"><span id="lp-submit-label">Enter the Game App</span><span class="lp-btn__arrow">-></span></button>
+    </form>
+    <div id="lp-anon-issued" style="display:none">
+      <p class="lp-anon-copy">Identity forged. This is you now — no email attached, cryptographically yours:</p>
+      <div class="lp-anon-id" id="lp-anon-issued-id">anon-....-....-....</div>
+      <label class="lp-field__label" for="lp-anon-issued-key">Recovery key (your private key)</label>
+      <textarea id="lp-anon-issued-key" class="lp-anon-textarea" rows="3" readonly spellcheck="false"></textarea>
+      <button type="button" class="lp-btn lp-btn--ghost lp-anon-copy-btn" id="lp-anon-copy-btn">Copy recovery key</button>
+      <p class="lp-anon-warn">Save it somewhere safe. Anonymous means anonymous — there is no email reset. Lose the key on every device and the identity is gone forever.</p>
+      <button type="button" class="lp-btn lp-btn--primary" id="lp-anon-enter">I saved it — enter the War Room <span class="lp-btn__arrow">-></span></button>
+    </div>
+    <div class="lp-modal__divider" id="lp-modal-divider">or</div>
+    <button class="lp-modal__guest" id="lp-modal-guest">Create an account with Gmail</button>
+  </div></div>
 
   <div class="lp-modal-backdrop" id="lp-checkout-backdrop" role="dialog" aria-modal="true" aria-labelledby="lp-checkout-title"><div class="lp-modal lp-checkout-modal"><button class="lp-modal__close" id="lp-checkout-close" aria-label="Close">×</button><div class="lp-modal__eyebrow">★ Secure payment</div><h2 class="lp-modal__title" id="lp-checkout-title">Payment access request</h2><p class="lp-modal__sub" id="lp-checkout-sub">Choose a plan and send an access request, or subscribe to War Room Pro instantly with Stripe checkout on the Pro page.</p><div class="lp-checkout-summary"><div><b id="lp-checkout-plan">War Room Pro</b><p class="lp-modal__sub" style="margin:4px 0 0">LoneStar AI access request</p></div><span id="lp-checkout-price">$1/month</span></div><div class="lp-payment-logos"><span>VISA</span><span>MASTERCARD</span><span>AMEX</span><span>SECURE</span></div><div class="lp-payment-flow" aria-hidden="true"><div class="lp-payment-flow__card"></div><div class="lp-payment-flow__line"></div><div class="lp-payment-flow__shield">✓</div><div class="lp-payment-flow__label">Encrypted request flow</div></div><div class="lp-secure-note">For safety, this app does not collect or store raw card numbers. Production payments should open through a certified checkout provider after payment keys are configured.</div><button class="lp-btn lp-btn--primary" id="lp-checkout-start" type="button">Request access <span class="lp-btn__arrow">-></span></button><button class="lp-modal__guest" id="lp-checkout-login" type="button">Continue with Gmail access instead</button></div></div>
 
-  <div class="lp-auth-transition" id="lp-auth-transition" aria-hidden="true"><div class="lp-auth-transition__box"><div class="lp-auth-transition__ring"></div><div class="lp-auth-transition__title">Opening dashboard</div><div class="lp-auth-transition__copy">Verifying Gmail · LoneStar AI</div></div></div>
+  <div class="lp-auth-transition" id="lp-auth-transition" aria-hidden="true"><div class="lp-auth-transition__box"><div class="lp-auth-transition__ring"></div><div class="lp-auth-transition__title">Opening dashboard</div><div class="lp-auth-transition__copy">Securing access · LoneStar AI</div></div></div>
 
   <div id="global-loader" aria-live="polite"><div class="global-loader__box"><div class="global-loader__eyebrow">LoneStar AI Playoff Intelligence</div><div class="global-loader__title">Loading command center</div><div class="global-loader__subtitle">Syncing standings, simulation models, and postseason pressure metrics</div><div class="global-loader__bar"><div class="global-loader__fill"></div></div></div></div>
   <div id="scroll-progress"></div>
@@ -157,13 +194,29 @@
       var checkoutPlan = document.getElementById("lp-checkout-plan");
       var checkoutPrice = document.getElementById("lp-checkout-price");
       var currentTab = "signin";
+      var currentMethod = "gmail";
       var selectedAccessRequest = null;
+      var pendingAnonSession = null;
+      var ANON_KEY = "lsi_anon_key_v1";
+      var methodButtons = document.querySelectorAll(".lp-method");
+      var gmailFields = document.getElementById("lp-gmail-fields");
+      var anonFields = document.getElementById("lp-anon-fields");
+      var anonDeviceNote = document.getElementById("lp-anon-device");
+      var anonRecoveryField = document.getElementById("lp-anon-recovery-field");
+      var anonRecoveryInput = document.getElementById("lp-anon-recovery");
+      var anonIssued = document.getElementById("lp-anon-issued");
+      var anonIssuedId = document.getElementById("lp-anon-issued-id");
+      var anonIssuedKey = document.getElementById("lp-anon-issued-key");
 
       try {
         localStorage.removeItem("cowboys_iq_auth_v1");
         var stored = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
-        if (stored && stored.method === "gmail" && isGmail(stored.user)) {
-          unlockApp({ silent: true, user: stored.user });
+        if (
+          stored &&
+          ((stored.method === "gmail" && isGmail(stored.user)) ||
+            (stored.method === "anon" && isAnonId(stored.user)))
+        ) {
+          unlockApp({ silent: true, user: stored.user, method: stored.method });
         } else {
           localStorage.removeItem(AUTH_KEY);
           if (location.hash) history.replaceState(null, "", location.pathname + location.search);
@@ -174,6 +227,82 @@
 
       function isGmail(email) {
         return /^[^@\s]+@gmail\.com$/i.test((email || "").trim());
+      }
+
+      function isAnonId(user) {
+        return /^anon-[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/i.test((user || "").trim());
+      }
+
+      // --- Anonymous Cryptographic Identity (WebCrypto ECDSA P-256) ---------
+      // The private key is generated in the browser and never sent anywhere.
+      // Signup = forge keypair, sign a server challenge, server hashes the
+      // public key into an anon-xxxx-xxxx-xxxx identity. Sign-in = same
+      // challenge-response using the device key or a pasted recovery key.
+
+      function bufToB64(buf) {
+        var bytes = new Uint8Array(buf);
+        var s = "";
+        for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+        return btoa(s);
+      }
+
+      function loadAnonKey() {
+        try {
+          var jwk = JSON.parse(localStorage.getItem(ANON_KEY) || "null");
+          return jwk && jwk.kty === "EC" && jwk.d ? jwk : null;
+        } catch (e) { return null; }
+      }
+
+      function storeAnonKey(jwk) {
+        try { localStorage.setItem(ANON_KEY, JSON.stringify(jwk)); } catch (e) {}
+      }
+
+      function parseRecoveryKey(text) {
+        try {
+          var jwk = JSON.parse(atob(String(text || "").trim()));
+          return jwk && jwk.kty === "EC" && jwk.d ? jwk : null;
+        } catch (e) { return null; }
+      }
+
+      async function anonChallengeSignVerify(privateKey, publicKey) {
+        var spki = await crypto.subtle.exportKey("spki", publicKey);
+        var ch = await postAuth("/api/auth/anon/challenge", {});
+        var sig = await crypto.subtle.sign(
+          { name: "ECDSA", hash: "SHA-256" },
+          privateKey,
+          new TextEncoder().encode(ch.challenge)
+        );
+        return postAuth("/api/auth/anon/verify", {
+          publicKey: bufToB64(spki),
+          challenge: ch.challenge,
+          signature: bufToB64(sig)
+        });
+      }
+
+      async function anonCreateIdentity() {
+        var pair = await crypto.subtle.generateKey(
+          { name: "ECDSA", namedCurve: "P-256" },
+          true,
+          ["sign", "verify"]
+        );
+        var privateJwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
+        var session = await anonChallengeSignVerify(pair.privateKey, pair.publicKey);
+        storeAnonKey(privateJwk);
+        return { session: session, recoveryKey: btoa(JSON.stringify(privateJwk)) };
+      }
+
+      async function anonSignIn(privateJwk) {
+        var privateKey = await crypto.subtle.importKey(
+          "jwk", privateJwk,
+          { name: "ECDSA", namedCurve: "P-256" },
+          false, ["sign"]
+        );
+        var publicKey = await crypto.subtle.importKey(
+          "jwk", { kty: "EC", crv: "P-256", x: privateJwk.x, y: privateJwk.y },
+          { name: "ECDSA", namedCurve: "P-256" },
+          true, ["verify"]
+        );
+        return anonChallengeSignVerify(privateKey, publicKey);
       }
 
       function writeCookie(name, value, maxAgeSeconds) {
@@ -245,11 +374,14 @@
         });
       }
 
-      function openModal(mode) {
+      function openModal(mode, method) {
         modalError.classList.remove("is-visible");
+        currentMethod = method || "gmail";
         setTab(mode || "signin");
         modal.classList.add("is-open");
-        setTimeout(function () { emailInput.focus(); }, 150);
+        if (currentMethod === "gmail") {
+          setTimeout(function () { emailInput.focus(); }, 150);
+        }
         document.addEventListener("keydown", onEsc);
       }
 
@@ -284,12 +416,53 @@
 
       function setTab(mode) {
         currentTab = mode;
+        renderModal();
+      }
+
+      function setMethod(method) {
+        currentMethod = method;
+        renderModal();
+      }
+
+      function renderModal() {
         tabs.forEach(function (t) {
-          var isActive = t.dataset.tab === mode;
+          var isActive = t.dataset.tab === currentTab;
           t.classList.toggle("is-active", isActive);
           t.setAttribute("aria-selected", isActive ? "true" : "false");
         });
-        if (mode === "signup") {
+        methodButtons.forEach(function (b) {
+          b.classList.toggle("is-active", b.dataset.method === currentMethod);
+        });
+
+        // Reset the post-signup "identity forged" panel whenever the user
+        // switches tabs or methods.
+        pendingAnonSession = null;
+        form.style.display = "";
+        anonIssued.style.display = "none";
+
+        var isAnon = currentMethod === "anon";
+        gmailFields.style.display = isAnon ? "none" : "";
+        anonFields.style.display = isAnon ? "" : "none";
+
+        if (isAnon) {
+          if (currentTab === "signup") {
+            modalTitle.textContent = "Go ghost";
+            modalSub.textContent = "Forge an anonymous cryptographic identity. Zero personal data.";
+            submitLabel.textContent = "Forge anonymous identity";
+            anonDeviceNote.style.display = "none";
+            anonRecoveryField.style.display = "none";
+          } else {
+            modalTitle.textContent = "Welcome back, ghost";
+            modalSub.textContent = "Unlock with the key on this device or your recovery key.";
+            submitLabel.textContent = "Unlock anonymously";
+            var hasDeviceKey = !!loadAnonKey();
+            anonDeviceNote.style.display = hasDeviceKey ? "" : "none";
+            anonRecoveryField.style.display = hasDeviceKey ? "none" : "";
+          }
+          return;
+        }
+
+        if (currentTab === "signup") {
           modalTitle.textContent = "Build your roster";
           modalSub.textContent = "Create your account to unlock the command center.";
           submitLabel.textContent = "Create account";
@@ -324,14 +497,14 @@
           if (!opts.silent) {
             try {
               localStorage.setItem(AUTH_KEY, JSON.stringify({
-                method: "gmail",
+                method: opts.method || "gmail",
                 user: opts.user,
                 sessionToken: opts.sessionToken || null,
                 ts: Date.now()
               }));
             } catch (e) {}
           }
-          if (opts.user && isGmail(opts.user)) {
+          if (opts.user && (isGmail(opts.user) || isAnonId(opts.user))) {
             writeCookie(USER_COOKIE, opts.user.trim().toLowerCase());
           }
           ensureHistoryCookie();
@@ -377,7 +550,7 @@
       document.getElementById("lp-login-link").addEventListener("click", function () { openModal("signin"); });
       document.getElementById("lp-signup-cta").addEventListener("click", function () { openModal("signup"); });
       document.getElementById("lp-cta-primary").addEventListener("click", function () { openModal("signup"); });
-      document.getElementById("lp-cta-guest").addEventListener("click", function () { openModal("signup"); });
+      document.getElementById("lp-cta-guest").addEventListener("click", function () { openModal("signup", "anon"); });
       var footerLogin = document.getElementById("lp-footer-login");
       if (footerLogin) footerLogin.addEventListener("click", function () { openModal("signup"); });
       document.getElementById("lp-modal-close").addEventListener("click", closeModal);
@@ -430,6 +603,44 @@
 
       form.addEventListener("submit", async function (e) {
         e.preventDefault();
+        modalError.classList.remove("is-visible");
+
+        if (currentMethod === "anon") {
+          if (!(window.crypto && window.crypto.subtle)) {
+            showError("This browser doesn't support WebCrypto. Use the Gmail option instead.");
+            return;
+          }
+          var restoreLabel = submitLabel.textContent;
+          submitLabel.textContent = currentTab === "signup" ? "Forging keypair..." : "Unlocking...";
+          try {
+            if (currentTab === "signup") {
+              var created = await anonCreateIdentity();
+              pendingAnonSession = created.session;
+              anonIssuedId.textContent = created.session.anonId || created.session.user;
+              anonIssuedKey.value = created.recoveryKey;
+              form.style.display = "none";
+              anonIssued.style.display = "";
+              modalTitle.textContent = "Identity forged";
+              modalSub.textContent = "Anonymous. Cryptographic. Yours alone.";
+              submitLabel.textContent = restoreLabel;
+            } else {
+              var jwk = loadAnonKey() || parseRecoveryKey(anonRecoveryInput.value);
+              if (!jwk) {
+                submitLabel.textContent = restoreLabel;
+                showError("Paste the recovery key you saved at signup, or switch to Sign Up to forge a new identity.");
+                return;
+              }
+              var anonSession = await anonSignIn(jwk);
+              storeAnonKey(jwk);
+              unlockApp({ user: anonSession.user, sessionToken: anonSession.sessionToken, method: "anon" });
+            }
+          } catch (err) {
+            submitLabel.textContent = restoreLabel;
+            showError(err.message || "Unable to verify your anonymous identity.");
+          }
+          return;
+        }
+
         var email = emailInput.value.trim().toLowerCase();
         var pass = passInput.value;
         if (!isGmail(email)) {
@@ -458,6 +669,39 @@
         } catch (err) {
           submitLabel.textContent = currentTab === "signup" ? "Create account" : "Enter the War Room";
           showError(err.message || "Unable to open the dashboard.");
+        }
+      });
+
+      methodButtons.forEach(function (b) {
+        b.addEventListener("click", function () {
+          modalError.classList.remove("is-visible");
+          setMethod(b.dataset.method);
+        });
+      });
+
+      document.getElementById("lp-anon-enter").addEventListener("click", function () {
+        if (!pendingAnonSession) return;
+        var s = pendingAnonSession;
+        pendingAnonSession = null;
+        unlockApp({ user: s.user, sessionToken: s.sessionToken, method: "anon" });
+      });
+
+      document.getElementById("lp-anon-copy-btn").addEventListener("click", function () {
+        var btn = this;
+        var done = function () {
+          btn.textContent = "Copied ✓";
+          setTimeout(function () { btn.textContent = "Copy recovery key"; }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(anonIssuedKey.value).then(done, function () {
+            anonIssuedKey.select();
+            document.execCommand("copy");
+            done();
+          });
+        } else {
+          anonIssuedKey.select();
+          document.execCommand("copy");
+          done();
         }
       });
 

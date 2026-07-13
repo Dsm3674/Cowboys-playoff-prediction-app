@@ -8,7 +8,12 @@ const { generateEspnPrediction } = require("./prediction");
 
 function normalizeEmail(email) {
   const normalized = String(email || "").trim().toLowerCase();
-  return /^[^@\s]+@gmail\.com$/i.test(normalized) ? normalized : "";
+  if (/^[^@\s]+@gmail\.com$/i.test(normalized)) return normalized;
+  // Anonymous cryptographic identities (anon-xxxx-xxxx-xxxx) are valid users too.
+  if (/^anon-[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/.test(normalized)) {
+    return normalized;
+  }
+  return "";
 }
 
 function parseCookies(cookieHeader = "") {
