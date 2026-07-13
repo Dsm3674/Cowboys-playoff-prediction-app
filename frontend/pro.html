@@ -406,6 +406,23 @@
       });
     });
 
+    function signedInUser() {
+      // Gmail address or anonymous identity (anon-xxxx-xxxx-xxxx) — the
+      // subscription gets linked to whichever account is signed in.
+      function valid(u) {
+        u = String(u || "").trim().toLowerCase();
+        return /^[^@\s]+@gmail\.com$/.test(u) || /^anon-[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/.test(u) ? u : "";
+      }
+      try {
+        var stored = JSON.parse(localStorage.getItem("cowboys_iq_auth_v3") || "null");
+        var fromStore = valid(stored && stored.user);
+        if (fromStore) return fromStore;
+      } catch (e) {}
+      var match = document.cookie.split(";").map(function (p) { return p.trim(); })
+        .find(function (p) { return p.indexOf("lsi_user=") === 0; });
+      return valid(match ? decodeURIComponent(match.slice(9)) : "");
+    }
+
     document.querySelectorAll(".pro-checkout-btn").forEach(function (btn) {
       btn.addEventListener("click", async function (e) {
         e.preventDefault();
@@ -416,7 +433,7 @@
           var res = await fetch("/api/billing/create-checkout-session", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plan: "War Room Pro" })
+            body: JSON.stringify({ plan: "War Room Pro", user: signedInUser() })
           });
           var data = await res.json();
           if (res.ok && data.url) {

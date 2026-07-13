@@ -77,14 +77,16 @@ function Paywall({ signedIn }) {
         </button>
       ) : (
         <p className="wr-paywall__signin">
-          Sign in with your Gmail account first (use the sign-in on the home
-          screen), then come back here to subscribe or unlock.
+          Sign in first — Gmail or an anonymous identity both work (use the
+          sign-in on the home screen), then come back here to subscribe or
+          unlock.
         </p>
       )}
       {error ? <div className="wr-error">{error}</div> : null}
       <div className="wr-paywall__note">
-        Already subscribed? Sign in with the same Gmail you used at checkout.
-        Star Coins are virtual and have no cash value.
+        Already subscribed? Sign in with the same account you used at checkout
+        — Gmail or anonymous identity. Star Coins are virtual and have no cash
+        value.
       </div>
     </div>
   );

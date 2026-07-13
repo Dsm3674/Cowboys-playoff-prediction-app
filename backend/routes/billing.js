@@ -123,6 +123,10 @@ function isGmail(email) {
   return /^[^@\s]+@gmail\.com$/i.test(email);
 }
 
+function isAnonIdentity(user) {
+  return /^anon-[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/i.test(String(user || "").trim());
+}
+
 let subscriptionsTableReady = false;
 
 async function ensureSubscriptionsTable() {
@@ -248,7 +252,13 @@ router.post("/create-checkout-session", requestLimiter, async (req, res) => {
     return res.status(400).json({ error: "Only War Room Pro is available for checkout." });
   }
 
-  const email = normalizeEmail(req.body.email);
+  // The signed-in identity: a Gmail address or an anonymous cryptographic
+  // identity (anon-xxxx-xxxx-xxxx). Gmail goes to Stripe as customer_email;
+  // an anon identity isn't an email, so it rides along as metadata instead
+  // and the webhook links the subscription back to it.
+  const user = normalizeEmail(req.body.user || req.body.email);
+  const email = isAnonIdentity(user) ? "" : user;
+  const anonUser = isAnonIdentity(user) ? user : "";
   const base = publicBaseUrl(req);
 
   const lineItem = PRO_PRICE_ID
@@ -271,10 +281,14 @@ router.post("/create-checkout-session", requestLimiter, async (req, res) => {
       mode: "subscription",
       line_items: [lineItem],
       customer_email: email || undefined,
+      client_reference_id: anonUser || undefined,
       allow_promotion_codes: true,
       success_url: `${base}/pro-success.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${base}/pro.html?checkout=cancelled`,
-      metadata: { plan }
+      metadata: { plan, ...(anonUser ? { lonestar_user: anonUser } : {}) },
+      subscription_data: anonUser
+        ? { metadata: { lonestar_user: anonUser } }
+        : undefined
     });
     return res.json({ url: session.url });
   } catch (error) {
@@ -306,7 +320,15 @@ router.post("/webhook", async (req, res) => {
       const session = event.data.object;
       if (session.subscription) {
         const sub = await stripe.subscriptions.retrieve(session.subscription);
-        await upsertSubscription(sub, session.customer_details?.email || session.customer_email);
+        // Anonymous subscribers carry their identity in metadata /
+        // client_reference_id; Gmail subscribers are keyed by email.
+        const identity =
+          sub.metadata?.lonestar_user ||
+          session.client_reference_id ||
+          session.metadata?.lonestar_user ||
+          session.customer_details?.email ||
+          session.customer_email;
+        await upsertSubscription(sub, identity);
       }
     } else if (
       event.type === "customer.subscription.created" ||
@@ -314,12 +336,14 @@ router.post("/webhook", async (req, res) => {
       event.type === "customer.subscription.deleted"
     ) {
       const sub = event.data.object;
-      let email = null;
-      try {
-        const customer = await stripe.customers.retrieve(sub.customer);
-        email = customer.email || null;
-      } catch (_) {}
-      await upsertSubscription(sub, email);
+      let identity = sub.metadata?.lonestar_user || null;
+      if (!identity) {
+        try {
+          const customer = await stripe.customers.retrieve(sub.customer);
+          identity = customer.email || null;
+        } catch (_) {}
+      }
+      await upsertSubscription(sub, identity);
     }
 
     return res.json({ received: true });

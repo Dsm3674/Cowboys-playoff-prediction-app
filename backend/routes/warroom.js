@@ -242,6 +242,10 @@ async function hasDbSubscription(email) {
 // counts.
 async function hasStripeSubscription(email) {
   if (!stripe) return false;
+  // Anonymous identities aren't emails; their subscriptions are linked via
+  // webhook metadata into the subscriptions table, so there is nothing to
+  // look up on Stripe by email.
+  if (isAnonIdentity(email)) return false;
   try {
     const customers = await stripe.customers.list({ email, limit: 5 });
     for (const customer of customers.data) {
@@ -277,7 +281,7 @@ async function requirePro(req, res, next) {
     const email = requestEmail(req);
     if (!email) {
       return res.status(401).json({
-        error: "Sign in with your Gmail account to enter the War Room.",
+        error: "Sign in — with Gmail or an anonymous identity — to enter the War Room.",
         code: "signin_required"
       });
     }
@@ -467,8 +471,11 @@ router.get("/leaderboard", requirePro, async (req, res) => {
     res.json({
       leaderboard: rows.map((r, i) => ({
         rank: i + 1,
-        // Mask emails: keep first 3 chars of the local part.
-        player: r.email.replace(/^(.{3})[^@]*@.*$/, "$1***"),
+        // Mask identities: emails keep the first 3 chars of the local part;
+        // anonymous ids keep their first group (anon-xxxx***).
+        player: isAnonIdentity(r.email)
+          ? r.email.slice(0, 9) + "***"
+          : r.email.replace(/^(.{3})[^@]*@.*$/, "$1***"),
         you: r.email === req.warRoomEmail,
         netWorth: Math.round(r.balance + r.at_risk)
       }))

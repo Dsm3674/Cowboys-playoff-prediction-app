@@ -413,9 +413,11 @@
   }
 
   function startProCheckout() {
+    // user may be a Gmail address or an anonymous identity; the backend
+    // links the subscription to whichever one is signed in.
     return request("/api/billing/create-checkout-session", {
       method: "POST",
-      body: { plan: "War Room Pro", email: getSignedInUser() }
+      body: { plan: "War Room Pro", user: getSignedInUser() }
     });
   }
 
