@@ -132,9 +132,16 @@
     <form id="lp-auth-form" autocomplete="on" novalidate>
       <div id="lp-gmail-fields">
         <div class="lp-field" id="lp-name-field" style="display:none"><label class="lp-field__label" for="lp-name">Name</label><input type="text" id="lp-name" name="name" placeholder="Jerry Jones" autocomplete="name" /></div>
-        <div class="lp-field"><label class="lp-field__label" for="lp-email">Gmail</label><input type="email" id="lp-email" name="email" placeholder="you@gmail.com" autocomplete="email" /></div>
-        <div class="lp-field"><label class="lp-field__label" for="lp-pass">Password</label><input type="password" id="lp-pass" name="password" placeholder="••••••••" autocomplete="current-password" minlength="6" /></div>
-        <div class="lp-field__row"><label><input type="checkbox" id="lp-remember" checked /> Remember me</label><a href="#">Forgot password?</a></div>
+        <div class="lp-field" id="lp-email-field"><label class="lp-field__label" for="lp-email">Gmail</label><input type="email" id="lp-email" name="email" placeholder="you@gmail.com" autocomplete="email" /></div>
+        <div class="lp-field" id="lp-pass-field"><label class="lp-field__label" for="lp-pass">Password</label><input type="password" id="lp-pass" name="password" placeholder="••••••••" autocomplete="current-password" minlength="6" /></div>
+        <div class="lp-field__row" id="lp-remember-row"><label><input type="checkbox" id="lp-remember" checked /> Remember me</label><a href="#" id="lp-forgot-link">Forgot password?</a></div>
+      </div>
+      <div id="lp-otp-fields" style="display:none">
+        <p class="lp-anon-copy" id="lp-otp-info">We sent a 6-digit code to your Gmail.</p>
+        <div class="lp-field lp-field--otp"><label class="lp-field__label" for="lp-otp-code">6-digit code</label><input type="text" id="lp-otp-code" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code" spellcheck="false" /></div>
+        <p class="lp-otp-hint" id="lp-otp-hint" style="display:none"></p>
+        <div class="lp-field" id="lp-newpass-field" style="display:none"><label class="lp-field__label" for="lp-newpass">New password</label><input type="password" id="lp-newpass" placeholder="••••••••" autocomplete="new-password" minlength="6" /></div>
+        <button type="button" class="lp-anon-forgot" id="lp-otp-back">← Back</button>
       </div>
       <div id="lp-anon-fields" style="display:none">
         <p class="lp-anon-copy" id="lp-anon-copy">No email. No password. No name. Your browser forges a cryptographic keypair — the private key never leaves this device, and your identity is just the fingerprint of the public key.</p>
@@ -220,6 +227,16 @@
       var anonIssued = document.getElementById("lp-anon-issued");
       var anonIssuedId = document.getElementById("lp-anon-issued-id");
       var anonIssuedKey = document.getElementById("lp-anon-issued-key");
+      var emailField = document.getElementById("lp-email-field");
+      var passField = document.getElementById("lp-pass-field");
+      var rememberRow = document.getElementById("lp-remember-row");
+      var otpFields = document.getElementById("lp-otp-fields");
+      var otpInfo = document.getElementById("lp-otp-info");
+      var otpCodeInput = document.getElementById("lp-otp-code");
+      var otpHint = document.getElementById("lp-otp-hint");
+      var newPassField = document.getElementById("lp-newpass-field");
+      var newPassInput = document.getElementById("lp-newpass");
+      var otpStage = null;
 
       try {
         localStorage.removeItem("cowboys_iq_auth_v1");
@@ -464,13 +481,20 @@
           b.classList.toggle("is-active", b.dataset.method === currentMethod);
         });
 
-        // Reset the post-signup "identity forged" panel and any typed anon
-        // credentials whenever the user switches tabs or methods.
+        // Reset the post-signup "identity forged" panel, the OTP step, and any
+        // typed credentials whenever the user switches tabs or methods.
         pendingAnonSession = null;
+        otpStage = null;
         form.style.display = "";
         anonIssued.style.display = "none";
         anonIdInput.value = "";
         anonRecoveryInput.value = "";
+        otpFields.style.display = "none";
+        otpCodeInput.value = "";
+        newPassInput.value = "";
+        emailField.style.display = "";
+        passField.style.display = "";
+        rememberRow.style.display = "";
 
         var isAnon = currentMethod === "anon";
         var modalBox = modal.querySelector(".lp-modal");
@@ -512,6 +536,52 @@
           nameField.style.display = "none";
           passInput.setAttribute("autocomplete", "current-password");
         }
+      }
+
+      // Swap the Gmail form for the one-time-code step (signup 2FA or
+      // password reset). stage = { kind, challengeId, email, devCode, delivered }
+      function enterOtpStage(stage) {
+        otpStage = stage;
+        modalError.classList.remove("is-visible");
+        nameField.style.display = "none";
+        emailField.style.display = "none";
+        passField.style.display = "none";
+        rememberRow.style.display = "none";
+        otpFields.style.display = "";
+        otpCodeInput.value = "";
+        newPassInput.value = "";
+        newPassField.style.display = stage.kind === "reset" ? "" : "none";
+        if (stage.kind === "2fa") {
+          modalTitle.textContent = "Check your inbox";
+          modalSub.textContent = "Two-factor verification keeps your account yours.";
+          otpInfo.textContent = "We sent a 6-digit code to " + stage.email + ". Enter it to finish creating your account.";
+          submitLabel.textContent = "Verify code";
+        } else {
+          modalTitle.textContent = "Enter reset code";
+          modalSub.textContent = "Check your Gmail for the reset code.";
+          otpInfo.textContent = "We sent a 6-digit reset code to " + stage.email + ". Enter it along with your new password.";
+          submitLabel.textContent = "Reset password";
+        }
+        if (!stage.delivered && stage.devCode) {
+          otpHint.textContent = "Email delivery isn't configured on this server — your code is " + stage.devCode + ".";
+          otpHint.style.display = "";
+        } else {
+          otpHint.style.display = "none";
+        }
+        setTimeout(function () { otpCodeInput.focus(); }, 120);
+      }
+
+      function enterForgotRequest() {
+        currentTab = "signin";
+        currentMethod = "gmail";
+        renderModal();
+        otpStage = { kind: "forgot-request" };
+        passField.style.display = "none";
+        rememberRow.style.display = "none";
+        modalTitle.textContent = "Reset your password";
+        modalSub.textContent = "Enter your Gmail and we'll send you a reset code.";
+        submitLabel.textContent = "Send reset code";
+        setTimeout(function () { emailInput.focus(); }, 120);
       }
 
       function playTransition(done) {
@@ -696,12 +766,84 @@
           return;
         }
 
+        // Step 2 of signup 2FA: verify the emailed code.
+        if (otpStage && otpStage.kind === "2fa") {
+          var code2fa = (otpCodeInput.value || "").trim();
+          if (!/^\d{6}$/.test(code2fa)) {
+            showError("Enter the 6-digit code from your email.");
+            return;
+          }
+          submitLabel.textContent = "Verifying...";
+          try {
+            var verified = await postAuth("/api/auth/2fa/verify", {
+              challengeId: otpStage.challengeId,
+              code: code2fa
+            });
+            if (selectedAccessRequest) {
+              submitLabel.textContent = "Saving request...";
+              await postAccessRequest(verified.user || otpStage.email);
+              selectedAccessRequest = null;
+            }
+            unlockApp({ user: verified.user || otpStage.email, sessionToken: verified.sessionToken });
+          } catch (err) {
+            submitLabel.textContent = "Verify code";
+            showError(err.message || "Verification failed. Try again.");
+          }
+          return;
+        }
+
+        // Step 2 of forgot password: verify the code and set the new password.
+        if (otpStage && otpStage.kind === "reset") {
+          var resetCode = (otpCodeInput.value || "").trim();
+          if (!/^\d{6}$/.test(resetCode)) {
+            showError("Enter the 6-digit reset code from your email.");
+            return;
+          }
+          if (!newPassInput.value || newPassInput.value.length < 6) {
+            showError("New password must be at least 6 characters.");
+            return;
+          }
+          submitLabel.textContent = "Resetting...";
+          try {
+            var reset = await postAuth("/api/auth/password/reset", {
+              challengeId: otpStage.challengeId,
+              code: resetCode,
+              newPassword: newPassInput.value
+            });
+            unlockApp({ user: reset.user || otpStage.email, sessionToken: reset.sessionToken });
+          } catch (err) {
+            submitLabel.textContent = "Reset password";
+            showError(err.message || "Unable to reset your password.");
+          }
+          return;
+        }
+
         var email = emailInput.value.trim().toLowerCase();
-        var pass = passInput.value;
         if (!isGmail(email)) {
           showError("Use a Gmail address to continue.");
           return;
         }
+
+        // Step 1 of forgot password: send the reset code.
+        if (otpStage && otpStage.kind === "forgot-request") {
+          submitLabel.textContent = "Sending code...";
+          try {
+            var forgot = await postAuth("/api/auth/password/forgot", { email: email });
+            enterOtpStage({
+              kind: "reset",
+              challengeId: forgot.challengeId,
+              email: email,
+              devCode: forgot.devCode,
+              delivered: !!(forgot.delivery && forgot.delivery.delivered)
+            });
+          } catch (err) {
+            submitLabel.textContent = "Send reset code";
+            showError(err.message || "Unable to send the reset code.");
+          }
+          return;
+        }
+
+        var pass = passInput.value;
         if (!pass || pass.length < 6) {
           showError("Password must be at least 6 characters.");
           return;
@@ -710,7 +852,31 @@
           showError("Please enter your name.");
           return;
         }
-        submitLabel.textContent = currentTab === "signup" ? "Creating account..." : "Opening...";
+
+        // Step 1 of signup 2FA: validate credentials, email the code.
+        if (currentTab === "signup") {
+          submitLabel.textContent = "Sending code...";
+          try {
+            var started = await postAuth("/api/auth/2fa/start", {
+              email: email,
+              password: pass,
+              name: nameInput.value.trim()
+            });
+            enterOtpStage({
+              kind: "2fa",
+              challengeId: started.challengeId,
+              email: email,
+              devCode: started.devCode,
+              delivered: !!(started.delivery && started.delivery.delivered)
+            });
+          } catch (err) {
+            submitLabel.textContent = "Create account";
+            showError(err.message || "Unable to start signup verification.");
+          }
+          return;
+        }
+
+        submitLabel.textContent = "Opening...";
         try {
           var session = await createSession(email, pass);
           if (selectedAccessRequest) {
@@ -722,9 +888,19 @@
           }
           unlockApp({ user: session.user || email, sessionToken: session.sessionToken });
         } catch (err) {
-          submitLabel.textContent = currentTab === "signup" ? "Create account" : "Enter the War Room";
+          submitLabel.textContent = "Enter the War Room";
           showError(err.message || "Unable to open the dashboard.");
         }
+      });
+
+      document.getElementById("lp-forgot-link").addEventListener("click", function (e) {
+        e.preventDefault();
+        enterForgotRequest();
+      });
+
+      document.getElementById("lp-otp-back").addEventListener("click", function () {
+        modalError.classList.remove("is-visible");
+        renderModal();
       });
 
       methodButtons.forEach(function (b) {
