@@ -73,6 +73,7 @@
     @media(max-width:560px){.lp-nav__inner{padding:14px 16px;gap:10px}.lp-nav__cta{gap:8px}.lp-nav__cta .lp-link-btn{display:none}.lp-nav__cta .lp-btn{padding:11px 16px;font-size:13px;white-space:nowrap}#lp-signup-cta .lp-btn__text{display:none}#lp-signup-cta::before{content:"Get Started"}.lp-pulse__shell,.lp-story-card{padding:22px}.lp-vote-actions{display:grid}.lp-foot{flex-direction:column;align-items:flex-start}.lp-modal{padding:28px 22px}.lp-modal__title{font-size:26px}.lp-float--proj{left:0}.lp-float--seed{right:2%}.lp-signout{top:10px;right:12px;padding:8px 12px;font-size:11px}}
     @media(prefers-reduced-motion:reduce){.lp-headline em,.lp-eyebrow__pulse,.lp-float,.lp-rail__track,.lp-stars span{animation:none!important}}
     .lp-modal .lp-modal__title{color:var(--lp-ink)}
+    .lp-modal--compact{max-width:392px;padding:26px 24px}.lp-modal--compact .lp-modal__title{font-size:24px}.lp-modal--compact .lp-modal__sub{font-size:13px;margin-bottom:18px}.lp-modal--compact .lp-tabs{margin-bottom:16px}.lp-modal--compact .lp-methods{margin-bottom:14px}.lp-modal--compact .lp-anon-copy{font-size:12.5px;margin-bottom:14px}.lp-modal--compact .lp-btn--primary{padding:13px}.lp-modal--compact .lp-modal__divider{margin:16px 0}.lp-modal--compact .lp-anon-id{font-size:17px;padding:13px 10px;margin-bottom:14px}.lp-modal--compact .lp-anon-warn{margin:10px 0 12px}
     .lp-methods{display:flex;gap:8px;margin:-6px 0 18px}.lp-method{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 12px;font:600 12px/1 var(--lp-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--lp-ink-soft);background:transparent;border:1px dashed var(--lp-line);border-radius:999px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}.lp-method:hover{color:var(--lp-ink);border-color:var(--lp-ink-muted)}.lp-method.is-active{color:#fff;background:var(--lp-cowboys-nav);border:1px solid var(--lp-cowboys-nav)}
     .lp-anon-copy{font-size:13.5px;line-height:1.55;color:var(--lp-ink-soft);margin:0 0 16px}
     .lp-anon-device{display:flex;align-items:center;gap:8px;font:600 13px/1.4 var(--lp-ui);color:var(--lp-success);background:rgba(46,138,74,.08);border:1px solid rgba(46,138,74,.25);border-radius:12px;padding:12px 14px;margin-bottom:16px}
@@ -441,6 +442,8 @@
         anonIssued.style.display = "none";
 
         var isAnon = currentMethod === "anon";
+        var modalBox = modal.querySelector(".lp-modal");
+        if (modalBox) modalBox.classList.toggle("lp-modal--compact", isAnon);
         gmailFields.style.display = isAnon ? "none" : "";
         anonFields.style.display = isAnon ? "" : "none";
 
