@@ -27,6 +27,7 @@ const {
   computeRecordFromGames,
   computeTeamAveragesFromGames,
 } = require("./espn");
+const { computeTSI } = require("../tsi");
 
 const ELO_BASE = 1500;
 const ELO_K = 20;
@@ -220,6 +221,12 @@ async function computePowerRatings({ year } = {}) {
     .filter((g) => g.completed)
     .reduce((max, g) => Math.max(max, g.week || 0), 0) || null;
 
+  // TSI flows back into the power score (the engines cross-pollinate both
+  // ways: Elo feeds the legacy models, TSI feeds the Elo power number).
+  const tsiResults = await Promise.allSettled(
+    teams.map((team) => computeTSI({ teamAbbr: team.code, year: resolvedYear }))
+  );
+
   const rows = teams.map((team, i) => {
     const meta = getNFLTeamMetadata(team.code) || {};
     const teamGames = schedules[i] || [];
@@ -233,6 +240,13 @@ async function computePowerRatings({ year } = {}) {
     // Efficiency overlay: ±14 pts/game differential maps to ±42 Elo.
     const efficiencyDelta = Math.max(-14, Math.min(14, averages.pointDiffPerGame || 0)) * 3;
 
+    // TSI overlay: 50 is league-neutral; ±25 TSI maps to ±30 Elo.
+    const tsiValue =
+      tsiResults[i].status === "fulfilled" ? Number(tsiResults[i].value?.tsi) : NaN;
+    const tsiDelta = Number.isFinite(tsiValue)
+      ? Math.max(-25, Math.min(25, tsiValue - 50)) * 1.2
+      : 0;
+
     return {
       code: team.code,
       name: meta.displayName || team.code,
@@ -244,7 +258,9 @@ async function computePowerRatings({ year } = {}) {
       newsDelta: Number(newsDelta.toFixed(1)),
       adjustedElo: Number(adjustedElo.toFixed(1)),
       efficiencyDelta: Number(efficiencyDelta.toFixed(1)),
-      power: Number((adjustedElo + efficiencyDelta).toFixed(1)),
+      tsi: Number.isFinite(tsiValue) ? Number(tsiValue.toFixed(1)) : null,
+      tsiDelta: Number(tsiDelta.toFixed(1)),
+      power: Number((adjustedElo + efficiencyDelta + tsiDelta).toFixed(1)),
       adjustments: adjustments.filter((a) => a.team === team.code),
     };
   });
@@ -254,7 +270,7 @@ async function computePowerRatings({ year } = {}) {
 
   return {
     year: resolvedYear,
-    system: "Elo v2 · K=20 · MOV-weighted · HFA +48 · ⅓-regressed carryover",
+    system: "Elo v2 · K=20 · MOV-weighted · HFA +48 · ⅓-regressed carryover · TSI overlay",
     lastCompletedWeek,
     gamesRated: ratedGames.length,
     updatedAt: new Date().toISOString(),
@@ -281,6 +297,46 @@ function _invalidateRatingsCache() {
   _ratingsCache.clear();
 }
 
+/* ── Cross-engine hybrid layer ─────────────────────────────────────────── */
+
+/**
+ * Lightweight Elo lookup for the legacy prediction engines. `available` is
+ * false when the league is a flat 1500 wall (ESPN unreachable and no prior),
+ * so callers can skip blending rather than dilute their own signal with noise.
+ */
+async function getEloSnapshot({ year } = {}) {
+  try {
+    const ratings = await getPowerRatings({ year });
+    const byTeam = {};
+    let informative = false;
+    for (const t of ratings.ratings) {
+      byTeam[t.code] = { adjustedElo: t.adjustedElo, power: t.power };
+      if (Math.abs(t.power - ELO_BASE) > 1) informative = true;
+    }
+    return {
+      available: informative,
+      byTeam,
+      lastCompletedWeek: ratings.lastCompletedWeek,
+    };
+  } catch (_err) {
+    return { available: false, byTeam: {} };
+  }
+}
+
+/**
+ * Mix a legacy model probability with the Elo probability in logit space.
+ * weight 0 → pure legacy, 1 → pure Elo. Non-finite eloProb passes the
+ * base through untouched so callers don't need their own guards.
+ */
+function blendWithElo(baseProb, eloProb, weight = 0.5) {
+  if (!Number.isFinite(eloProb)) return baseProb;
+  const w = Math.max(0, Math.min(1, weight));
+  const clamp01 = (p) => Math.max(0.02, Math.min(0.98, Number(p) || 0.5));
+  const logit = (p) => Math.log(clamp01(p) / (1 - clamp01(p)));
+  const z = (1 - w) * logit(baseProb) + w * logit(eloProb);
+  return 1 / (1 + Math.exp(-z));
+}
+
 module.exports = {
   ELO_BASE,
   ELO_HOME_FIELD,
@@ -292,5 +348,7 @@ module.exports = {
   removeAdjustments,
   getPowerRatings,
   computePowerRatings,
+  getEloSnapshot,
+  blendWithElo,
   _invalidateRatingsCache,
 };

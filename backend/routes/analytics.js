@@ -16,6 +16,19 @@ const {
   computeTeamAveragesFromGames,
   normalizeTeamAbbr
 } = require("../services/espn");
+const { getEloSnapshot, blendWithElo, eloWinProb } = require("../services/ratingsEngine");
+
+/* Stamp each row with the Elo engine's power number so downstream strength
+   formulas can fold it in. No-op when Elo has nothing informative to say. */
+async function attachElo(rows, year) {
+  const snap = await getEloSnapshot({ year });
+  const list = Array.isArray(rows) ? rows : [rows];
+  for (const row of list) {
+    const power = snap.byTeam[row.code]?.power;
+    row._elo = snap.available && Number.isFinite(power) ? power : null;
+  }
+  return rows;
+}
 
 function sortStandings(a, b) {
   const pctDiff = (b.record.winPct || 0) - (a.record.winPct || 0);
@@ -275,11 +288,17 @@ function buildPlayoffPulse(rows) {
 }
 
 function simulateMatchup(left, right) {
-  const leftScore = left.tsi * 0.6 + (left.record.winPct || 0) * 40 + left.averages.pointDiffPerGame * 1.2;
-  const rightScore = right.tsi * 0.6 + (right.record.winPct || 0) * 40 + right.averages.pointDiffPerGame * 1.2;
+  const leftScore = teamStrength(left);
+  const rightScore = teamStrength(right);
   const spread = Number((leftScore - rightScore).toFixed(1));
-  const winProbability = Number(Math.max(5, Math.min(95, 50 + spread * 1.4)).toFixed(1));
+  let winProb = Math.max(5, Math.min(95, 50 + spread * 1.4)) / 100;
 
+  // Blend in Elo's head-to-head read when both sides carry a rating.
+  if (Number.isFinite(left._elo) && Number.isFinite(right._elo)) {
+    winProb = blendWithElo(winProb, eloWinProb(left._elo, right._elo, 0), 0.5);
+  }
+
+  const winProbability = Number((Math.max(0.05, Math.min(0.95, winProb)) * 100).toFixed(1));
   return {
     homeWinProbability: winProbability,
     awayWinProbability: Number((100 - winProbability).toFixed(1)),
@@ -393,7 +412,9 @@ function teamStrength(team) {
   const winPct = team.record?.winPct || 0;
   const pointDiff = team.averages?.pointDiffPerGame || 0;
   const tsi = team.tsi || 0;
-  return tsi * 0.6 + winPct * 40 + pointDiff * 1.2;
+  // Elo joins the blend when attached (±150 Elo ≈ ±25 strength points).
+  const eloTerm = Number.isFinite(team._elo) ? (team._elo - 1500) / 6 : 0;
+  return tsi * 0.6 + winPct * 40 + pointDiff * 1.2 + eloTerm;
 }
 
 function byStrengthDesc(a, b) {
@@ -518,6 +539,7 @@ router.get("/bracket", async (req, res) => {
     const rows = await Promise.all(
       teams.map((team) => fetchTeamSummary(team.code, year))
     );
+    await attachElo(rows, year);
 
     const bracket = buildPlayoffBracket(rows, year);
     if (!bracket) {
@@ -537,6 +559,7 @@ router.get("/matchup", async (req, res) => {
     const year = Number(req.query.year) || undefined;
     const left = await fetchTeamSummary(team1, year);
     const right = await fetchTeamSummary(team2, year);
+    await attachElo([left, right], year);
     const matchup = simulateMatchup(left, right);
 
     res.json({ success: true, year: year || new Date().getFullYear(), teams: [left, right], matchup });

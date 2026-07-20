@@ -4,6 +4,7 @@ const {
   eloWinProb,
   movMultiplier,
   replayGamesToElo,
+  blendWithElo,
   ELO_BASE,
   ELO_HOME_FIELD,
 } = require("../services/ratingsEngine");
@@ -70,6 +71,25 @@ describe("ratingsEngine — Elo math", () => {
     const { ratedGames } = replayGamesToElo(games);
     expect(ratedGames).toHaveLength(1);
     expect(ratedGames[0].id).toBe("g1");
+  });
+});
+
+describe("ratingsEngine — hybrid blend", () => {
+  test("weight 0 keeps the legacy probability, weight 1 goes full Elo", () => {
+    expect(blendWithElo(0.7, 0.3, 0)).toBeCloseTo(0.7, 6);
+    expect(blendWithElo(0.7, 0.3, 1)).toBeCloseTo(0.3, 6);
+  });
+
+  test("even blend lands between the two model reads", () => {
+    const mixed = blendWithElo(0.6, 0.8, 0.5);
+    expect(mixed).toBeGreaterThan(0.6);
+    expect(mixed).toBeLessThan(0.8);
+  });
+
+  test("agreeing models pass through, missing Elo falls back to base", () => {
+    expect(blendWithElo(0.5, 0.5, 0.5)).toBeCloseTo(0.5, 6);
+    expect(blendWithElo(0.66, NaN, 0.5)).toBe(0.66);
+    expect(blendWithElo(0.66, undefined, 0.5)).toBe(0.66);
   });
 });
 

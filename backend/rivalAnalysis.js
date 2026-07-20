@@ -2,6 +2,7 @@
 
 const { computeTSI } = require("./tsi");
 const { getNFLTeamCatalog, getNFLTeamMetadata } = require("./services/espn");
+const { getEloSnapshot, blendWithElo, eloWinProb } = require("./services/ratingsEngine");
 
 function normalizeTeamCode(code) {
   return String(code || "DAL").trim().toUpperCase();
@@ -174,6 +175,10 @@ function calculateRivalImpact(rival, subject, context) {
   const winPctGap = rivalWinPct - subjectWinPct;
   const winGap = rivalWins - subjectWins;
   const tsiGap = rival.tsi - subject.tsi;
+  const eloGap =
+    Number.isFinite(rival.elo) && Number.isFinite(subject.elo)
+      ? rival.elo - subject.elo
+      : 0;
 
   const sameConference = rival.conference === subject.conference;
   const sameDivision = rival.division === subject.division;
@@ -191,6 +196,7 @@ function calculateRivalImpact(rival, subject, context) {
       tsiGap * 0.9 +
       winPctGap * 120 +
       winGap * 4 +
+      eloGap * 0.06 +
       (sameDivision ? 12 : 0)
     );
 
@@ -204,7 +210,16 @@ function calculateRivalImpact(rival, subject, context) {
     2
   );
 
-  const winProbability = round(clamp(rivalWinPct * 100, 0, 100), 1);
+  const winProbability = round(
+    clamp(
+      (Number.isFinite(rival.elo)
+        ? blendWithElo(rivalWinPct, eloWinProb(rival.elo, 1500, 0), 0.5)
+        : rivalWinPct) * 100,
+      0,
+      100
+    ),
+    1
+  );
 
   const recordPressure = round(
     clamp((rivalWins - subjectWins) * 2.5 + Math.max(0, winPctGap) * 40, 0, 25),
@@ -382,6 +397,13 @@ async function computeRivalImpact(options = {}) {
         error: outcome.reason?.message || "Unknown error"
       });
     }
+  }
+
+  // Fold the Elo engine into rival threat scoring.
+  const eloSnap = await getEloSnapshot({ year });
+  for (const team of [normalizedSubject, ...rivals]) {
+    const power = eloSnap.byTeam[team.code]?.power;
+    team.elo = eloSnap.available && Number.isFinite(power) ? power : null;
   }
 
   const context = buildCompetitionContext(normalizedSubject, rivals);

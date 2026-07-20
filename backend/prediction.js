@@ -4,6 +4,12 @@ const {
   computeRecordFromGames,
   computeTeamAveragesFromGames,
 } = require("./services/espn");
+const {
+  getEloSnapshot,
+  blendWithElo,
+  eloWinProb,
+  ELO_HOME_FIELD,
+} = require("./services/ratingsEngine");
 
 function clamp(x, lo, hi) {
   return Math.max(lo, Math.min(hi, x));
@@ -82,7 +88,10 @@ async function generateEspnPrediction({
   scenarioModifier = 0,
   chaos = 0,
 }) {
-  const cowboysGames = await fetchCowboysGamesSeasonToDate(year);
+  const [cowboysGames, eloSnap] = await Promise.all([
+    fetchCowboysGamesSeasonToDate(year),
+    getEloSnapshot({ year }),
+  ]);
   // Cowboys record is fine at default "DAL"
   const record = computeRecordFromGames(cowboysGames, "DAL");
   const cowAvg = computeTeamAveragesFromGames("DAL", cowboysGames);
@@ -102,16 +111,26 @@ async function generateEspnPrediction({
     const oppRecord = computeRecordFromGames(oppGames, oppAbbr);
     const oppAvg = computeTeamAveragesFromGames(oppAbbr, oppGames);
 
+    const isHome = (g.homeTeamAbbr || "").toUpperCase() === "DAL";
     const pBase = modelWinProb(modelType, {
       teamWinPct: record.winPct || 0.5,
       oppWinPct: oppRecord.winPct || 0.5,
       teamPointDiff: cowAvg.pointDiffPerGame || 0,
       oppPointDiff: oppAvg.pointDiffPerGame || 0,
-      isHome: (g.homeTeamAbbr || "").toUpperCase() === "DAL",
+      isHome,
       scenarioModifier,
     });
 
-    const p = applyChaos(pBase, chaos);
+    // Hybrid: mix the legacy model with the Elo engine's read of the game.
+    let pHybrid = pBase;
+    const dalElo = eloSnap.byTeam.DAL?.power;
+    const oppElo = eloSnap.byTeam[String(oppAbbr || "").toUpperCase()]?.power;
+    if (eloSnap.available && Number.isFinite(dalElo) && Number.isFinite(oppElo)) {
+      const pElo = eloWinProb(dalElo, oppElo, isHome ? ELO_HOME_FIELD : -ELO_HOME_FIELD);
+      pHybrid = blendWithElo(pBase, pElo, 0.5);
+    }
+
+    const p = applyChaos(pHybrid, chaos);
     probs.push(p);
   }
 

@@ -6,6 +6,12 @@ const {
   computeRecordFromGames,
   computeTeamAveragesFromGames
 } = require("./services/espn");
+const {
+  getEloSnapshot,
+  blendWithElo,
+  eloWinProb,
+  ELO_HOME_FIELD
+} = require("./services/ratingsEngine");
 
 const DEFAULT_ITERATIONS = 10000;
 
@@ -143,8 +149,9 @@ function estimateGameWinProbability(teamAbbr, game, teamAverages, record, chaos 
   return clamp(sigmoid(rating), 0.04, 0.96);
 }
 
-function normalizeGame(teamAbbr, game, teamAverages, record, chaos, idx) {
-  const pWin = estimateGameWinProbability(teamAbbr, game, teamAverages, record, chaos);
+function normalizeGame(teamAbbr, game, teamAverages, record, chaos, idx, eloProb = null) {
+  const base = estimateGameWinProbability(teamAbbr, game, teamAverages, record, chaos);
+  const pWin = Number.isFinite(eloProb) ? blendWithElo(base, eloProb, 0.5) : base;
   return {
     idx,
     date: game.date || null,
@@ -262,13 +269,28 @@ async function loadSeasonModel({ teamAbbr = "DAL", year, chaos = 0 }) {
   const normalizedTeam = normalizeAbbr(teamAbbr);
   const normalizedChaos = normalizeChaos(chaos);
 
-  const games = await fetchTeamGamesSeasonToDate(normalizedTeam, seasonYear);
+  const [games, eloSnap] = await Promise.all([
+    fetchTeamGamesSeasonToDate(normalizedTeam, seasonYear),
+    getEloSnapshot({ year: seasonYear })
+  ]);
   const record = computeRecordFromGames(games);
   const teamAverages = computeTeamAveragesFromGames(normalizedTeam, games);
 
+  // Elo's read on each remaining game, blended into the legacy estimate.
+  const teamElo = eloSnap.byTeam[normalizedTeam]?.power;
+  const eloProbFor = (game) => {
+    if (!eloSnap.available || !Number.isFinite(teamElo)) return null;
+    const oppElo = eloSnap.byTeam[opponentOf(normalizedTeam, game)]?.power;
+    if (!Number.isFinite(oppElo)) return null;
+    const isHome = game.homeTeamAbbr === normalizedTeam;
+    return eloWinProb(teamElo, oppElo, isHome ? ELO_HOME_FIELD : -ELO_HOME_FIELD);
+  };
+
   const remainingGames = games
     .filter((game) => !game.completed)
-    .map((game, idx) => normalizeGame(normalizedTeam, game, teamAverages, record, normalizedChaos, idx));
+    .map((game, idx) =>
+      normalizeGame(normalizedTeam, game, teamAverages, record, normalizedChaos, idx, eloProbFor(game))
+    );
 
   return {
     seasonYear,

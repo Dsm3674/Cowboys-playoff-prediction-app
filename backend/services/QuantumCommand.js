@@ -171,7 +171,18 @@ class QuantumCommand {
 
         if (!teamData.rows[0]) throw new Error("TEAM_NOT_FOUND");
 
-        const baseTSI = parseFloat(teamData.rows[0].tsi);
+        // Hybrid layer: shift the TSI baseline by the Elo engine's read
+        // (±150 Elo maps to ±15 TSI), so QB/injury deltas and weekly
+        // results flow into the drive-level sim too.
+        let eloShift = 0;
+        try {
+            const { getEloSnapshot } = require('./ratingsEngine');
+            const snap = await getEloSnapshot({ year });
+            const power = snap.byTeam[String(teamAbbr || '').toUpperCase()]?.power;
+            if (snap.available && Number.isFinite(power)) eloShift = (power - 1500) / 10;
+        } catch (_err) { /* Elo unavailable — run on pure TSI */ }
+
+        const baseTSI = parseFloat(teamData.rows[0].tsi) + eloShift;
         const clutchFactor = parseFloat(teamData.rows[0].clutch_index) / 100;
 
         let playoffSuccessCount = 0;
