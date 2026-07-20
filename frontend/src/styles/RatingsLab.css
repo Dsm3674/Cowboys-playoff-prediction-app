@@ -1,82 +1,81 @@
 /* ============================================================
    Ratings Lab — model transparency desk
-   Dark product-card aesthetic: near-black panels, mono spec
-   chips, condensed display type, electric-blue actions, thin
-   line icons, and a full-bleed wordmark strip.
+   Product-card layout (spec chips, tile grid, full-width
+   actions, wordmark strip) built on the app's design tokens so
+   it inherits both themes and the Oswald/JetBrains type system.
    ============================================================ */
 
 .rlab {
-  --rlab-bg: #050608;
-  --rlab-panel: #0b0d12;
-  --rlab-border: rgba(255, 255, 255, 0.08);
-  --rlab-electric: #2b2bfd;
-  --rlab-electric-hover: #3d3dff;
-  --rlab-mint: #7ef0c2;
-  --rlab-mint-bg: rgba(24, 62, 48, 0.55);
-  --rlab-ink: #f2f3f5;
-  --rlab-muted: #9aa1ad;
-  --rlab-mono: "SF Mono", "Roboto Mono", "Fira Mono", Consolas, monospace;
-  --rlab-display: "Archivo Black", "Arial Black", "Helvetica Neue", sans-serif;
-
-  background: var(--rlab-bg);
-  color: var(--rlab-ink);
-  margin: 0 -4px;
-  padding: 3rem clamp(1rem, 4vw, 3rem) 0;
-  border-radius: 14px;
-  overflow: hidden;
+  --rlab-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  color: var(--fg);
+  width: 100%;
+  box-sizing: border-box;
 }
+
+.rlab *, .rlab *::before, .rlab *::after { box-sizing: border-box; }
 
 /* ── Hero ─────────────────────────────────────────────────── */
 
+.rlab-hero {
+  background: var(--banner-bg, var(--card));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: clamp(1.4rem, 4vw, 2.6rem);
+  margin-bottom: 1.6rem;
+  overflow: hidden;
+}
+
 .rlab-kicker {
   font-family: var(--rlab-mono);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   letter-spacing: 0.14em;
-  color: var(--rlab-muted);
+  color: var(--muted);
   text-transform: uppercase;
-  margin-bottom: 1.4rem;
+  margin-bottom: 1.1rem;
 }
 
 .rlab-display {
-  font-family: var(--rlab-display);
-  font-size: clamp(3rem, 9vw, 6.5rem);
-  line-height: 0.92;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.4rem, 7.5vw, 5.2rem);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
-  margin: 0 0 1.2rem;
-  color: #fff;
+  margin: 0 0 1rem;
+  color: var(--fg);
 }
 
 .rlab-hero__sub {
   max-width: 560px;
-  color: var(--rlab-muted);
-  font-size: 1.05rem;
+  color: var(--fg-dim);
+  font-family: var(--font-ui);
+  font-size: 1rem;
   line-height: 1.6;
-  margin: 0 0 1.5rem;
+  margin: 0 0 1.4rem;
 }
 
 .rlab-chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 1.6rem;
+  gap: 0.5rem;
+  margin-bottom: 1.4rem;
 }
 
 .rlab-chip {
   font-family: var(--rlab-mono);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   letter-spacing: 0.08em;
-  color: var(--rlab-mint);
-  background: var(--rlab-mint-bg);
-  border: 1px solid rgba(126, 240, 194, 0.25);
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid var(--border-hover);
   border-radius: 6px;
-  padding: 0.35rem 0.7rem;
+  padding: 0.32rem 0.65rem;
   white-space: nowrap;
 }
 
 .rlab-hero__controls {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.7rem;
   flex-wrap: wrap;
   align-items: stretch;
 }
@@ -84,391 +83,438 @@
 /* ── Buttons / inputs ─────────────────────────────────────── */
 
 .rlab-btn {
-  background: var(--rlab-electric);
+  background: var(--accent-blue);
   color: #fff;
   border: none;
   border-radius: 8px;
   font-family: var(--rlab-mono);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 0.85rem 1.6rem;
+  padding: 0.8rem 1.5rem;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: filter 0.15s ease, transform 0.15s ease;
 }
-.rlab-btn:hover:not(:disabled) {
-  background: var(--rlab-electric-hover);
-  transform: translateY(-1px);
-}
+.rlab-btn:hover:not(:disabled) { filter: brightness(1.15); transform: translateY(-1px); }
+.rlab-btn:active:not(:disabled) { transform: translateY(0); }
 .rlab-btn:disabled { opacity: 0.55; cursor: wait; }
-.rlab-btn--card { width: 100%; margin-top: 0.9rem; padding: 0.75rem 0; }
+.rlab-btn--card { width: 100%; margin-top: 0.9rem; padding: 0.7rem 0; }
 
 .rlab-select,
 .rlab-input {
-  background: var(--rlab-panel);
-  color: var(--rlab-ink);
-  border: 1px solid var(--rlab-border);
+  background: var(--bg-elevated);
+  color: var(--fg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-family: var(--rlab-mono);
-  font-size: 0.85rem;
-  padding: 0.8rem 1rem;
+  font-size: 0.82rem;
+  padding: 0.75rem 0.9rem;
   outline: none;
+  min-width: 0;
+  transition: border-color 0.15s ease;
 }
 .rlab-select:focus,
-.rlab-input:focus { border-color: var(--rlab-electric); }
+.rlab-input:focus { border-color: var(--accent-blue); }
 
 /* ── Spec tiles ───────────────────────────────────────────── */
 
 .rlab-spec-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 0.9rem;
-  margin: 2.6rem 0;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.8rem;
+  margin: 0 0 2.2rem;
 }
 
 .rlab-spec {
-  background: var(--rlab-panel);
-  border: 1px solid var(--rlab-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 1.6rem 1.4rem 1.4rem;
-  min-height: 210px;
+  padding: 1.3rem 1.2rem 1.2rem;
+  min-height: 185px;
   display: flex;
   flex-direction: column;
+  transition: border-color 0.15s ease;
 }
+.rlab-spec:hover { border-color: var(--border-hover); }
 
 .rlab-spec__icon {
-  width: 72px;
-  height: 72px;
+  width: 60px;
+  height: 60px;
   margin-bottom: auto;
+  opacity: 0.75;
+  color: var(--fg-dim);
 }
 
 .rlab-spec__label {
-  color: var(--rlab-muted);
-  font-size: 0.82rem;
-  margin: 1.4rem 0 0.3rem;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 1.1rem 0 0.25rem;
 }
 
 .rlab-spec__title {
-  font-family: var(--rlab-display);
-  font-size: 1.5rem;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.05rem, 1.4vw, 1.3rem);
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--fg);
+  overflow-wrap: anywhere;
 }
 
 /* ── Sections ─────────────────────────────────────────────── */
 
-.rlab-section { margin: 3.2rem 0; }
+.rlab-section { margin: 0 0 2.6rem; }
 
 .rlab-section__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.4rem;
+  gap: 0.4rem 1rem;
+  margin-bottom: 1.1rem;
 }
 
 .rlab-h2 {
-  font-family: var(--rlab-display);
-  font-size: clamp(1.5rem, 3.4vw, 2.4rem);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
   text-transform: uppercase;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
   margin: 0;
-  color: #fff;
+  color: var(--fg);
 }
 
 .rlab-meta {
   font-family: var(--rlab-mono);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   letter-spacing: 0.06em;
-  color: var(--rlab-muted);
+  color: var(--muted);
   text-transform: uppercase;
 }
 
 .rlab-loading {
   font-family: var(--rlab-mono);
-  color: var(--rlab-muted);
-  padding: 2rem 0;
-  font-size: 0.85rem;
+  color: var(--muted);
+  padding: 1.6rem 0;
+  font-size: 0.82rem;
   letter-spacing: 0.06em;
 }
 
 .rlab-error {
   margin-top: 1rem;
   font-family: var(--rlab-mono);
-  font-size: 0.8rem;
-  color: #ff8484;
+  font-size: 0.78rem;
+  color: var(--accent-danger);
 }
 
 /* ── Rating cards ─────────────────────────────────────────── */
 
 .rlab-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.9rem;
-  margin-bottom: 1.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1.4rem;
 }
 
 .rlab-card {
-  background: var(--rlab-panel);
-  border: 1px solid var(--rlab-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 1.3rem;
+  padding: 1.15rem;
   display: flex;
   flex-direction: column;
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 .rlab-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--border-hover);
   transform: translateY(-2px);
 }
 
-.rlab-card__chip { align-self: flex-start; margin-bottom: 2.2rem; }
+.rlab-card__chip { align-self: flex-start; margin-bottom: 1.8rem; }
 
 .rlab-card__rank {
   font-family: var(--rlab-mono);
-  font-size: 0.72rem;
-  color: var(--rlab-muted);
-  margin-bottom: 0.2rem;
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-bottom: 0.15rem;
 }
 
 .rlab-card__title {
-  font-family: var(--rlab-display);
-  font-size: 2.1rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.9rem;
   text-transform: uppercase;
   margin: 0;
   line-height: 1;
-  color: #fff;
+  color: var(--fg);
 }
 
 .rlab-card__sub {
-  color: var(--rlab-muted);
-  font-size: 0.9rem;
-  margin: 0.35rem 0 0;
+  color: var(--fg-dim);
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  margin: 0.3rem 0 0;
 }
 
 .rlab-card__line {
   font-family: var(--rlab-mono);
-  font-size: 0.74rem;
-  color: var(--rlab-muted);
-  margin: 0.6rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0.55rem 0 0;
 }
 
-.rlab-pos { color: var(--rlab-mint); }
-.rlab-neg { color: #ff8484; }
+.rlab-pos { color: var(--accent-success); }
+.rlab-neg { color: var(--accent-danger); }
 
 /* ── Tables ───────────────────────────────────────────────── */
 
 .rlab-table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--rlab-border);
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--rlab-panel);
+  background: var(--card);
+  max-width: 100%;
 }
 
 .rlab-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
 }
 
 .rlab-table th {
   font-family: var(--rlab-mono);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--rlab-muted);
+  color: var(--muted);
   text-align: left;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--rlab-border);
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--card);
 }
 
 .rlab-table td {
-  padding: 0.7rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  color: var(--rlab-ink);
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-dim);
   white-space: nowrap;
 }
+.rlab-table tbody tr:last-child td { border-bottom: none; }
 
-.rlab-table tbody tr { cursor: pointer; transition: background 0.12s ease; }
-.rlab-table tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+.rlab-table tbody tr { transition: background 0.12s ease; }
+.rlab-table--click tbody tr { cursor: pointer; }
+.rlab-table--click tbody tr:hover { background: var(--accent-glow); }
 .rlab-table tbody tr.focused {
-  background: rgba(43, 43, 253, 0.12);
-  box-shadow: inset 3px 0 0 var(--rlab-electric);
+  background: var(--accent-glow);
+  box-shadow: inset 3px 0 0 var(--accent-blue);
 }
-.rlab-table--tight td, .rlab-table--tight th { padding: 0.55rem 0.75rem; }
-.rlab-table--tight tbody tr { cursor: default; }
+.rlab-table--tight td, .rlab-table--tight th { padding: 0.5rem 0.7rem; }
 
-.rlab-table__team { font-weight: 700; color: #fff; }
+.rlab-table__team { font-weight: 700; color: var(--fg); }
 .rlab-table__power {
   font-family: var(--rlab-mono);
-  color: var(--rlab-mint);
+  color: var(--accent);
   font-weight: 700;
 }
 .rlab-reason {
   white-space: normal;
-  min-width: 180px;
-  color: var(--rlab-muted);
-  font-size: 0.8rem;
+  min-width: 160px;
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .rlab-lift {
   font-family: var(--rlab-mono);
-  font-size: 0.74rem;
-  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  padding: 0.18rem 0.45rem;
   border-radius: 5px;
+  white-space: nowrap;
 }
-.rlab-lift.up { color: var(--rlab-mint); background: var(--rlab-mint-bg); }
-.rlab-lift.down { color: #ff8484; background: rgba(80, 25, 25, 0.5); }
+.rlab-lift.up { color: var(--accent-success); background: rgba(16, 185, 129, 0.12); }
+.rlab-lift.down { color: var(--accent-danger); background: rgba(239, 68, 68, 0.12); }
 
 /* ── Panels / duo layout ──────────────────────────────────── */
 
 .rlab-duo {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 0.9rem;
-  margin-top: 1.2rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
 }
 
 .rlab-panel {
-  background: var(--rlab-panel);
-  border: 1px solid var(--rlab-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 1.4rem;
+  padding: 1.2rem;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
+
+.rlab-panel .rlab-table-wrap,
+.rlab-panel table { border: none; }
 
 .rlab-panel__title {
   font-family: var(--rlab-mono);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   letter-spacing: 0.1em;
-  color: var(--rlab-muted);
-  margin-bottom: 1rem;
+  color: var(--muted);
+  margin-bottom: 0.9rem;
+  text-transform: uppercase;
 }
 
-.rlab-muted { color: var(--rlab-muted); font-size: 0.9rem; }
-.rlab-footnote { margin-top: 0.9rem; font-size: 0.78rem; }
+.rlab-muted { color: var(--muted); font-family: var(--font-ui); font-size: 0.88rem; }
+.rlab-footnote { margin-top: 0.8rem; font-size: 0.76rem; }
 
 /* ── Exit bars ────────────────────────────────────────────── */
 
-.rlab-exit-bars { display: flex; flex-direction: column; gap: 0.65rem; }
+.rlab-exit-bars { display: flex; flex-direction: column; gap: 0.6rem; }
 
 .rlab-exit-row {
   display: grid;
-  grid-template-columns: 92px 1fr 56px;
+  grid-template-columns: 86px minmax(0, 1fr) 52px;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.6rem;
 }
 
 .rlab-exit-label {
   font-family: var(--rlab-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--rlab-muted);
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .rlab-exit-track {
   height: 8px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-elevated);
   overflow: hidden;
+  min-width: 0;
 }
 
 .rlab-exit-fill {
   height: 100%;
   border-radius: 4px;
-  background: var(--rlab-electric);
+  background: var(--accent-blue);
   transition: width 0.4s ease;
 }
-.rlab-exit-fill.win { background: var(--rlab-mint); }
+.rlab-exit-fill.win { background: var(--accent-success); }
 
 .rlab-exit-val {
   font-family: var(--rlab-mono);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   text-align: right;
-  color: var(--rlab-ink);
+  color: var(--fg-dim);
 }
 
 /* ── Market stat tiles ────────────────────────────────────── */
 
 .rlab-stat-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.9rem;
-  margin-bottom: 1.2rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1rem;
 }
 
 .rlab-stat {
-  background: var(--rlab-panel);
-  border: 1px solid var(--rlab-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 1.3rem 1.4rem;
+  padding: 1.15rem 1.2rem;
 }
 
 .rlab-stat__val {
-  font-family: var(--rlab-display);
-  font-size: 1.9rem;
-  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.7rem;
+  color: var(--fg);
   line-height: 1.1;
 }
 
 .rlab-stat__label {
   font-family: var(--rlab-mono);
-  font-size: 0.64rem;
+  font-size: 0.6rem;
   letter-spacing: 0.1em;
-  color: var(--rlab-muted);
-  margin-top: 0.45rem;
+  color: var(--muted);
+  margin-top: 0.4rem;
 }
 
 /* ── Adjustment form ──────────────────────────────────────── */
 
 .rlab-form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 0.8rem;
-  margin-bottom: 1.1rem;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .rlab-form-grid label {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.3rem;
   font-family: var(--rlab-mono);
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--rlab-muted);
+  color: var(--muted);
+  min-width: 0;
 }
 
 .rlab-form-wide { grid-column: 1 / -1; }
 
 .rlab-form-status {
-  margin-top: 0.8rem;
+  margin-top: 0.75rem;
   font-family: var(--rlab-mono);
-  font-size: 0.76rem;
-  color: var(--rlab-mint);
+  font-size: 0.74rem;
+  color: var(--accent);
 }
 
 /* ── Wordmark strip ───────────────────────────────────────── */
 
 .rlab-wordmark {
-  font-family: var(--rlab-display);
-  font-size: clamp(4rem, 14.5vw, 13rem);
-  line-height: 0.85;
-  letter-spacing: -0.03em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(3rem, 15vw, 12rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   text-align: center;
-  color: #fff;
-  margin: 4rem calc(-1 * clamp(1rem, 4vw, 3rem)) -0.12em;
-  user-select: none;
-  white-space: nowrap;
+  color: var(--fg);
+  opacity: 0.12;
+  margin: 2.5rem 0 0;
+  max-width: 100%;
   overflow: hidden;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
 }
 
+/* ── Mobile ───────────────────────────────────────────────── */
+
 @media (max-width: 640px) {
-  .rlab { padding-top: 2rem; }
-  .rlab-exit-row { grid-template-columns: 80px 1fr 48px; }
+  .rlab-hero { padding: 1.2rem 1rem; border-radius: 10px; }
+  .rlab-hero__controls { flex-direction: column; }
+  .rlab-hero__controls .rlab-btn,
+  .rlab-hero__controls .rlab-select { width: 100%; }
+  .rlab-spec { min-height: 150px; padding: 1.1rem 1rem; }
+  .rlab-spec__icon { width: 44px; height: 44px; }
+  .rlab-card-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .rlab-card__title { font-size: 1.5rem; }
+  .rlab-table { font-size: 0.78rem; }
+  .rlab-table th, .rlab-table td { padding: 0.55rem 0.6rem; }
+  .rlab-exit-row { grid-template-columns: 74px minmax(0, 1fr) 44px; }
+  .rlab-stat__val { font-size: 1.4rem; }
+  .rlab-section { margin-bottom: 2rem; }
 }

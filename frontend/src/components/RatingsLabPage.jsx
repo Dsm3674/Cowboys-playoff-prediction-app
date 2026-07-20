@@ -26,8 +26,7 @@ function LiftChip({ value }) {
 }
 
 function SpecIcon({ kind }) {
-  const stroke = "rgba(255,255,255,0.55)";
-  const common = { fill: "none", stroke, strokeWidth: 1 };
+  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1 };
   return (
     <svg viewBox="0 0 96 96" className="rlab-spec__icon" aria-hidden="true">
       {kind === "rings" && [16, 26, 36, 44].map((r) => (
@@ -263,7 +262,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
 
         {!loading && (
           <div className="rlab-table-wrap">
-            <table className="rlab-table">
+            <table className="rlab-table rlab-table--click">
               <thead>
                 <tr>
                   <th>#</th><th>Team</th><th>Conf</th><th>Record</th>
