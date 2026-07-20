@@ -22,17 +22,17 @@ const { simulatePlayoffPaths } = require("./playoffPathEngine");
 const FUTURES_FILE = path.join(__dirname, "..", "Data", "market_futures.json");
 
 const DEFAULT_SNAPSHOT = {
-  source: "manual-snapshot",
-  note: "Seed data — update via POST /api/model/market-futures with live book odds.",
-  asOf: "2026-07-01",
-  // American odds to win the Super Bowl.
+  source: "book-consensus (DraftKings/Caesars tiers)",
+  note: "Super Bowl LXI futures, mid-July 2026 consensus — refresh via POST /api/model/market-futures as lines move.",
+  asOf: "2026-07-20",
+  // American odds to win Super Bowl LXI.
   odds: {
-    KC: 600, BUF: 700, BAL: 750, SF: 800, DET: 850, PHI: 900, DAL: 1100,
-    CIN: 1400, GB: 1500, LAR: 1800, MIA: 2200, NYJ: 2500, HOU: 2500,
-    LAC: 3000, JAX: 3500, CLE: 4000, PIT: 4000, MIN: 4500, ATL: 5000,
-    SEA: 5000, CHI: 5500, IND: 6000, TB: 6000, NO: 7000, DEN: 7000,
-    LV: 8000, TEN: 10000, ARI: 10000, NYG: 10000, WAS: 12000, NE: 15000,
-    CAR: 20000,
+    LAR: 600, BAL: 1000, BUF: 1000, SEA: 1100, PHI: 1400, KC: 1500,
+    DET: 1500, GB: 1700, LAC: 1700, SF: 1700, DEN: 2000, HOU: 2000,
+    JAX: 2000, NE: 2000, CHI: 2200, DAL: 2200, CIN: 3000, IND: 4000,
+    TB: 4000, MIN: 4500, ATL: 6500, NYG: 6500, WAS: 6500, PIT: 7500,
+    CAR: 9000, NO: 9000, LV: 12500, TEN: 12500, CLE: 15000, MIA: 25000,
+    NYJ: 25000, ARI: 40000,
   },
 };
 
