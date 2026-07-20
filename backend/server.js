@@ -97,6 +97,7 @@ const analyticsRoutes = require("./routes/analytics");
 const playersRoutes = require("./routes/players");
 const timelineRoutes = require("./routes/timeline");
 const warroomRoutes = require("./routes/warroom");
+const modelRoutes = require("./routes/model");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/billing", billingRoutes);
@@ -108,6 +109,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/players", playersRoutes);
 app.use("/api/timeline", timelineRoutes);
 app.use("/api/warroom", warroomRoutes);
+app.use("/api/model", modelRoutes);
 
 // ---------------------------------------------------------------------------
 // API 404 guard.

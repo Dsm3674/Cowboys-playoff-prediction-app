@@ -412,6 +412,43 @@
     });
   }
 
+  // ── Model Lab: Elo power ratings, path probabilities, market check ──
+
+  function getPowerRatings(year) {
+    return request("/api/model/power-ratings", { query: { year } });
+  }
+
+  function getPathProbabilities(team = "DAL", year, iterations) {
+    return request("/api/model/path-probabilities", {
+      query: { team, year, iterations }
+    });
+  }
+
+  function getMarketValidation(year, iterations) {
+    return request("/api/model/market-validation", {
+      query: { year, iterations }
+    });
+  }
+
+  function getModelAdjustments() {
+    return request("/api/model/adjustments");
+  }
+
+  function saveModelAdjustment(payload, adminKey) {
+    return request("/api/model/adjustments", {
+      method: "POST",
+      body: payload,
+      headers: adminKey ? { "X-Admin-Key": adminKey } : {}
+    });
+  }
+
+  function deleteModelAdjustment(team, adminKey) {
+    return request(`/api/model/adjustments/${team}`, {
+      method: "DELETE",
+      headers: adminKey ? { "X-Admin-Key": adminKey } : {}
+    });
+  }
+
   function startProCheckout() {
     // user may be a Gmail address or an anonymous identity; the backend
     // links the subscription to whichever one is signed in.
@@ -460,5 +497,11 @@
     getWarRoomLeaderboard,
     sendWarRoomChat,
     claimSeasonReward,
-    startProCheckout
+    startProCheckout,
+    getPowerRatings,
+    getPathProbabilities,
+    getMarketValidation,
+    getModelAdjustments,
+    saveModelAdjustment,
+    deleteModelAdjustment
   };

@@ -22,6 +22,7 @@ import PlayerRadar from "./components/PlayerRadar";
 import PlayoffGauge from "./components/PlayoffGauge";
 import PlayoffPulsePage from "./components/PlayoffPulsePage";
 import QuantumEngineIntegrated from "./components/QuantumEngineIntegrated";
+import RatingsLabPage from "./components/RatingsLabPage";
 import RecordCard from "./components/RecordCard";
 import RivalTeamImpactPage from "./components/RivalTeamImpactPage";
 import ScheduleStrengthPage from "./components/ScheduleStrengthPage";
@@ -40,6 +41,7 @@ import "./styles/EventsAdmin.css";
 import "./styles/Timeline.css";
 import "./styles/MotionPolish.css";
 import "./styles/WarRoom.css";
+import "./styles/RatingsLab.css";
 
 const CATEGORY_MAP = {
   dashboard: 'Core',
@@ -372,6 +374,7 @@ function PredictionsPage({ year, selectedTeam }) {
   const [activeTab, setActiveTab] = useState("quantum");
   const tabs = [
     { id: "quantum", label: "Model Output" },
+    { id: "ratings-lab", label: "Ratings Lab" },
     { id: "simulator", label: "Scenario Studio" },
     { id: "paths", label: "Season Paths" },
     { id: "forecast", label: "League Forecast" }
@@ -385,6 +388,7 @@ function PredictionsPage({ year, selectedTeam }) {
       <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="reveal-up" key={activeTab}>
         {activeTab === "quantum" && <QuantumEngineIntegrated />}
+        {activeTab === "ratings-lab" && <RatingsLabPage year={year} selectedTeam={selectedTeam} />}
         {activeTab === "simulator" && <AIStorySimulator />}
         {activeTab === "paths" && <SeasonPathExplorer year={year} team={selectedTeam} />}
         {activeTab === "forecast" && <LeagueForecastPage year={year} />}
