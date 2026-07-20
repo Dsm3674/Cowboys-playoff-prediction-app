@@ -40,6 +40,7 @@ import "../style.css";
 import "./styles/EventsAdmin.css";
 import "./styles/Timeline.css";
 import "./styles/MotionPolish.css";
+import "./styles/WorkspaceConsistency.css";
 import "./styles/WarRoom.css";
 import "./styles/RatingsLab.css";
 
@@ -216,10 +217,13 @@ function PageShell({ title, subtitle, insight, children }) {
 
 function TabBar({ tabs, activeTab, onTabChange }) {
   return (
-    <div className="sub-tabs">
+    <div className="sub-tabs" role="tablist" aria-label="Page sections">
       {tabs.map(tab => (
         <button
           key={tab.id}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === tab.id}
           className={`sub-tab${activeTab === tab.id ? ' active' : ''}`}
           onClick={() => onTabChange(tab.id)}
         >
@@ -326,7 +330,7 @@ function GamesPage({ year, selectedTeam }) {
     { id: "liveprob", label: "Live Win Prob" }
   ];
 
-        return (
+  return (
     <PageShell
       title="Games"
       subtitle="Schedule analysis, matchup simulations, and live win probability tools."
@@ -352,7 +356,7 @@ function PlayersPage({ year, selectedTeam }) {
     { id: "rival", label: "Rival Impact" }
   ];
 
-          return (
+  return (
     <PageShell
       title="Players & Scouting"
       subtitle="Team profiles, player analysis, comparisons, and rival impact breakdowns."
@@ -424,7 +428,7 @@ function InsightsPage({ year, selectedTeam }) {
     { id: "timeline", label: "Timeline" }
   ];
 
-                return (
+  return (
     <PageShell
       title="Insights"
       subtitle="League-wide analytics, standings, playoff odds, division rankings, and historical trends."
@@ -517,6 +521,11 @@ function useAppRouter() {
 
       document.querySelectorAll(".nav-link").forEach((el) => {
         el.classList.toggle("active", el.dataset.page === page);
+        if (el.dataset.page === page) {
+          el.setAttribute("aria-current", "page");
+        } else {
+          el.removeAttribute("aria-current");
+        }
       });
     }
 
