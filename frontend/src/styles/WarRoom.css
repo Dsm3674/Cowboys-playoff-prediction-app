@@ -21,8 +21,9 @@
   --wr-live: #f06a6a;
   --wr-yes: #3987e5;
   --wr-no: #e66767;
-  --wr-serif: Georgia, "Times New Roman", serif;
-  --wr-sans: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+  /* Aligned with the app-wide type system (was Georgia serif). */
+  --wr-serif: var(--font-display, 'Oswald', 'Impact', sans-serif);
+  --wr-sans: var(--font-ui, 'Inter', system-ui, sans-serif);
 
   background: var(--wr-paper);
   color: var(--wr-ink);

@@ -25,7 +25,7 @@ function Footer() {
         <div className="site-footer__brand">
           <div className="site-footer__mark" aria-hidden="true">★</div>
           <div>
-            <div className="site-footer__brand-name">LoneStar Analytics</div>
+            <div className="site-footer__brand-name">LoneStar AI</div>
             <div className="site-footer__brand-tag">
               Independent NFL playoff intelligence. Not affiliated with the NFL or any team.
             </div>
@@ -74,7 +74,7 @@ function Footer() {
 
       <div className="site-footer__bar">
         <div className="site-footer__copyright">
-          © {year} LoneStar Analytics. All rights reserved.
+          © {year} LoneStar AI. All rights reserved.
         </div>
         <div className="site-footer__meta">
           <span>Data: ESPN public APIs</span>

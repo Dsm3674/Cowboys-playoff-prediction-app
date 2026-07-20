@@ -95,17 +95,56 @@ const NFL_TEAMS = [
 /* ── Shared Components ──────────────────────────────────────── */
 
 function LiveTicker() {
-  const [items] = useState([
-    { label: "AFC #1 Seed",     value: "KC 14-3",    trend: "up" },
-    { label: "NFC #1 Seed",     value: "DET 15-2",   trend: "up" },
-    { label: "SB Favorite",     value: "KC 52%",     trend: "neutral" },
-    { label: "Highest TSI",     value: "BAL 14.2",   trend: "up" },
-    { label: "DAL Proj Wins",   value: "10.8",       trend: "up" },
-    { label: "DAL Playoff Odds", value: "74%",       trend: "up" },
-    { label: "Bubble Teams",    value: "SEA,LAR,DEN",trend: "down" },
-    { label: "SOS Toughest",    value: "DAL",        trend: "neutral" },
-    { label: "DAL SB Odds",     value: "9.4%",       trend: "up" },
+  const [items, setItems] = useState([
+    { label: "Engine", value: "Hybrid Elo + Monte Carlo", trend: "neutral" },
+    { label: "Teams Tracked", value: "32 NFL", trend: "neutral" },
+    { label: "Sims Per Run", value: "up to 100k", trend: "neutral" },
+    { label: "Market Check", value: "de-vigged futures", trend: "neutral" },
+    { label: "Status", value: "syncing model…", trend: "neutral" },
   ]);
+
+  // Pull real model numbers; the static capability chips above are the
+  // fallback if the API is unreachable.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [ratings, paths] = await Promise.all([
+          api.getPowerRatings(),
+          api.getPathProbabilities("DAL", undefined, 10000),
+        ]);
+        if (!alive) return;
+
+        const top = ratings.ratings?.[0];
+        const dal = ratings.ratings?.find((t) => t.code === "DAL");
+        const sbFav = paths.teams?.[0];
+        const dalPath = paths.teams?.find((t) => t.code === "DAL");
+
+        const next = [
+          top && { label: "Top Power", value: `${top.code} ${Math.round(top.power)}`, trend: "up" },
+          paths.topSeeds?.AFC && { label: "AFC #1 Seed", value: paths.topSeeds.AFC, trend: "neutral" },
+          paths.topSeeds?.NFC && { label: "NFC #1 Seed", value: paths.topSeeds.NFC, trend: "neutral" },
+          sbFav && { label: "SB Favorite", value: `${sbFav.code} ${sbFav.winSBPct.toFixed(1)}%`, trend: "up" },
+          dal && {
+            label: "DAL Elo",
+            value: `${Math.round(dal.adjustedElo)} · #${dal.rank}`,
+            trend: dal.newsDelta < 0 ? "down" : dal.newsDelta > 0 ? "up" : "neutral",
+          },
+          dalPath && { label: "DAL SB Odds", value: `${dalPath.winSBPct.toFixed(1)}%`, trend: "neutral" },
+          {
+            label: "Results Synced",
+            value: ratings.lastCompletedWeek ? `Week ${ratings.lastCompletedWeek}` : "awaiting Week 1",
+            trend: "neutral",
+          },
+        ].filter(Boolean);
+
+        if (next.length >= 4) setItems(next);
+      } catch (_err) {
+        // keep the capability fallback
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   return (
     <div className="live-ticker-wrap">
@@ -254,9 +293,9 @@ function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
             Built like a film-room dashboard: fewer gimmicks, clearer signals, and faster reads.
           </p>
           <div className="dashboard-quickbar" aria-label="Dashboard signals">
-            <span>100k sims</span>
-            <span>Quantum v4.6</span>
-            <span>NFC leverage</span>
+            <span>Hybrid Elo engine</span>
+            <span>Up to 100k sims</span>
+            <span>Market-checked</span>
           </div>
         </div>
         <OrbitalDiamond
@@ -484,7 +523,7 @@ function LinearInspector({ currentPage, selectedTeam, year }) {
 
       <div className="linear-inspector__block">
         <div className="linear-inspector__label">Model</div>
-        <div className="linear-inspector__pill">Quantum v4.6</div>
+        <div className="linear-inspector__pill">Hybrid Elo v2</div>
       </div>
     </aside>
   );

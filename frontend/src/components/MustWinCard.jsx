@@ -13,8 +13,26 @@ function MustWinCard({ year, team = "DAL" }) {
       .finally(() => setLoading(false));
   }, [year, team]);
 
-  if (loading) return null;
-  if (!games.length) return null;
+  // Always render the card shell so the dashboard grid keeps its shape.
+  if (loading) {
+    return (
+      <div className="card must-win-card">
+        <h3 className="must-win-card__title">{team} High Leverage Games</h3>
+        <p className="must-win-card__intro text-muted">Ranking the schedule…</p>
+      </div>
+    );
+  }
+
+  if (!games.length) {
+    return (
+      <div className="card must-win-card">
+        <h3 className="must-win-card__title">{team} High Leverage Games</h3>
+        <p className="must-win-card__intro text-muted">
+          No remaining games to rank yet — leverage calls land once the schedule is live.
+        </p>
+      </div>
+    );
+  }
 
   // Take top 3 most important games
   const topGames = games.slice(0, 3);

@@ -56,7 +56,9 @@ function HistoryPage() {
 
         {/* FIX: error only shows if fetch failed */}
         {!loading && error && (
-          <p style={{ color: "red" }}>{error}</p>
+          <p className="text-muted">
+            {error} Generate a prediction from the Predictions page and it will show up here.
+          </p>
         )}
 
         {/* FIX: clean empty-state */}
