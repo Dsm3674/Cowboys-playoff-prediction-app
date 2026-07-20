@@ -619,7 +619,14 @@ function App() {
       case "bracket":
         return <BracketPage year={year} />;
       case "warroom":
-        return <WarRoomPage />;
+        return (
+          <PageShell
+            title="War Room Pro"
+            subtitle="Prediction markets, Star Coin positions, leaderboard standings, and live model analysis."
+          >
+            <WarRoomPage />
+          </PageShell>
+        );
       case "events":
         return <EventsAdmin />;
       case "profile":

@@ -396,7 +396,7 @@ export default function WarRoomPage() {
             })}
             <span className="wr-dateline__sep">·</span> Star Coin Exchange
           </div>
-          <h1 className="wr-title">The War Room</h1>
+          <h2 className="wr-title">Prediction market desk</h2>
           <p className="wr-sub">
             Prices are the crowd's probability in cents. Star Coins are virtual —
             bragging rights only.
@@ -418,14 +418,20 @@ export default function WarRoomPage() {
         </div>
       </header>
 
-      <nav className="wr-modes" aria-label="Game mode">
+      <nav className="wr-modes" aria-label="Game mode" role="tablist">
         <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "markets"}
           className={`wr-mode ${mode === "markets" ? "is-active" : ""}`}
           onClick={() => setMode("markets")}
         >
           The Markets
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "season"}
           className={`wr-mode ${mode === "season" ? "is-active" : ""}`}
           onClick={() => setMode("season")}
         >
