@@ -46,11 +46,18 @@ function Footer() {
             <a href="#about" onClick={(e) => e.preventDefault()}>About</a>
             <a href="#changelog" onClick={(e) => e.preventDefault()}>Changelog</a>
             <a
-              href="https://github.com"
+              href="https://github.com/Dsm3674/Cowboys-playoff-prediction-app"
               target="_blank"
               rel="noopener noreferrer"
             >
               GitHub
+            </a>
+            <a
+              href="https://discord.gg/gsvYWujTuF"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Discord
             </a>
             <a href="mailto:hello@lonestar-analytics.app">Contact</a>
           </div>

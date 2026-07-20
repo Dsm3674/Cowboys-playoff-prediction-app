@@ -15,7 +15,7 @@ const {
   MAX_ITERATIONS,
 } = require("../services/playoffPathEngine");
 const {
-  readFutures,
+  getFutures,
   saveFutures,
   validateAgainstMarket,
 } = require("../services/marketValidation");
@@ -71,8 +71,12 @@ router.get("/market-validation", async (req, res) => {
   }
 });
 
-router.get("/market-futures", (req, res) => {
-  res.json({ success: true, futures: readFutures() });
+router.get("/market-futures", async (req, res) => {
+  res.json({
+    success: true,
+    liveFeed: Boolean(process.env.ODDS_API_KEY),
+    futures: await getFutures(),
+  });
 });
 
 router.post("/market-futures", requireAdmin, (req, res) => {

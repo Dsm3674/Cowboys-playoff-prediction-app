@@ -67,6 +67,90 @@ function readFutures() {
   return DEFAULT_SNAPSHOT;
 }
 
+/* ── Live odds (The Odds API) ──────────────────────────────────────────── */
+
+function americanFromProb(p) {
+  const prob = Math.max(0.0005, Math.min(0.9995, Number(p)));
+  return prob >= 0.5
+    ? Math.round((-100 * prob) / (1 - prob))
+    : Math.round((100 * (1 - prob)) / prob);
+}
+
+const LIVE_ODDS_URL =
+  "https://api.the-odds-api.com/v4/sports/americanfootball_nfl_super_bowl_winner/odds/";
+const LIVE_ODDS_TTL_MS = 6 * 60 * 60 * 1000; // books shift, but 4 pulls/day is plenty
+let _liveOddsCache = { ts: 0, snapshot: null };
+
+/**
+ * Pull current Super Bowl futures when ODDS_API_KEY is configured
+ * (free tier at the-odds-api.com). Prices are averaged across every US
+ * book on the implied-probability scale — a consensus line, not one shop.
+ * Returns null on any failure so callers fall back to the stored snapshot.
+ */
+async function fetchLiveFutures() {
+  const apiKey = process.env.ODDS_API_KEY;
+  if (!apiKey) return null;
+  if (_liveOddsCache.snapshot && Date.now() - _liveOddsCache.ts < LIVE_ODDS_TTL_MS) {
+    return _liveOddsCache.snapshot;
+  }
+
+  try {
+    const fetch = require("node-fetch");
+    const url = `${LIVE_ODDS_URL}?apiKey=${apiKey}&regions=us&markets=outrights&oddsFormat=american`;
+    const res = await fetch(url, { timeout: 10000 });
+    if (!res.ok) return null;
+    const events = await res.json();
+
+    const { getNFLTeamCatalog } = require("./espn");
+    const nameToAbbr = {};
+    for (const t of getNFLTeamCatalog()) {
+      nameToAbbr[String(t.displayName || "").toLowerCase()] = t.abbreviation;
+    }
+
+    const sums = {};
+    const counts = {};
+    for (const event of Array.isArray(events) ? events : []) {
+      for (const book of event.bookmakers || []) {
+        for (const market of book.markets || []) {
+          if (market.key !== "outrights") continue;
+          for (const outcome of market.outcomes || []) {
+            const abbr = nameToAbbr[String(outcome.name || "").toLowerCase()];
+            const p = americanToImplied(outcome.price);
+            if (!abbr || p == null) continue;
+            sums[abbr] = (sums[abbr] || 0) + p;
+            counts[abbr] = (counts[abbr] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    const odds = {};
+    for (const [abbr, sum] of Object.entries(sums)) {
+      odds[abbr] = americanFromProb(sum / counts[abbr]);
+    }
+    if (Object.keys(odds).length < 8) return null; // partial feed — don't trust it
+
+    const snapshot = {
+      source: "the-odds-api (US book consensus)",
+      asOf: new Date().toISOString().slice(0, 10),
+      odds,
+    };
+    _liveOddsCache = { ts: Date.now(), snapshot };
+    try {
+      fs.mkdirSync(path.dirname(FUTURES_FILE), { recursive: true });
+      fs.writeFileSync(FUTURES_FILE, JSON.stringify(snapshot, null, 2));
+    } catch (_err) { /* persisting is best-effort */ }
+    return snapshot;
+  } catch (_err) {
+    return null;
+  }
+}
+
+/** Live odds when configured and reachable, stored snapshot otherwise. */
+async function getFutures() {
+  return (await fetchLiveFutures()) || readFutures();
+}
+
 function saveFutures({ odds, source, asOf } = {}) {
   if (!odds || typeof odds !== "object" || Array.isArray(odds)) {
     throw new Error("Body must include an `odds` object of TEAM: americanOdds.");
@@ -112,7 +196,7 @@ function pearson(xs, ys) {
 async function validateAgainstMarket({ year, iterations } = {}) {
   const [paths, futures] = await Promise.all([
     simulatePlayoffPaths({ year, iterations }),
-    Promise.resolve(readFutures()),
+    getFutures(),
   ]);
 
   const { probs: marketProbs, overround } = devig(futures.odds);
@@ -153,8 +237,10 @@ async function validateAgainstMarket({ year, iterations } = {}) {
 
 module.exports = {
   americanToImplied,
+  americanFromProb,
   devig,
   readFutures,
+  getFutures,
   saveFutures,
   validateAgainstMarket,
 };

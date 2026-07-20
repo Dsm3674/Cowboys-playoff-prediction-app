@@ -15,7 +15,7 @@ const {
   _internals,
 } = require("../services/playoffPathEngine");
 
-const { americanToImplied, devig } = require("../services/marketValidation");
+const { americanToImplied, americanFromProb, devig } = require("../services/marketValidation");
 
 describe("ratingsEngine — Elo math", () => {
   test("even matchup on neutral field is a coin flip", () => {
@@ -177,6 +177,14 @@ describe("marketValidation — odds math", () => {
     expect(americanToImplied(-110)).toBeCloseTo(110 / 210, 6);
     expect(americanToImplied(900)).toBeCloseTo(0.1, 6);
     expect(americanToImplied("junk")).toBeNull();
+  });
+
+  test("probability round-trips through american odds", () => {
+    for (const p of [0.05, 0.25, 0.5, 0.75, 0.9]) {
+      expect(americanToImplied(americanFromProb(p))).toBeCloseTo(p, 2);
+    }
+    expect(americanFromProb(0.5)).toBe(-100);
+    expect(americanFromProb(0.1)).toBe(900);
   });
 
   test("devig normalizes to a proper distribution and reports overround", () => {
