@@ -7,15 +7,21 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "serve -s dist -l ${PORT:-4173}"
+    "start": "serve -s dist -l ${PORT:-4173}",
+    "ios:add": "cap add ios",
+    "ios:build": "vite build && cap sync ios",
+    "ios:open": "cap open ios"
   },
   "dependencies": {
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/ios": "^6.2.1",
     "chart.js": "^4.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "serve": "^14.2.6"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.2.1",
     "@vitejs/plugin-react": "^4.2.1",
     "vite": "^5.0.0"
   }

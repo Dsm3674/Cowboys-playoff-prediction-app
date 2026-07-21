@@ -1,8 +1,18 @@
   const envBase = import.meta.env.VITE_API_BASE_URL;
+  // Inside the Capacitor iOS shell the page is served from capacitor://
+  // (or ionic://), so window.location.origin can't reach the API — fall
+  // back to the production host instead.
+  const isNativeShell = /^(capacitor|ionic|file):/.test(window.location.protocol);
   const isLocal =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1";
-  const BASE = envBase || (isLocal ? "" : window.location.origin);
+  const BASE =
+    envBase ||
+    (isNativeShell
+      ? "https://www.lstar.one"
+      : isLocal
+        ? ""
+        : window.location.origin);
 
   export const BASE_URL = BASE;
 

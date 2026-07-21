@@ -1,0 +1,9 @@
+{
+  "appId": "one.lstar.app",
+  "appName": "LoneStar AI",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#0b0f14"
+  }
+}
