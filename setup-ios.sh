@@ -23,8 +23,16 @@ say "Project: $REPO"
 
 # ── 1. Xcode ─────────────────────────────────────────────────
 say "Checking Xcode…"
-if ! xcode-select -p >/dev/null 2>&1; then
+if [ ! -d "/Applications/Xcode.app" ]; then
   fail "Xcode isn't installed yet. Install 'Xcode' from the Mac App Store (it's large, ~10GB), open it once, accept the license, then run this script again."
+fi
+# Point the build tools at the full Xcode app, not the bare Command Line
+# Tools — otherwise cap sync fails with "requires Xcode, but active
+# developer directory is a command line tools instance".
+if ! xcode-select -p 2>/dev/null | grep -q "Xcode.app"; then
+  say "Pointing build tools at Xcode (needs your Mac password)…"
+  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer || fail "Couldn't select Xcode as the active developer directory."
+  sudo xcodebuild -license accept 2>/dev/null || true
 fi
 ok "Xcode found"
 
