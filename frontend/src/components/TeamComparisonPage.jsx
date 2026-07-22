@@ -40,7 +40,7 @@ function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "D
   function renderTeamCard(team) {
     if (!team) return null;
     return (
-      <div className="card" style={{ minWidth: "280px", flex: 1 }}>
+      <div className="card" style={{ minWidth: "min(280px, 100%)", flex: 1 }}>
         <h3 style={{ marginTop: 0 }}>{team.name} ({team.code})</h3>
         <div style={{ display: "grid", gap: "0.75rem", fontSize: "0.9rem" }}>
           <div><strong>Conference:</strong> {team.conference}</div>
@@ -116,7 +116,7 @@ function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "D
           Compare two NFL teams side-by-side, including performance, record, and head-to-head schedule context.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: "1rem" }}>
-          <div style={{ minWidth: "220px" }}>
+          <div style={{ minWidth: "min(220px, 100%)", flex: 1 }}>
             <label style={{ display: "block", marginBottom: "0.5rem" }}>First team</label>
             <select
               value={firstTeam}
@@ -128,7 +128,7 @@ function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "D
               ))}
             </select>
           </div>
-          <div style={{ minWidth: "220px" }}>
+          <div style={{ minWidth: "min(220px, 100%)", flex: 1 }}>
             <label style={{ display: "block", marginBottom: "0.5rem" }}>Second team</label>
             <select
               value={secondTeam}
@@ -143,14 +143,14 @@ function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "D
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(280px, 100%), 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         {renderTeamCard(comparison?.teams?.[0])}
         {renderTeamCard(comparison?.teams?.[1])}
       </div>
 
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <h3 style={{ marginTop: 0 }}>Comparison Summary</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "1rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem" }}>
           <div className="comparison-stat">
             <strong>TSI Gap</strong>
             <div>{comparison?.difference?.tsiDifference}</div>

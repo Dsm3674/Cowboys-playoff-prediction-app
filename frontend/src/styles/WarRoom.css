@@ -3278,3 +3278,59 @@
 .ps-strip {
   padding: 22px 0 8px;
 }
+
+/* ── Perfect Season (20-0) · mobile ────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Headline: never break inside "20–0" */
+  .ps-headline { font-size: clamp(1.8rem, 8.5vw, 2.4rem); }
+  .ps-headline .ps-score { white-space: nowrap; }
+
+  /* Draft header: round + side on top, team/era chips split the row,
+     reroll gets a full-width tap target */
+  .ps2-head {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: center;
+  }
+  .ps2-round { grid-column: 1; }
+  .ps2-side { grid-column: 2; justify-self: end; }
+  .ps2-chip {
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+    text-align: center;
+  }
+  .ps2-chip--team { grid-column: 1; }
+  .ps2-chip--era { grid-column: 2; }
+  .ps2-head .ps-skip {
+    grid-column: 1 / -1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 10px 0;
+  }
+
+  /* Player pool: names wrap instead of ellipsizing into "BenJarvus Gree…" */
+  .ps2-row__name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.25;
+    font-size: 14px;
+  }
+
+  /* Roster tray: three slots per row, unit label above its row */
+  .ps2-tray__row { grid-template-columns: repeat(3, 1fr); }
+  .ps2-tray__side { grid-column: 1 / -1; padding-top: 4px; }
+
+  /* Engine odds tiles wrap instead of squeezing */
+  .ps2-engine__tiles { flex-wrap: wrap; gap: 10px; }
+
+  /* Season matchup card fits narrow screens */
+  .ps-matchup { gap: 14px; padding: 26px 10px; }
+  .ps-matchup__side { min-width: 96px; }
+}
