@@ -1119,21 +1119,39 @@ export default function PerfectSeason({ onReward }) {
       {phase === "idle" ? (
         <div className="ps-splash ps-pop">
           <div className="ps-kicker">Game mode · powered by the Quantum Engine</div>
-          <h2 className="ps-headline">
-            Can you go <span className="ps-score">20–0</span>?
+          <h2 className="ps-hero">
+            Can you go
+            <span className="ps-hero__num">20<i>–</i>0</span>
+            <span className="ps-hero__q">?</span>
           </h2>
           <p className="ps-copy">
-            Twelve rounds. Each spin reveals an NFL team and era — draft one
-            player per round into a full two-way roster. Premium slots pay
-            premium weight (QB ×1.5, EDGE and CB ×1.2). Then the Quantum
-            Engine runs your squad through 10,000 Monte Carlo seasons before
-            you play the real one — lose once and it's over. The schedule
-            climbs from cupcakes to the all-time monsters. Every win pays
-            Star Coins, with milestone bonuses at 5, 10, and 15 wins.
+            Draft an all-time roster one spin at a time, then let the engine run
+            it through {SIMS.toLocaleString("en-US")} sudden-death seasons — and
+            play the real one. Lose once and the dream is over.
           </p>
+
+          <div className="ps-how">
+            <div className="ps-how__tile">
+              <span className="ps-how__num">12</span>
+              <span className="ps-how__label">rounds · spin a team &amp; era, draft one player</span>
+            </div>
+            <div className="ps-how__tile">
+              <span className="ps-how__num">{(SIMS / 1000).toFixed(0)}k</span>
+              <span className="ps-how__label">Monte Carlo seasons before you play</span>
+            </div>
+            <div className="ps-how__tile">
+              <span className="ps-how__num">20–0</span>
+              <span className="ps-how__label">17 games, then 3 playoff monsters</span>
+            </div>
+          </div>
+
           <button className="wr-btn ps-cta" onClick={startDraft}>
             Start the draft
           </button>
+          <p className="ps-splash__foot">
+            No weak links allowed — every win pays Star Coins, with milestone
+            bonuses along the way.
+          </p>
         </div>
       ) : null}
 

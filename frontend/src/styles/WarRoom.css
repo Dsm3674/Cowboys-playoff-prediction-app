@@ -1061,16 +1061,24 @@
 
 .ps-copy {
   margin: 0 0 20px;
-  max-width: 460px;
-  font-family: var(--wr-serif);
-  font-size: 14px;
+  max-width: 480px;
+  font-family: var(--wr-sans);
+  font-size: 14.5px;
   color: var(--wr-ink-2);
   line-height: 1.6;
 }
 
 .ps-cta {
-  padding: 12px 26px;
+  padding: 13px 30px;
   font-size: 12px;
+  background: var(--accent-blue, #3b82f6);
+  border-color: var(--accent-blue, #3b82f6);
+  color: #fff;
+}
+
+.ps-cta:hover:not(:disabled) {
+  background: var(--accent-blue, #3b82f6);
+  filter: brightness(1.12);
 }
 
 .ps-splash,
@@ -1084,6 +1092,87 @@
 .ps-final .ps-copy {
   margin-left: auto;
   margin-right: auto;
+}
+
+/* ── Splash hero ───────────────────────────────────────────── */
+
+.ps-hero {
+  margin: 6px 0 14px;
+  font-family: var(--wr-serif);
+  font-weight: 700;
+  font-size: clamp(2rem, 6vw, 3.1rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--wr-ink);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0 0.35em;
+}
+
+.ps-hero__num {
+  font-size: clamp(3.4rem, 12vw, 6rem);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  background: linear-gradient(180deg, var(--wr-yes) 0%, #6db0ff 55%, #f5c669 140%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.ps-hero__num i {
+  font-style: normal;
+  color: var(--wr-ink-2);
+  -webkit-text-fill-color: var(--wr-ink-2);
+  margin: 0 0.06em;
+}
+.ps-hero__q { color: var(--wr-yes); }
+
+/* ── How it works: three signal tiles ──────────────────────── */
+
+.ps-how {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 560px;
+  margin: 8px auto 26px;
+}
+
+.ps-how__tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 14px;
+  border: 1px solid var(--wr-rule);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  text-align: left;
+}
+
+.ps-how__num {
+  font-family: var(--wr-serif);
+  font-weight: 700;
+  font-size: 1.9rem;
+  line-height: 1;
+  color: var(--wr-yes);
+  font-variant-numeric: tabular-nums;
+}
+
+.ps-how__label {
+  font-family: var(--wr-sans);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--wr-meta);
+}
+
+.ps-splash__foot {
+  margin: 16px auto 0;
+  max-width: 440px;
+  font-family: var(--wr-sans);
+  font-size: 11.5px;
+  color: var(--wr-meta);
 }
 
 /* Slot machine */
@@ -3040,21 +3129,25 @@
 }
 
 .ps2-engine__tiles {
-  display: flex;
-  justify-content: center;
-  gap: 0;
-  margin-bottom: 22px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .ps2-etile {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 4px 26px;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--wr-rule);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
-.ps2-etile + .ps2-etile {
-  border-left: 1px solid var(--wr-rule);
+.ps2-etile--hero {
+  border-color: rgba(57, 135, 229, 0.42);
+  background: rgba(57, 135, 229, 0.07);
 }
 
 .ps2-etile__label {
@@ -3068,9 +3161,10 @@
 
 .ps2-etile__value {
   font-family: var(--wr-serif);
-  font-size: 1.6rem;
+  font-size: 1.55rem;
   font-weight: 700;
   color: var(--wr-ink);
+  font-variant-numeric: tabular-nums;
 }
 
 .ps2-etile__label em,
@@ -3440,16 +3534,14 @@
   .ps2-tray__row { grid-template-columns: repeat(3, 1fr); }
   .ps2-tray__side { grid-column: 1 / -1; padding-top: 4px; }
 
-  /* Engine odds tiles wrap into a 2-up grid instead of squeezing */
-  .ps2-engine__tiles {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 0;
-  }
-  .ps2-etile { padding: 8px 14px; }
-  .ps2-etile + .ps2-etile { border-left: 0; }
-  .ps2-etile:nth-child(even) { border-left: 1px solid var(--wr-rule); }
-  .ps2-etile--hero { grid-column: 1 / -1; border-top: 1px solid var(--wr-rule); padding-top: 12px; }
+  /* Engine odds tiles: 2-up card grid, hero odds tile spans full width */
+  .ps2-engine__tiles { grid-template-columns: 1fr 1fr; }
+  .ps2-etile { padding: 12px 14px; }
+  .ps2-etile--hero { grid-column: 1 / -1; }
+  .ps2-etile__value { font-size: 1.4rem; }
+
+  /* Splash how-it-works tiles stack to one column */
+  .ps-how { grid-template-columns: 1fr; max-width: 340px; }
 
   /* Odds ladder: drop the middle bar column, keep name + value */
   .ps2-ladder__row { grid-template-columns: minmax(0, 1fr) 74px; }
