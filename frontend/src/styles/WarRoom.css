@@ -3073,6 +3073,119 @@
   color: var(--wr-ink);
 }
 
+.ps2-etile__label em,
+.ps2-etile__value em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--wr-meta);
+}
+
+.ps2-etile__value em {
+  font-family: var(--wr-sans);
+  font-size: 0.8rem;
+}
+
+.ps2-etile--hero .ps2-etile__value {
+  color: var(--wr-yes);
+}
+
+/* ── Milestone odds ladder ─────────────────────────────────── */
+
+.ps2-ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 22px 0 6px;
+}
+
+.ps2-ladder__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 88px;
+  align-items: center;
+  gap: 12px;
+}
+
+.ps2-ladder__name {
+  font-family: var(--wr-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wr-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ps2-ladder__bar {
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.ps2-ladder__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--wr-yes);
+  transition: width 0.6s ease;
+}
+
+.ps2-ladder__row.is-crown .ps2-ladder__bar > span {
+  background: linear-gradient(90deg, var(--wr-yes), #f5c669);
+}
+
+.ps2-ladder__val {
+  font-family: var(--wr-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--wr-ink);
+  text-align: right;
+}
+
+.ps2-ladder__row.is-crown .ps2-ladder__val {
+  color: #f5c669;
+}
+
+/* ── Toughest game callout ─────────────────────────────────── */
+
+.ps2-gauntlet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  margin: 16px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--wr-rule);
+  border-left: 3px solid var(--wr-no);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ps2-gauntlet__label {
+  font-family: var(--wr-sans);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--wr-meta);
+  flex-basis: 100%;
+}
+
+.ps2-gauntlet__name {
+  font-family: var(--wr-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--wr-ink);
+}
+
+.ps2-gauntlet__odds {
+  margin-left: auto;
+  font-family: var(--wr-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--wr-no);
+}
+
 .ps2-hist {
   display: flex;
   align-items: flex-end;
@@ -3327,8 +3440,22 @@
   .ps2-tray__row { grid-template-columns: repeat(3, 1fr); }
   .ps2-tray__side { grid-column: 1 / -1; padding-top: 4px; }
 
-  /* Engine odds tiles wrap instead of squeezing */
-  .ps2-engine__tiles { flex-wrap: wrap; gap: 10px; }
+  /* Engine odds tiles wrap into a 2-up grid instead of squeezing */
+  .ps2-engine__tiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 0;
+  }
+  .ps2-etile { padding: 8px 14px; }
+  .ps2-etile + .ps2-etile { border-left: 0; }
+  .ps2-etile:nth-child(even) { border-left: 1px solid var(--wr-rule); }
+  .ps2-etile--hero { grid-column: 1 / -1; border-top: 1px solid var(--wr-rule); padding-top: 12px; }
+
+  /* Odds ladder: drop the middle bar column, keep name + value */
+  .ps2-ladder__row { grid-template-columns: minmax(0, 1fr) 74px; }
+  .ps2-ladder__bar { display: none; }
+
+  .ps2-gauntlet__odds { margin-left: 0; flex-basis: 100%; }
 
   /* Season matchup card fits narrow screens */
   .ps-matchup { gap: 14px; padding: 26px 10px; }

@@ -656,7 +656,7 @@ const SLOT_DEFS = [
 
 const ROUNDS = 12;
 const REROLLS = 2;
-const SIMS = 10000;
+const SIMS = 25000;
 
 const OPPONENTS = [
   { name: "'03 Panthers", rating: 87 },
@@ -742,7 +742,20 @@ function rollRound(roster, side) {
   return { team: "NFL", era: "All-time", players: rescue };
 }
 
-function teamScore(roster) {
+// ── Rating model ────────────────────────────────────────────────
+// A championship roster has no weak links: the algorithm should cap your
+// team at its softest starter, not average a hole away. So the team score
+// blends balanced strength (weighted mean) with your weakest starter.
+const WEAKEST_LINK_WEIGHT = 0.32; // how hard a soft spot drags you down
+const HOME_EDGE = 1.5;            // "your squad" gets a small edge each game
+const SIGMA_GAME = 6.5;           // single-game "any given Sunday" swing
+const SIGMA_FORM = 3.2;           // talent uncertainty — a run's true level
+// Combined spread of the (you − them) matchup margin, folding in both the
+// per-game noise on each side and the season-form uncertainty.
+const SD_MATCH = Math.sqrt(SIGMA_FORM * SIGMA_FORM + 2 * SIGMA_GAME * SIGMA_GAME);
+
+function teamProfile(roster) {
+  const ratings = [];
   let total = 0;
   let weight = 0;
   for (const slot of SLOT_DEFS) {
@@ -750,36 +763,115 @@ function teamScore(roster) {
     if (p) {
       total += p.rating * slot.mult;
       weight += slot.mult;
+      ratings.push(p.rating);
     }
   }
-  return weight ? total / weight : 0;
+  const mean = weight ? total / weight : 0;
+  const weakest = ratings.length ? Math.min(...ratings) : 0;
+  const strongest = ratings.length ? Math.max(...ratings) : 0;
+  const score = mean * (1 - WEAKEST_LINK_WEIGHT) + weakest * WEAKEST_LINK_WEIGHT;
+  return { score, mean, weakest, strongest, spread: mean - weakest, filled: ratings.length };
 }
 
+function teamScore(roster) {
+  return teamProfile(roster).score;
+}
+
+// Standard-normal CDF (Abramowitz & Stegun 26.2.17) — good to ~1e-7.
+function normCdf(z) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989422804014327 * Math.exp((-z * z) / 2);
+  const p =
+    d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z > 0 ? 1 - p : p;
+}
+
+// Marginal single-game win probability: P(you beat this opponent) once, before
+// the season — the honest number a bettor would quote. A probit matchup model
+// over the combined margin spread.
 function winProbability(score, oppRating) {
-  return 1 / (1 + Math.pow(10, (oppRating - (score + 1.5)) / 10));
+  return normCdf((score + HOME_EDGE - oppRating) / SD_MATCH);
 }
 
-// Monte Carlo: SIMS sudden-death runs over the same schedule. A run ends at
-// the first loss — exactly how the live season plays out — so the expected
-// wins and distribution describe the game you're actually about to play.
+// Box-Muller standard normal for the simulation's performance draws.
+function gauss() {
+  let u = 0;
+  let v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+// Monte Carlo: SIMS sudden-death runs. Each run first draws the squad's TRUE
+// level for that run (SIGMA_FORM) — talent is uncertain, so even an all-time
+// roster regresses; some runs you show up a juggernaut, some you're merely
+// great. Then every game adds independent "any given Sunday" noise to both
+// sides. A run ends at the first loss, exactly like the live season, so the
+// distribution is the game you're about to play — not a naive product of
+// fixed probabilities.
 function runMonteCarlo(score, schedule) {
-  const bins = new Array(schedule.length + 1).fill(0);
+  const n = schedule.length;
+  const bins = new Array(n + 1).fill(0);
+  const runLengths = new Array(SIMS);
   let totalWins = 0;
-  const probs = schedule.map((g) => winProbability(score, g.rating));
+
   for (let s = 0; s < SIMS; s++) {
+    const form = score + SIGMA_FORM * gauss(); // this run's true level
     let wins = 0;
-    for (let g = 0; g < probs.length; g++) {
-      if (Math.random() >= probs[g]) break;
+    for (let g = 0; g < n; g++) {
+      const you = form + HOME_EDGE + SIGMA_GAME * gauss();
+      const them = schedule[g].rating + SIGMA_GAME * gauss();
+      if (you <= them) break;
       wins++;
     }
     bins[wins]++;
+    runLengths[s] = wins;
     totalWins += wins;
   }
+
+  runLengths.sort((a, b) => a - b);
+  const pct = (q) => runLengths[Math.min(SIMS - 1, Math.floor(SIMS * q))];
+
+  // Marginal per-game odds + the gauntlet's single hardest game.
+  const gameProbs = schedule.map((g) => winProbability(score, g.rating));
+  let hardest = 0;
+  for (let i = 1; i < gameProbs.length; i++) {
+    if (gameProbs[i] < gameProbs[hardest]) hardest = i;
+  }
+
+  // Odds ladder: milestones fans actually talk about.
+  const atLeast = (w) => {
+    let c = 0;
+    for (let i = w; i <= n; i++) c += bins[i];
+    return c / SIMS;
+  };
+
   return {
     bins,
+    sims: SIMS,
     meanWins: totalWins / SIMS,
-    pPerfect: bins[schedule.length] / SIMS
+    medianWins: pct(0.5),
+    ceilingWins: pct(0.95), // a realistic great run
+    pPerfect: bins[n] / SIMS,
+    pUnbeatenReg: atLeast(17), // 17-0 into the playoffs (the '72 Dolphins line)
+    pReachSB: atLeast(19), // 19-0, one win from immortality (the '07 Pats line)
+    gameProbs,
+    hardestIndex: hardest,
+    hardestProb: gameProbs[hardest]
   };
+}
+
+function oneInLabel(p) {
+  if (!p || p <= 0) return `< 1 in ${SIMS.toLocaleString("en-US")}`;
+  return `1 in ${Math.max(1, Math.round(1 / p)).toLocaleString("en-US")}`;
+}
+
+function balanceGrade(spread) {
+  if (spread < 3) return { grade: "A+", label: "no weak links" };
+  if (spread < 5) return { grade: "A", label: "elite everywhere" };
+  if (spread < 8) return { grade: "B", label: "one soft spot" };
+  if (spread < 12) return { grade: "C", label: "exploitable hole" };
+  return { grade: "D", label: "glaring weakness" };
 }
 
 function statCols(player) {
@@ -823,7 +915,8 @@ export default function PerfectSeason({ onReward }) {
 
   const wins = results.filter((r) => r === "W").length;
   const losses = results.filter((r) => r === "L").length;
-  const score = teamScore(roster);
+  const profile = teamProfile(roster);
+  const score = profile.score;
   const highlight = new Set(eligibleSlots(roster, selected));
 
   const displayPool = useMemo(() => {
@@ -905,21 +998,26 @@ export default function PerfectSeason({ onReward }) {
     setGameIndex(0);
     setStamp(null);
     setPhase("season");
-    playGame(schedule, 0, [], score);
+    // Draw this run's true level once (same generative model as the sim),
+    // so the live season is a fair sample from the odds you were just shown.
+    const form = score + SIGMA_FORM * gauss();
+    playGame(schedule, 0, [], form);
   }
 
-  function playGame(sched, index, resultsSoFar, teamSc) {
+  function playGame(sched, index, resultsSoFar, form) {
     setGameIndex(index);
     setStamp(null);
     later(() => {
-      const won = Math.random() < winProbability(teamSc, sched[index].rating);
+      const you = form + HOME_EDGE + SIGMA_GAME * gauss();
+      const them = sched[index].rating + SIGMA_GAME * gauss();
+      const won = you > them;
       const outcome = won ? "W" : "L";
       const nextResults = [...resultsSoFar, outcome];
       setStamp(outcome);
       setResults(nextResults);
       later(() => {
         if (!won || index + 1 >= sched.length) setPhase("done");
-        else playGame(sched, index + 1, nextResults, teamSc);
+        else playGame(sched, index + 1, nextResults, form);
       }, 1250);
     }, 950);
   }
@@ -947,6 +1045,8 @@ export default function PerfectSeason({ onReward }) {
   const perfect = phase === "done" && losses === 0 && wins === schedule.length;
   const currentGame = schedule[gameIndex];
   const maxBin = mc ? Math.max(...mc.bins) : 1;
+  const gradeInfo = balanceGrade(profile.spread);
+  const hardestGame = mc ? schedule[mc.hardestIndex] : null;
   const spinTakeover =
     phase === "spin" && typeof document !== "undefined"
       ? createPortal(
@@ -1147,7 +1247,9 @@ export default function PerfectSeason({ onReward }) {
         <div className="ps2-engine ps-pop">
           <div className="ps-kicker">Quantum Engine · Monte Carlo</div>
           <h3 className="ps-subhead">
-            {mc ? "10,000 seasons, simulated." : "Simulating 10,000 seasons…"}
+            {mc
+              ? `${SIMS.toLocaleString("en-US")} seasons, simulated.`
+              : `Simulating ${SIMS.toLocaleString("en-US")} seasons…`}
           </h3>
           {mc ? (
             <>
@@ -1157,19 +1259,67 @@ export default function PerfectSeason({ onReward }) {
                   <span className="ps2-etile__value">{score.toFixed(1)}</span>
                 </div>
                 <div className="ps2-etile">
-                  <span className="ps2-etile__label">Expected run</span>
-                  <span className="ps2-etile__value">{mc.meanWins.toFixed(1)} wins</span>
+                  <span className="ps2-etile__label">
+                    Roster balance
+                    <em> · {gradeInfo.label}</em>
+                  </span>
+                  <span className="ps2-etile__value">{gradeInfo.grade}</span>
                 </div>
                 <div className="ps2-etile">
-                  <span className="ps2-etile__label">Odds of 20-0</span>
+                  <span className="ps2-etile__label">Expected run</span>
                   <span className="ps2-etile__value">
-                    {mc.pPerfect > 0
-                      ? `1 in ${Math.max(1, Math.round(1 / mc.pPerfect)).toLocaleString("en-US")}`
-                      : `< 1 in ${SIMS.toLocaleString("en-US")}`}
+                    {mc.meanWins.toFixed(1)}
+                    <em> · median {mc.medianWins}</em>
                   </span>
                 </div>
+                <div className="ps2-etile ps2-etile--hero">
+                  <span className="ps2-etile__label">Odds of 20-0</span>
+                  <span className="ps2-etile__value">{oneInLabel(mc.pPerfect)}</span>
+                </div>
               </div>
-              <div className="ps2-hist" role="img" aria-label="Run length across 10,000 simulated sudden-death seasons">
+
+              <div className="ps2-ladder" role="table" aria-label="Milestone odds">
+                <div className="ps2-ladder__row" role="row">
+                  <span className="ps2-ladder__name">Unbeaten regular season · 17-0</span>
+                  <span className="ps2-ladder__bar">
+                    <span style={{ width: `${Math.min(100, mc.pUnbeatenReg * 100)}%` }} />
+                  </span>
+                  <span className="ps2-ladder__val">
+                    {(mc.pUnbeatenReg * 100).toFixed(mc.pUnbeatenReg < 0.1 ? 2 : 1)}%
+                  </span>
+                </div>
+                <div className="ps2-ladder__row" role="row">
+                  <span className="ps2-ladder__name">Reach the Super Bowl · 19-0</span>
+                  <span className="ps2-ladder__bar">
+                    <span style={{ width: `${Math.min(100, mc.pReachSB * 100 * 6)}%` }} />
+                  </span>
+                  <span className="ps2-ladder__val">
+                    {(mc.pReachSB * 100).toFixed(mc.pReachSB < 0.1 ? 2 : 1)}%
+                  </span>
+                </div>
+                <div className="ps2-ladder__row is-crown" role="row">
+                  <span className="ps2-ladder__name">Immortality · 20-0</span>
+                  <span className="ps2-ladder__bar">
+                    <span style={{ width: `${Math.min(100, mc.pPerfect * 100 * 20)}%` }} />
+                  </span>
+                  <span className="ps2-ladder__val">{oneInLabel(mc.pPerfect)}</span>
+                </div>
+              </div>
+
+              {hardestGame ? (
+                <div className="ps2-gauntlet">
+                  <span className="ps2-gauntlet__label">Toughest game on the slate</span>
+                  <span className="ps2-gauntlet__name">
+                    {hardestGame.playoff ? "Playoffs · " : `Week ${hardestGame.week} · `}
+                    {hardestGame.name}
+                  </span>
+                  <span className="ps2-gauntlet__odds">
+                    {Math.round(mc.hardestProb * 100)}% to survive it
+                  </span>
+                </div>
+              ) : null}
+
+              <div className="ps2-hist" role="img" aria-label={`Run length across ${SIMS.toLocaleString("en-US")} simulated sudden-death seasons`}>
                 {mc.bins.map((count, w) => (
                   <div className="ps2-hist__col" key={w}>
                     <div
@@ -1187,7 +1337,8 @@ export default function PerfectSeason({ onReward }) {
                 ))}
               </div>
               <div className="ps2-hist__caption">
-                Wins before each simulated run ended · the red bar is immortality
+                Wins before each simulated run ended · realistic ceiling {mc.ceilingWins} wins ·
+                the red bar is immortality
               </div>
               <button className="wr-btn ps-cta" onClick={playSeason}>
                 Play your season
@@ -1272,9 +1423,7 @@ export default function PerfectSeason({ onReward }) {
           <p className="ps-copy">
             {perfect
               ? `A perfect season — the engine had it at ${
-                  mc && mc.pPerfect > 0
-                    ? `1 in ${Math.max(1, Math.round(1 / mc.pPerfect)).toLocaleString("en-US")}`
-                    : "longer than 1 in 10,000"
+                  mc ? oneInLabel(mc.pPerfect) : "longer than 1 in 25,000"
                 }. Canton is calling.`
               : losses
               ? `${schedule[gameIndex] ? schedule[gameIndex].name : "The football gods"} ended the dream${
