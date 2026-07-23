@@ -14,6 +14,13 @@ import PerfectSeason from "./PerfectSeason";
  * label carries identity, never the text itself.
  */
 
+// Inside the iOS shell, App Store rules (3.1.1) forbid selling digital
+// subscriptions outside Apple's IAP — so the native app never shows the
+// price or checkout. Pro bought on the web still unlocks here via account.
+const IS_NATIVE_SHELL =
+  typeof window !== "undefined" &&
+  /^(capacitor|ionic|file):/.test(window.location.protocol);
+
 function Paywall({ signedIn }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -43,14 +50,16 @@ function Paywall({ signedIn }) {
         grill the War Room Analyst about playoff odds.
       </p>
 
-      <div className="wr-paywall__price">
-        <span className="wr-paywall__amount">$1</span>
-        <span className="wr-paywall__per">
-          per month
-          <br />
-          cancel anytime
-        </span>
-      </div>
+      {!IS_NATIVE_SHELL && (
+        <div className="wr-paywall__price">
+          <span className="wr-paywall__amount">$1</span>
+          <span className="wr-paywall__per">
+            per month
+            <br />
+            cancel anytime
+          </span>
+        </div>
+      )}
 
       <ul className="wr-paywall__list">
         <li>
@@ -71,7 +80,12 @@ function Paywall({ signedIn }) {
         </li>
       </ul>
 
-      {signedIn ? (
+      {IS_NATIVE_SHELL ? (
+        <p className="wr-paywall__signin">
+          War Room Pro is linked to your LoneStar account. If your account has
+          Pro, sign in and it unlocks here automatically.
+        </p>
+      ) : signedIn ? (
         <button className="wr-btn wr-btn--primary wr-paywall__cta" onClick={subscribe} disabled={busy}>
           {busy ? "Opening secure checkout…" : "Unlock the War Room"}
         </button>
@@ -83,11 +97,13 @@ function Paywall({ signedIn }) {
         </p>
       )}
       {error ? <div className="wr-error">{error}</div> : null}
-      <div className="wr-paywall__note">
-        Already subscribed? Sign in with the same account you used at checkout
-        — Gmail or anonymous identity. Star Coins are virtual and have no cash
-        value.
-      </div>
+      {!IS_NATIVE_SHELL && (
+        <div className="wr-paywall__note">
+          Already subscribed? Sign in with the same account you used at checkout
+          — Gmail or anonymous identity. Star Coins are virtual and have no cash
+          value.
+        </div>
+      )}
     </div>
   );
 }
