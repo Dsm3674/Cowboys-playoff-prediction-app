@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api";
 import PerfectSeason from "./PerfectSeason";
 
@@ -278,7 +279,9 @@ function ChatPanel({ initialEngine = "builtin" }) {
         ? "AI online"
         : "Local mode";
 
-  return (
+  // The workspace animates page containers with transforms. Portaling the dock
+  // keeps viewport positioning independent from those animated ancestors.
+  return createPortal(
     <aside className={`wr-chat-dock ${open ? "is-open" : ""}`}>
       <button
         type="button"
@@ -291,11 +294,6 @@ function ChatPanel({ initialEngine = "builtin" }) {
         tabIndex={open ? -1 : 0}
       >
         <span className="wr-chat-launcher__pulse" />
-        <span className="wr-chat-launcher__orbit" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-        </span>
         <span className="wr-chat-launcher__mark">AI</span>
       </button>
       <button
@@ -363,7 +361,8 @@ function ChatPanel({ initialEngine = "builtin" }) {
           </button>
         </form>
       </section>
-    </aside>
+    </aside>,
+    document.body
   );
 }
 
