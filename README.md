@@ -183,6 +183,20 @@ The algorithm outputs:
 
 ## Deployment
 
+### War Room AI chatbot
+
+Set this on the **backend/server** service:
+
+```env
+OPENROUTER_API_KEY=sk-or-v1-your-key
+```
+
+Do not use a `VITE_` prefix and do not put the key in the frontend. The optional
+`OPENROUTER_MODEL` variable selects a specific model; when omitted, the app uses
+OpenRouter's maintained `openrouter/free` router. You can also set
+`OPENROUTER_SITE_URL` and `OPENROUTER_APP_NAME` for OpenRouter app attribution.
+Restart or redeploy the backend after changing these variables.
+
 ### Backend (Node.js)
 Deploy to platforms like:
 - Heroku

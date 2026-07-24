@@ -207,8 +207,9 @@ function MarketCard({ market, onBet, busy }) {
   );
 }
 
-function ChatPanel() {
+function ChatPanel({ initialEngine = "builtin" }) {
   const [open, setOpen] = useState(false);
+  const [activeEngine, setActiveEngine] = useState(initialEngine);
   const [messages, setMessages] = useState([
     {
       role: "assistant",
@@ -219,12 +220,28 @@ function ChatPanel() {
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
   const scrollRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, thinking]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 180);
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
 
   async function send(e) {
     e.preventDefault();
@@ -238,6 +255,7 @@ function ChatPanel() {
       const data = await api.sendWarRoomChat(
         next.filter((m) => m.role === "user" || m.role === "assistant")
       );
+      setActiveEngine(data.engine || initialEngine);
       setMessages((cur) => [...cur, { role: "assistant", content: data.reply }]);
     } catch (err) {
       setMessages((cur) => [
@@ -251,6 +269,13 @@ function ChatPanel() {
     setThinking(false);
   }
 
+  const engineLabel =
+    activeEngine === "openrouter"
+      ? "OpenRouter"
+      : activeEngine === "claude"
+        ? "AI online"
+        : "Local mode";
+
   return (
     <aside className={`wr-chat-dock ${open ? "is-open" : ""}`}>
       <button
@@ -259,52 +284,77 @@ function ChatPanel() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls="war-room-analyst"
+        aria-label={open ? "Close War Room Analyst" : "Open War Room Analyst"}
         title="War Room Analyst"
       >
         <span className="wr-chat-launcher__pulse" />
         <span className="wr-chat-launcher__mark">AI</span>
       </button>
-    <section className="wr-chat" id="war-room-analyst" aria-hidden={!open}>
-      <div className="wr-chat__head">
-        <span className="wr-chat__dot" />
-        <span className="wr-chat__tag">Live</span>
-        <span className="wr-chat__name">War Room Analyst</span>
-        <button
-          type="button"
-          className="wr-chat__close"
-          onClick={() => setOpen(false)}
-          aria-label="Close War Room Analyst"
-        >
-          x
-        </button>
-      </div>
-      <div className="wr-chat__scroll" ref={scrollRef}>
-        {messages.map((m, i) => (
-          <div key={i} className={`wr-msg wr-msg--${m.role}`}>
-            {m.content}
-          </div>
-        ))}
-        {thinking ? (
-          <div className="wr-msg wr-msg--assistant wr-msg--typing">
-            <span />
-            <span />
-            <span />
-          </div>
-        ) : null}
-      </div>
-      <form className="wr-chat__form" onSubmit={send}>
-        <input
-          className="wr-chat__input"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Ask about odds, markets, matchups..."
-          maxLength={2000}
-        />
-        <button className="wr-btn wr-btn--primary" type="submit" disabled={thinking}>
-          Send
-        </button>
-      </form>
-    </section>
+      <button
+        type="button"
+        className="wr-chat-backdrop"
+        onClick={() => setOpen(false)}
+        aria-label="Close War Room Analyst"
+        tabIndex={open ? 0 : -1}
+      />
+      <section
+        className="wr-chat"
+        id="war-room-analyst"
+        role="dialog"
+        aria-labelledby="war-room-analyst-title"
+        aria-hidden={!open}
+      >
+        <div className="wr-chat__head">
+          <span className="wr-chat__dot" />
+          <span className="wr-chat__tag">{engineLabel}</span>
+          <span className="wr-chat__name" id="war-room-analyst-title">
+            War Room Analyst
+          </span>
+          <button
+            type="button"
+            className="wr-chat__close"
+            onClick={() => setOpen(false)}
+            aria-label="Close War Room Analyst"
+            tabIndex={open ? 0 : -1}
+          >
+            ×
+          </button>
+        </div>
+        <div className="wr-chat__scroll" ref={scrollRef} aria-live="polite">
+          {messages.map((m, i) => (
+            <div key={i} className={`wr-msg wr-msg--${m.role}`}>
+              {m.content}
+            </div>
+          ))}
+          {thinking ? (
+            <div className="wr-msg wr-msg--assistant wr-msg--typing" aria-label="Analyst is thinking">
+              <span />
+              <span />
+              <span />
+            </div>
+          ) : null}
+        </div>
+        <form className="wr-chat__form" onSubmit={send}>
+          <input
+            ref={inputRef}
+            className="wr-chat__input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Ask about odds, markets, matchups..."
+            maxLength={2000}
+            aria-label="Message the War Room Analyst"
+            tabIndex={open ? 0 : -1}
+          />
+          <button
+            className="wr-btn wr-btn--primary"
+            type="submit"
+            disabled={thinking}
+            tabIndex={open ? 0 : -1}
+          >
+            Send
+          </button>
+        </form>
+      </section>
     </aside>
   );
 }
@@ -495,7 +545,7 @@ export default function WarRoomPage() {
           )}
         </div>
       </div>
-      <ChatPanel />
+      <ChatPanel initialEngine={status.analystEngine} />
     </div>
   );
 }

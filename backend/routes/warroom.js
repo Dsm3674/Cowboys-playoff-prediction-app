@@ -17,9 +17,9 @@ const router = express.Router();
 // Stakes on YES/NO move the implied probability like Polymarket; when a
 // market resolves, the winning side splits the whole pot pro-rata.
 //
-// Chatbot: answers Cowboys/analytics questions. Uses the Anthropic API when
-// ANTHROPIC_API_KEY is set; otherwise falls back to a built-in responder so
-// the feature works out of the box.
+// Chatbot: answers Cowboys/analytics questions. Uses OpenRouter when
+// OPENROUTER_API_KEY is set, then Anthropic as an optional backup, and finally
+// a built-in responder so the feature still works if an AI provider is down.
 //
 // Everything here is locked behind an active War Room Pro subscription
 // (the $1/month Stripe plan) — checked against the subscriptions table that
@@ -30,10 +30,34 @@ const stripeSecret = process.env.STRIPE_SECRET_KEY || "";
 const stripe = stripeSecret ? require("stripe")(stripeSecret) : null;
 
 // Chat engines, in order of preference:
-//   1. Anthropic (ANTHROPIC_API_KEY) — Claude via the official SDK
-//   2. OpenRouter (OPENROUTER_API_KEY, sk-or-v1-...) — free/cheap models
-//      via the OpenAI-compatible endpoint
+//   1. OpenRouter (OPENROUTER_API_KEY, sk-or-v1-...) via its OpenAI-compatible
+//      endpoint. OPENROUTER_MODEL can override the maintained free router.
+//   2. Anthropic (ANTHROPIC_API_KEY) — optional backup via the official SDK
 //   3. Built-in fallback responder (no key needed)
+const OPENROUTER_API_KEY = String(process.env.OPENROUTER_API_KEY || "").trim();
+const OPENROUTER_MODEL =
+  String(process.env.OPENROUTER_MODEL || "").trim() || "openrouter/free";
+const OPENROUTER_SITE_URL =
+  String(process.env.OPENROUTER_SITE_URL || process.env.FRONTEND_URL || "").trim();
+const OPENROUTER_APP_NAME =
+  String(process.env.OPENROUTER_APP_NAME || "").trim() || "LoneStar AI";
+let openRouterClient = null;
+if (OPENROUTER_API_KEY) {
+  try {
+    const { OpenAI } = require("openai");
+    openRouterClient = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: OPENROUTER_API_KEY,
+      defaultHeaders: {
+        ...(OPENROUTER_SITE_URL ? { "HTTP-Referer": OPENROUTER_SITE_URL } : {}),
+        "X-OpenRouter-Title": OPENROUTER_APP_NAME
+      }
+    });
+  } catch (err) {
+    console.error("[warroom] OpenRouter client unavailable:", err.message);
+  }
+}
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
 let anthropicClient = null;
@@ -43,22 +67,6 @@ if (ANTHROPIC_API_KEY) {
     anthropicClient = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
   } catch (err) {
     console.error("[warroom] anthropic sdk unavailable:", err.message);
-  }
-}
-
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
-const OPENROUTER_MODEL =
-  process.env.OPENROUTER_MODEL || "meta-llama/llama-3-8b-instruct:free";
-let openRouterClient = null;
-if (OPENROUTER_API_KEY) {
-  try {
-    const { OpenAI } = require("openai");
-    openRouterClient = new OpenAI({
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: OPENROUTER_API_KEY
-    });
-  } catch (err) {
-    console.error("[warroom] openai sdk unavailable:", err.message);
   }
 }
 
@@ -306,7 +314,17 @@ router.get("/status", async (req, res) => {
   try {
     const email = requestEmail(req);
     const pro = email ? await isPro(email) : false;
-    res.json({ signedIn: Boolean(email), email: email || null, pro });
+    const analystEngine = openRouterClient
+      ? "openrouter"
+      : anthropicClient
+        ? "claude"
+        : "builtin";
+    res.json({
+      signedIn: Boolean(email),
+      email: email || null,
+      pro,
+      analystEngine
+    });
   } catch (error) {
     console.error("[warroom] status failed:", error);
     res.status(500).json({ error: "Unable to check War Room status." });
@@ -660,8 +678,8 @@ function fallbackReply(text, markets) {
   }
   return (
     "I'm the War Room analyst — ask me about Cowboys playoff odds, the prediction markets on this page, " +
-    "or how the Quantum Engine model works. For the deepest answers, the site owner can connect the " +
-    "Claude API (set ANTHROPIC_API_KEY) to give me my full brain."
+    "or how the Quantum Engine model works. For deeper answers, the site owner can connect OpenRouter " +
+    "with the server-side OPENROUTER_API_KEY environment variable."
   );
 }
 
@@ -704,39 +722,57 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
 
     let reply = "";
     let engine = "";
+    let providerFailed = false;
 
-    if (anthropicClient) {
-      engine = "claude";
-      const response = await anthropicClient.messages.create({
-        model: ANTHROPIC_MODEL,
-        max_tokens: 1024,
-        system,
-        messages: history
-      });
-      reply = response.content
-        .filter((b) => b.type === "text")
-        .map((b) => b.text)
-        .join("\n")
-        .trim();
-      if (response.stop_reason === "refusal") reply = "";
-    } else {
-      engine = "openrouter";
-      const response = await openRouterClient.chat.completions.create({
-        model: OPENROUTER_MODEL,
-        max_tokens: 1024,
-        messages: [{ role: "system", content: system }, ...history]
-      });
-      reply = String(response.choices?.[0]?.message?.content || "").trim();
+    if (openRouterClient) {
+      try {
+        const response = await openRouterClient.chat.completions.create({
+          model: OPENROUTER_MODEL,
+          max_tokens: 1024,
+          messages: [{ role: "system", content: system }, ...history]
+        });
+        reply = String(response.choices?.[0]?.message?.content || "").trim();
+        engine = "openrouter";
+      } catch (error) {
+        providerFailed = true;
+        console.error("[warroom] OpenRouter chat failed:", error.message);
+      }
+    }
+
+    if (!reply && anthropicClient) {
+      try {
+        const response = await anthropicClient.messages.create({
+          model: ANTHROPIC_MODEL,
+          max_tokens: 1024,
+          system,
+          messages: history
+        });
+        reply = response.content
+          .filter((b) => b.type === "text")
+          .map((b) => b.text)
+          .join("\n")
+          .trim();
+        if (response.stop_reason === "refusal") reply = "";
+        engine = "claude";
+      } catch (error) {
+        providerFailed = true;
+        console.error("[warroom] Anthropic chat failed:", error.message);
+      }
+    }
+
+    if (!reply && providerFailed) {
+      reply = fallbackReply(history[history.length - 1].content, board);
+      engine = "builtin";
     }
 
     if (!reply) {
       return res.json({
         reply: "I can't help with that one — try me on Cowboys odds or the markets.",
-        engine
+        engine: engine || "builtin"
       });
     }
 
-    res.json({ reply, engine });
+    res.json({ reply, engine, degraded: providerFailed && engine === "builtin" });
   } catch (error) {
     console.error("[warroom] chat failed:", error);
     res.status(500).json({ error: "The analyst dropped the headset. Try again." });
@@ -744,4 +780,3 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
 });
 
 module.exports = router;
-
