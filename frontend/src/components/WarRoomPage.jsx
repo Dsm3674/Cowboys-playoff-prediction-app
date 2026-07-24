@@ -231,6 +231,7 @@ function ChatPanel({ initialEngine = "builtin" }) {
   useEffect(() => {
     if (!open) return undefined;
 
+    document.body.classList.add("wr-chat-is-open");
     const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 180);
     const closeOnEscape = (event) => {
       if (event.key === "Escape") setOpen(false);
@@ -238,6 +239,7 @@ function ChatPanel({ initialEngine = "builtin" }) {
     document.addEventListener("keydown", closeOnEscape);
 
     return () => {
+      document.body.classList.remove("wr-chat-is-open");
       window.clearTimeout(focusTimer);
       document.removeEventListener("keydown", closeOnEscape);
     };
@@ -286,8 +288,14 @@ function ChatPanel({ initialEngine = "builtin" }) {
         aria-controls="war-room-analyst"
         aria-label={open ? "Close War Room Analyst" : "Open War Room Analyst"}
         title="War Room Analyst"
+        tabIndex={open ? -1 : 0}
       >
         <span className="wr-chat-launcher__pulse" />
+        <span className="wr-chat-launcher__orbit" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
         <span className="wr-chat-launcher__mark">AI</span>
       </button>
       <button
