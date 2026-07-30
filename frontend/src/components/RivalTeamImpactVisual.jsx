@@ -1,7 +1,7 @@
 import React from "react";
 import { api } from "../api";
 
-function RivalTeamImpactVisual({ year = 2025 }) {
+function RivalTeamImpactVisual({ year = 2027 }) {
   const [loading, setLoading] = React.useState(true);
   const [rivalImpacts, setRivalImpacts] = React.useState([]);
   const [rankedGames, setRankedGames] = React.useState([]);

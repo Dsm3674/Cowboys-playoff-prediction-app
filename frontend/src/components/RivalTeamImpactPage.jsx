@@ -1,7 +1,7 @@
 import React from "react";
 import { api } from "../api";
 
-function RivalTeamImpactPage({ year = 2025, selectedTeam = "DAL" }) {
+function RivalTeamImpactPage({ year = 2027, selectedTeam = "DAL" }) {
   const [loading, setLoading] = React.useState(false);
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState("");

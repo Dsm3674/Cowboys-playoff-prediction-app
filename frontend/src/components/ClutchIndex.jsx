@@ -16,7 +16,7 @@ function ClutchIndex() {
   const loadClutchData = async () => {
     try {
       setLoading(true);
-      const result = await api.getClutchIndex(2025);
+      const result = await api.getClutchIndex(2027);
       setData(result);
     } catch (error) {
       console.error("Error loading clutch data:", error);
