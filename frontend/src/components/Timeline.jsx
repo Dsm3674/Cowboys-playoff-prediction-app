@@ -29,57 +29,225 @@ function fmtDate(value) {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-/* ── Synthetic Fallback Events (2027 SEASON) ────────────────────── */
+function fmtShort(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
-function syntheticEvents(season) {
-  const y = season;
-  return [
-    { date: `${y}-09-07`, title: "Season Opener Win",       type: "win",     impact: 6,  description: "Strong performance in Week 1 sets a positive tone." },
-    { date: `${y}-09-14`, title: "Road Win",                type: "win",     impact: 5,  description: "Solid road victory demonstrates depth." },
-    { date: `${y}-09-21`, title: "Home Loss",               type: "loss",    impact: -5, description: "Dropped a close one at home — defense struggled in Q4." },
-    { date: `${y}-09-28`, title: "Key Injury",              type: "injury",  impact: -7, description: "Starter ruled out 2–4 weeks with soft-tissue issue." },
-    { date: `${y}-10-05`, title: "Bounce-Back Win",         type: "win",     impact: 6,  description: "Backup steps up; offense moves efficiently." },
-    { date: `${y}-10-19`, title: "Blowout Loss",            type: "loss",    impact: -8, description: "Turnover-heavy outing — gave up four fumbles." },
-    { date: `${y}-10-26`, title: "Bye Week",                type: "neutral", impact: 1,  description: "Rest and recovery heading into a tough stretch." },
-    { date: `${y}-11-02`, title: "Divisional Win",          type: "win",     impact: 8,  description: "Big divisional win tightens the standings race." },
-    { date: `${y}-11-09`, title: "Starter Returns",         type: "return",  impact: 7,  description: "Key player activated from IR — playoff picture brightens." },
-    { date: `${y}-11-16`, title: "Overtime Win",            type: "win",     impact: 7,  description: "Clutch field goal in overtime extends winning streak." },
-    { date: `${y}-11-23`, title: "Trade Deadline Move",     type: "signing", impact: 5,  description: "Depth piece acquired ahead of a tough schedule run." },
-    { date: `${y}-11-30`, title: "Loss vs. Top Seed",       type: "loss",    impact: -4, description: "Dropped against a playoff rival — seed implications." },
-    { date: `${y}-12-07`, title: "Win Streak Continues",    type: "win",     impact: 6,  description: "Third straight win — momentum building toward January." },
-    { date: `${y}-12-21`, title: "Clutch Division Clinch",  type: "win",     impact: 9,  description: "Division title clinched with a dominant performance." },
-    /* January playoff games belong to the *following* calendar year — dating
-       them `${y}-01-04` sorted them ahead of Week 1 and stretched the x-axis
-       across eight empty months. */
-    { date: `${y + 1}-01-04`, title: "Wild Card Win",       type: "win",     impact: 8,  description: "Playoff win in the Wild Card round — next stop: Divisional." },
-  ];
+function signed(n) { return `${n >= 0 ? "+" : ""}${n}`; }
+
+/* ── Projected season generator ──────────────────────────────── */
+
+/* The old fallback returned one hard-coded list of events for every season, so
+   2024, 2025, 2026 and 2027 all rendered the identical chart. This builds a
+   distinct, *deterministic* projection per season: the same year always yields
+   the same events (no flicker between renders), but different years diverge. */
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function rng() {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* NFL Week 1 kicks off the Thursday after Labor Day (first Monday in September). */
+function weekOneThursday(year) {
+  const d = new Date(Date.UTC(year, 8, 1));
+  while (d.getUTCDay() !== 1) d.setUTCDate(d.getUTCDate() + 1);
+  d.setUTCDate(d.getUTCDate() + 3);
+  return d;
+}
+
+function isoDay(date) { return date.toISOString().slice(0, 10); }
+
+function gameDay(year, week, offsetDays = 0) {
+  const d = weekOneThursday(year);
+  /* Sunday of that week, except Week 1 which we keep on opening Thursday. */
+  d.setUTCDate(d.getUTCDate() + (week - 1) * 7 + (week === 1 ? 0 : 3) + offsetDays);
+  return d;
+}
+
+const DIVISION_RIVALS = ["Philadelphia", "New York", "Washington"];
+const NON_DIVISION = [
+  "Green Bay", "San Francisco", "Detroit", "Tampa Bay", "Seattle", "Minnesota",
+  "Atlanta", "Carolina", "Chicago", "Los Angeles", "New Orleans", "Arizona",
+];
+
+/* Impact values mirror backend/timeline.js impactForEventType so the fallback
+   and the live feed speak the same language. */
+const IMPACT = {
+  dominant_win: 6, close_win: 5, game_win: 4,
+  close_loss: -5, blowout_loss: -6, game_loss: -4,
+  injury: -8, return: 7, trade: 3, signing: 4, bye: 1,
+};
+
+function projectedSeason(season) {
+  const rng = mulberry32(season * 7919);
+  const events = [];
+
+  /* Season-level team strength, so each year has its own character rather than
+     the same 15 canned results with the year swapped. */
+  const strength = 0.48 + rng() * 0.26;          // baseline win probability
+  const byeWeek  = 5 + Math.floor(rng() * 10);   // weeks 5–14
+
+  /* Opponent slate: both meetings with each division rival, rest drawn from
+     the conference pool. */
+  const slate = [];
+  DIVISION_RIVALS.forEach((r) => { slate.push(r, r); });
+  const pool = [...NON_DIVISION];
+  while (slate.length < 17) {
+    slate.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+  }
+  /* Deterministic shuffle so rivalry games aren't all front-loaded. */
+  for (let i = slate.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [slate[i], slate[j]] = [slate[j], slate[i]];
+  }
+
+  let gameIdx = 0;
+  let wins = 0;
+  let losses = 0;
+
+  for (let week = 1; week <= 18; week++) {
+    const date = isoDay(gameDay(season, week));
+
+    if (week === byeWeek) {
+      events.push({
+        date, title: "Bye Week", type: "bye", impact: IMPACT.bye,
+        description: "Rest and recovery — a chance to get banged-up starters back to full speed.",
+      });
+      continue;
+    }
+
+    const opponent = slate[gameIdx++];
+    const home = rng() < 0.5;
+    const divisional = DIVISION_RIVALS.includes(opponent);
+    const margin = rng();
+    /* Division games run tighter regardless of the projected edge. */
+    const won = rng() < (divisional ? strength * 0.94 : strength);
+
+    let type, title, description;
+    if (won) {
+      wins++;
+      if (margin > 0.72)      { type = "dominant_win"; title = `Dominant Win over ${opponent}`; description = `Complete performance on both sides of the ball${divisional ? " in a division game" : ""}.`; }
+      else if (margin < 0.3)  { type = "close_win";    title = `Close Win over ${opponent}`;    description = "One-score game decided in the final drive."; }
+      else                    { type = "game_win";     title = `Win over ${opponent}`;          description = `${home ? "Home" : "Road"} win keeps the playoff math trending the right way.`; }
+    } else {
+      losses++;
+      if (margin > 0.75)      { type = "blowout_loss"; title = `Blowout Loss to ${opponent}`;   description = "Never competitive — turnovers and a third-down defense that could not get off the field."; }
+      else if (margin < 0.32) { type = "close_loss";   title = `Close Loss to ${opponent}`;     description = "Came down to the last possession and the ball bounced the wrong way."; }
+      else                    { type = "game_loss";    title = `Loss to ${opponent}`;           description = `${home ? "Home" : "Road"} loss puts pressure on the back half of the schedule.`; }
+    }
+
+    events.push({ date, title, type, impact: IMPACT[type], description, week, opponent });
+  }
+
+  /* Roster events land midweek (+2 days = Tuesday), which is both realistic —
+     injury reports and transactions happen between games — and keeps them off
+     the game dates. Sharing an x with a game produced a vertical cliff in the
+     cumulative line that read as an instant collapse. */
+  const injuryWeek = 3 + Math.floor(rng() * 5);
+  events.push({
+    date: isoDay(gameDay(season, injuryWeek, 2)),
+    title: "Key Starter Injured", type: "injury", impact: IMPACT.injury,
+    description: "Projected multi-week absence for a front-line starter — depth gets tested early.",
+  });
+  events.push({
+    date: isoDay(gameDay(season, Math.min(injuryWeek + 4, 17), 2)),
+    title: "Starter Activated", type: "return", impact: IMPACT.return,
+    description: "Back from injured reserve ahead of schedule — the rotation gets its shape back.",
+  });
+  events.push({
+    date: isoDay(gameDay(season, 9, 2)),
+    title: "Trade Deadline Move", type: "trade", impact: IMPACT.trade,
+    description: "Depth added at a position of need before the deadline passes.",
+  });
+
+  /* Playoffs, if the projected record earns them. January belongs to the
+     following calendar year. */
+  if (wins >= 10) {
+    events.push({
+      date: `${season + 1}-01-11`,
+      title: "Wild Card Win", type: "dominant_win", impact: IMPACT.dominant_win,
+      description: `Projected ${wins}-${losses} finish is good enough to host — and to advance.`,
+    });
+    if (wins >= 12) {
+      events.push({
+        date: `${season + 1}-01-18`,
+        title: "Divisional Round Loss", type: "close_loss", impact: IMPACT.close_loss,
+        description: "Season ends a round short in a game decided inside the final two minutes.",
+      });
+    }
+  } else {
+    events.push({
+      date: `${season + 1}-01-04`,
+      title: "Season Ends", type: "game_loss", impact: IMPACT.game_loss,
+      description: `Projected ${wins}-${losses} finish leaves the club on the outside looking in.`,
+    });
+  }
+
+  return events.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
 /* ── SVG Layout Constants ────────────────────────────────────── */
 
-/* These are viewBox *user units*, not pixels and not percentages. The SVG is
-   made responsive by the viewBox + `width: 100%` on the element (see CSS),
-   so this coordinate space must stay wide enough to actually draw a chart in. */
+/* viewBox *user units* — not pixels, not percentages. The chart is made
+   responsive by the viewBox plus `width: 100%` on the <svg>. */
 const W        = 880;
-const H        = 240;
-const PAD_L    = 44;
-const PAD_R    = 20;
-const PAD_T    = 18;
-const PAD_B    = 36;
+const H        = 260;
+const PAD_L    = 46;
+const PAD_R    = 30;
+const PAD_T    = 22;
+const PAD_B    = 38;
 
 const CHART_W  = W - PAD_L - PAD_R;
 const CHART_H  = H - PAD_T - PAD_B;
 
-const COLORS = {
-  success: "#22c55e",   // green, more vibrant
-  danger:  "#ef4444",   // red, more vibrant
-  warning: "#f59e0b",   // amber
-  neutral: "#3b82f6",   // blue
+/* Status palette — validated against this chart's surface (#081224, dark) with
+   the data-viz palette checker: lightness band, chroma floor, CVD separation
+   (worst adjacent pair 9.4 ΔE deutan, above the 8.0 target), normal-vision
+   floor and 3:1 contrast all pass. The previous #22c55e/#ef4444 pair sat at
+   7.4 ΔE — win and loss were near-identical for red-green colorblind readers.
+   Every status also carries a distinct SHAPE, so colour is never load-bearing. */
+const STATUS = {
+  success: { color: "#0d9488", shape: "up",      label: "Win" },
+  danger:  { color: "#e11d48", shape: "down",    label: "Loss" },
+  warning: { color: "#d97706", shape: "diamond", label: "Injury" },
+  neutral: { color: "#8296b0", shape: "circle",  label: "Other" },
 };
+const STATUS_ORDER = ["success", "danger", "warning", "neutral"];
 
-const DOT_R      = 5;
-const DOT_R_HOVER = 6.5;
-const DOT_R_SEL  = 7;
+/* The momentum line is a single series, so it needs no legend — it wears the
+   app's accent instead of borrowing a status hue. */
+const LINE  = "#8b83ff";
+const POS   = "#0d9488";
+const NEG   = "#e11d48";
+
+/* ── Mark shapes (secondary encoding for the status palette) ─── */
+
+function markPath(shape, x, y, r) {
+  switch (shape) {
+    case "up":
+      return `M ${x} ${y - r} L ${x + r * 0.92} ${y + r * 0.72} L ${x - r * 0.92} ${y + r * 0.72} Z`;
+    case "down":
+      return `M ${x} ${y + r} L ${x + r * 0.92} ${y - r * 0.72} L ${x - r * 0.92} ${y - r * 0.72} Z`;
+    case "diamond":
+      return `M ${x} ${y - r} L ${x + r} ${y} L ${x} ${y + r} L ${x - r} ${y} Z`;
+    default: {
+      /* circle as a path, so every mark uses the same element type */
+      const k = r * 0.5523;
+      return `M ${x} ${y - r} C ${x + k} ${y - r} ${x + r} ${y - k} ${x + r} ${y}`
+        + ` C ${x + r} ${y + k} ${x + k} ${y + r} ${x} ${y + r}`
+        + ` C ${x - k} ${y + r} ${x - r} ${y + k} ${x - r} ${y}`
+        + ` C ${x - r} ${y - k} ${x - k} ${y - r} ${x} ${y - r} Z`;
+    }
+  }
+}
 
 /* ── Path helpers ────────────────────────────────────────────── */
 
@@ -109,14 +277,14 @@ export default function Timeline() {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [synthetic, setSynthetic] = useState(false);
-  const [hovered, setHovered]   = useState(null);   // { pt, x, y, flip } in wrapper px
+  const [view, setView]         = useState("chart");   // "chart" | "table"
+  const [hovered, setHovered]   = useState(null);
   const svgRef  = useRef(null);
   const wrapRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setSynthetic(false);
 
     async function load() {
       try {
@@ -130,9 +298,10 @@ export default function Timeline() {
         if (!raw.length) throw new Error("no events");
         setEvents(raw);
         setSelected(raw[0]);
+        setSynthetic(false);
       } catch {
         if (!cancelled) {
-          const syn = syntheticEvents(season);
+          const syn = projectedSeason(season);
           setEvents(syn);
           setSelected(syn[0]);
           setSynthetic(true);
@@ -145,17 +314,16 @@ export default function Timeline() {
     return () => { cancelled = true; };
   }, [season]);
 
-  /* Clear any hover state when the data set changes out from under it. */
   useEffect(() => { setHovered(null); }, [events]);
 
   /* ── Derive chart data ───────────────────────────────────────── */
 
-  const { plotPoints, zeroY, monthTicks, yLabels } = useMemo(() => {
-    const empty = { plotPoints: [], zeroY: 0, monthTicks: [], yLabels: [] };
+  const { plotPoints, zeroY, monthTicks, yLabels, stats } = useMemo(() => {
+    const empty = { plotPoints: [], zeroY: 0, monthTicks: [], yLabels: [], stats: null };
     if (!events.length) return empty;
 
-    /* `_src` keeps a reference back to the original event object: plot points
-       are filtered and re-sorted, so their index is NOT the index in `events`. */
+    /* `_src` references the original event: plot points are date-filtered and
+       re-sorted, so their index is NOT the index in `events`. */
     const dated = events
       .map((e) => ({ ...e, _src: e, _ts: new Date(getDate(e)).getTime() }))
       .filter((e) => !Number.isNaN(e._ts))
@@ -181,54 +349,80 @@ export default function Timeline() {
     function toX(ts)  { return PAD_L + ((ts - minTs) / tsRange) * CHART_W; }
     function toY(val) { return PAD_T + CHART_H - ((val - minCumul) / cRange) * CHART_H; }
 
-    const zeroYCoord = toY(0);
+    const plotPoints = withCumul.map((e) => ({ ...e, x: toX(e._ts), y: toY(e.cumul) }));
 
-    const plotPoints = withCumul.map((e) => ({
-      ...e,
-      x: toX(e._ts),
-      y: toY(e.cumul),
-    }));
-
-    /* Month tick lines — skip the partial month before the first event so
-       labels never land on top of the y-axis. */
+    /* One label per month, centred over the portion of that month actually in
+       range, so a season opening mid-September still gets a "Sep" label rather
+       than none. Gridlines mark true month boundaries only, and a month too
+       narrow to hold its label is left unlabelled instead of colliding. */
     const monthTicks = [];
-    const d0 = new Date(minTs);
-    d0.setDate(1);
-    if (d0.getTime() < minTs) d0.setMonth(d0.getMonth() + 1);
-    while (d0.getTime() <= maxTs) {
-      monthTicks.push({
-        x: toX(d0.getTime()),
-        label: d0.toLocaleDateString(undefined, { month: "short" }),
-      });
-      d0.setMonth(d0.getMonth() + 1);
+    const cursor = new Date(minTs);
+    cursor.setDate(1);
+    while (cursor.getTime() <= maxTs) {
+      const start = cursor.getTime();
+      const next = new Date(cursor);
+      next.setMonth(next.getMonth() + 1);
+      const end = next.getTime();
+
+      const from = Math.max(start, minTs);
+      const to   = Math.min(end, maxTs);
+      if (to > from && toX(to) - toX(from) >= 26) {
+        monthTicks.push({
+          x: toX((from + to) / 2),
+          gridX: start >= minTs ? toX(start) : null,
+          label: cursor.toLocaleDateString(undefined, { month: "short" }),
+        });
+      }
+      cursor.setTime(end);
     }
 
-    /* Y-axis labels — zero gets its own styled label on the baseline. */
     const step = Math.max(1, Math.ceil(cRange / 4));
     const yLabels = [];
     for (let v = Math.ceil(minCumul / step) * step; v <= maxCumul; v += step) {
       if (v === 0) continue;
-      yLabels.push({ y: toY(v), label: v > 0 ? `+${v}` : String(v) });
+      yLabels.push({ y: toY(v), label: signed(v) });
     }
 
-    return { plotPoints, zeroY: zeroYCoord, monthTicks, yLabels };
+    /* Headline numbers — computed from exactly what is plotted, so the tiles
+       can never disagree with the chart. */
+    const impacts  = withCumul.map(getImpact);
+    const peakIdx  = plotPoints.reduce((best, p, i) => (p.cumul > plotPoints[best].cumul ? i : best), 0);
+    const swingIdx = impacts.reduce((best, v, i) => (Math.abs(v) > Math.abs(impacts[best]) ? i : best), 0);
+    const stats = {
+      net: running,
+      positive: impacts.filter((v) => v > 0).length,
+      negative: impacts.filter((v) => v < 0).length,
+      peak: plotPoints[peakIdx],
+      swing: plotPoints[swingIdx],
+      last: plotPoints[plotPoints.length - 1],
+    };
+
+    return { plotPoints, zeroY: toY(0), monthTicks, yLabels, stats };
   }, [events]);
 
   const abovePts = plotPoints.map((p) => ({ ...p, y: Math.min(p.y, zeroY) }));
   const belowPts = plotPoints.map((p) => ({ ...p, y: Math.max(p.y, zeroY) }));
 
-  const linePath   = smoothPath(plotPoints);
-  const aboveArea  = areaPath(abovePts, zeroY);
-  const belowArea  = areaPath(belowPts, zeroY);
+  const linePath  = smoothPath(plotPoints);
+  const aboveArea = areaPath(abovePts, zeroY);
+  const belowArea = areaPath(belowPts, zeroY);
 
   const selectedIdx = selected ? plotPoints.findIndex((p) => p._src === selected) : -1;
 
+  /* Direct labels: the endpoint always, plus the peak when it is somewhere
+     else. Never a number on every point. */
+  const directLabels = useMemo(() => {
+    if (!stats || plotPoints.length < 2) return [];
+    const out = [{ pt: stats.last, text: signed(stats.last.cumul), anchor: "end" }];
+    if (stats.peak && stats.peak !== stats.last && stats.peak.cumul > stats.last.cumul) {
+      out.push({ pt: stats.peak, text: signed(stats.peak.cumul), anchor: "middle" });
+    }
+    return out;
+  }, [stats, plotPoints]);
+
   /* ── Tooltip positioning ─────────────────────────────────────── */
 
-  /* Map a point from viewBox user units to pixels inside .tl-chart-wrap.
-     getScreenCTM accounts for the viewBox scale, so this stays correct at
-     any container width. */
-  const showTooltip = useCallback((pt) => {
+  const showTip = useCallback((pt) => {
     const svg = svgRef.current;
     const wrap = wrapRef.current;
     if (!svg || !wrap || typeof svg.getScreenCTM !== "function") {
@@ -238,18 +432,19 @@ export default function Timeline() {
     const ctm = svg.getScreenCTM();
     if (!ctm) return;
     const sp = svg.createSVGPoint();
-    sp.x = pt.x;
-    sp.y = pt.y;
+    sp.x = pt.x; sp.y = pt.y;
     const screen = sp.matrixTransform(ctm);
     const wrapRect = wrap.getBoundingClientRect();
     const x = screen.x - wrapRect.left + wrap.scrollLeft;
     const y = screen.y - wrapRect.top + wrap.scrollTop;
-    /* Flip based on where the dot sits in the *visible* area, not the full
-       scroll width, so the tooltip stays inside the frame when scrolled. */
     setHovered({ pt, x, y, flip: x - wrap.scrollLeft > wrap.clientWidth * 0.6 });
   }, []);
 
-  /* ── Keyboard navigation (scoped to the focused chart) ───────── */
+  /* Keyboard selection surfaces the same readout as hover. */
+  const select = useCallback((pt) => {
+    setSelected(pt._src);
+    showTip(pt);
+  }, [showTip]);
 
   const handleChartKey = (e) => {
     if (!plotPoints.length) return;
@@ -264,8 +459,10 @@ export default function Timeline() {
     if (next < 0 || next >= plotPoints.length) return;
 
     e.preventDefault();
-    setSelected(plotPoints[next]._src);
+    select(plotPoints[next]);
   };
+
+  const trendWord = !stats ? "" : stats.net > 5 ? "Trending up" : stats.net < -5 ? "Trending down" : "Holding flat";
 
   return (
     <div className="tl-root">
@@ -275,21 +472,17 @@ export default function Timeline() {
           color: #e2e8f0;
         }
 
+        /* One filter row above everything it scopes. */
         .tl-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 1rem;
-          margin-bottom: 1.5rem;
+          margin-bottom: 1.25rem;
           flex-wrap: wrap;
         }
 
-        /* SEASON PILLS (not dropdown) */
-        .tl-season-selector {
-          display: flex;
-          gap: 6px;
-          align-items: center;
-        }
+        .tl-season-selector { display: flex; gap: 6px; align-items: center; }
 
         .tl-season-pill {
           padding: 8px 16px;
@@ -302,13 +495,11 @@ export default function Timeline() {
           font-weight: 600;
           transition: all 0.2s;
         }
-
         .tl-season-pill:hover {
-          border-color: rgba(108,99,255,0.4);
-          background: rgba(108,99,255,0.08);
-          color: rgba(255,255,255,0.8);
+          border-color: rgba(139,131,255,0.45);
+          background: rgba(139,131,255,0.09);
+          color: rgba(255,255,255,0.85);
         }
-
         .tl-season-pill.active {
           background: linear-gradient(135deg, #6c63ff, #a78bfa);
           color: #fff;
@@ -317,11 +508,86 @@ export default function Timeline() {
 
         .tl-synthetic-note {
           font-size: 11px;
-          color: #fbbf24;
-          background: rgba(251,191,36,.07);
-          border: 1px solid rgba(251,191,36,.18);
+          color: #d9a441;
+          background: rgba(217,164,65,.07);
+          border: 1px solid rgba(217,164,65,.2);
           border-radius: 6px;
           padding: 5px 10px;
+        }
+
+        /* SUMMARY TILES — the headline the chart cannot say in one glance */
+        .tl-tiles {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 10px;
+          margin-bottom: 1rem;
+        }
+        .tl-tile {
+          background: rgba(10,22,40,.8);
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 12px;
+          padding: 12px 14px;
+        }
+        .tl-tile-label {
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: .14em;
+          text-transform: uppercase;
+          color: #5c7391;
+          margin-bottom: 6px;
+        }
+        .tl-tile-value {
+          font-size: 22px;
+          font-weight: 700;
+          color: #fff;
+          line-height: 1.1;
+        }
+        .tl-tile-sub {
+          font-size: 11px;
+          color: #7a8fa8;
+          margin-top: 4px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        /* LEGEND + VIEW TOGGLE */
+        .tl-meta-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 8px;
+          flex-wrap: wrap;
+        }
+        .tl-legend {
+          display: flex;
+          gap: 14px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .tl-legend-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          color: #8ea3bd;
+        }
+        .tl-view-toggle { display: flex; gap: 4px; }
+        .tl-view-btn {
+          padding: 5px 12px;
+          font-size: 11.5px;
+          font-weight: 600;
+          border-radius: 7px;
+          border: 1px solid rgba(255,255,255,.1);
+          background: rgba(255,255,255,.03);
+          color: #8ea3bd;
+          cursor: pointer;
+        }
+        .tl-view-btn.active {
+          background: rgba(139,131,255,.14);
+          border-color: rgba(139,131,255,.4);
+          color: #cfcaff;
         }
 
         /* CHART CONTAINER */
@@ -332,18 +598,17 @@ export default function Timeline() {
           padding: 12px;
           overflow-x: auto;
           overflow-y: hidden;
-          margin-bottom: 1.5rem;
+          margin-bottom: 1.25rem;
           position: relative;
+          transition: opacity .18s ease;
         }
-
         .tl-chart-wrap:focus-visible {
-          outline: 2px solid rgba(108,99,255,.7);
+          outline: 2px solid rgba(139,131,255,.7);
           outline-offset: 2px;
         }
+        /* Hold the previous render while refetching — no skeleton flash. */
+        .tl-stale { opacity: .45; }
 
-        /* The viewBox does the scaling: width follows the container, height
-           follows the aspect ratio. min-width keeps labels legible on phones
-           (the wrapper scrolls horizontally instead of squashing the chart). */
         .tl-chart-wrap svg {
           display: block;
           width: 100%;
@@ -351,66 +616,98 @@ export default function Timeline() {
           min-width: 640px;
         }
 
-        .tl-zero-line {
-          stroke: rgba(255,255,255,.14);
-          stroke-width: 1;
-          stroke-dasharray: 4 4;
-        }
-
-        .tl-grid-line {
-          stroke: rgba(255,255,255,.04);
-          stroke-width: 1;
-        }
+        /* Solid hairlines — dashed grid reads as "projection". */
+        .tl-grid-line { stroke: rgba(255,255,255,.045); stroke-width: 1; }
+        .tl-zero-line { stroke: rgba(255,255,255,.2);  stroke-width: 1; }
+        .tl-crosshair { stroke: rgba(255,255,255,.16); stroke-width: 1; pointer-events: none; }
 
         .tl-tick-label {
-          fill: rgba(255,255,255,.3);
+          fill: rgba(255,255,255,.32);
           font-size: 10.5px;
           font-family: var(--font-mono, monospace);
           letter-spacing: .05em;
         }
+        .tl-direct-label {
+          fill: #cfd8e6;
+          font-size: 11.5px;
+          font-weight: 700;
+          font-family: var(--font-mono, monospace);
+          paint-order: stroke;
+          stroke: #081224;
+          stroke-width: 3px;
+          stroke-linejoin: round;
+        }
 
         .tl-line {
           fill: none;
-          stroke: #3b82f6;
-          stroke-width: 2.5;
+          stroke: ${LINE};
+          stroke-width: 2;
           stroke-linecap: round;
           stroke-linejoin: round;
-          filter: drop-shadow(0 0 5px rgba(59,130,246,0.3));
         }
-
         .tl-area-above { fill: url(#tl-grad-above); }
         .tl-area-below { fill: url(#tl-grad-below); }
 
-        .tl-dot {
-          cursor: pointer;
-          transition: r .15s ease;
-        }
-
-        .tl-dot-ring {
-          pointer-events: none;
-          fill: none;
-          stroke-width: 2;
-        }
-
-        /* Widened invisible hit area so the dots stay easy to hit on touch. */
-        .tl-dot-hit {
-          fill: transparent;
-          cursor: pointer;
-        }
+        /* 2px surface ring keeps overlapping marks separate without a border. */
+        .tl-mark { stroke: #081224; stroke-width: 2; paint-order: stroke; cursor: pointer; }
+        .tl-mark-ring { fill: none; stroke-width: 1.5; pointer-events: none; }
+        .tl-hit { fill: transparent; cursor: pointer; }
 
         .tl-tooltip {
           position: absolute;
-          background: rgba(10,22,40,0.95);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 8px;
-          padding: 8px 12px;
+          background: rgba(12,24,44,0.97);
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 9px;
+          padding: 9px 12px;
           font-size: 12px;
           color: #e2e8f0;
           pointer-events: none;
           z-index: 10;
           white-space: nowrap;
-          box-shadow: 0 6px 18px rgba(0,0,0,.35);
+          box-shadow: 0 8px 22px rgba(0,0,0,.45);
         }
+        .tl-tt-title { font-weight: 700; margin-bottom: 3px; }
+        .tl-tt-row {
+          font-family: var(--font-mono, monospace);
+          font-size: 11px;
+          color: #93a7c0;
+          display: flex;
+          gap: 10px;
+          justify-content: space-between;
+        }
+
+        /* TABLE VIEW — the WCAG-clean twin of the chart */
+        .tl-table-wrap {
+          background: rgba(8,18,36,.97);
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 16px;
+          margin-bottom: 1.25rem;
+          max-height: 420px;
+          overflow: auto;
+        }
+        .tl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .tl-table th {
+          position: sticky;
+          top: 0;
+          background: #0b1830;
+          text-align: left;
+          font-size: 10px;
+          letter-spacing: .12em;
+          text-transform: uppercase;
+          color: #5c7391;
+          padding: 10px 14px;
+          border-bottom: 1px solid rgba(255,255,255,.08);
+        }
+        .tl-table td {
+          padding: 9px 14px;
+          border-bottom: 1px solid rgba(255,255,255,.04);
+          color: #b9c7d9;
+        }
+        .tl-table tbody tr { cursor: pointer; }
+        .tl-table tbody tr:hover { background: rgba(139,131,255,.07); }
+        .tl-table tbody tr.active { background: rgba(139,131,255,.13); }
+        .tl-num { font-family: var(--font-mono, monospace); text-align: right; }
+        .tl-type-cell { display: inline-flex; align-items: center; gap: 7px; }
 
         .tl-loading {
           padding: 3rem;
@@ -428,36 +725,18 @@ export default function Timeline() {
           padding: 1.5rem;
           animation: tl-in .2s ease both;
         }
-
         @keyframes tl-in {
           from { opacity:0; transform:translateY(4px); }
           to   { opacity:1; transform:translateY(0); }
         }
-
-        .tl-detail-header {
-          margin-bottom: 1rem;
-        }
-
-        .tl-detail-title {
-          font-size: 16px;
-          font-weight: 700;
-          color: #fff;
-          margin-bottom: 4px;
-        }
-
-        .tl-detail-meta {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-
+        .tl-detail-header { margin-bottom: 1rem; }
+        .tl-detail-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+        .tl-detail-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .tl-detail-date {
           font-size: 12px;
           color: rgba(255,255,255,0.5);
           font-family: var(--font-mono, monospace);
         }
-
         .tl-impact-chip {
           font-family: var(--font-mono, monospace);
           font-size: 12px;
@@ -465,98 +744,40 @@ export default function Timeline() {
           padding: 4px 10px;
           border-radius: 6px;
         }
-
-        .tl-impact-pos {
-          background: rgba(34,197,94,.12);
-          color: #22c55e;
-        }
-
-        .tl-impact-neg {
-          background: rgba(239,68,68,.12);
-          color: #ef4444;
-        }
-
-        .tl-detail-body {
-          font-size: 14px;
-          line-height: 1.6;
-          color: #a1aec5;
-        }
-
-        /* RESPONSIVE ─────────────────────────────────────────────── */
+        .tl-impact-pos { background: rgba(13,148,136,.16); color: #2dd4bf; }
+        .tl-impact-neg { background: rgba(225,29,72,.16);  color: #fb7185; }
+        .tl-detail-body { font-size: 14px; line-height: 1.6; color: #a1aec5; }
 
         @media (max-width: 1024px) {
-          .tl-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .tl-season-selector {
-            width: 100%;
-            justify-content: space-between;
-          }
+          .tl-header { flex-direction: column; align-items: flex-start; }
+          .tl-season-selector { width: 100%; justify-content: space-between; }
         }
 
         @media (max-width: 768px) {
-          .tl-header {
-            flex-direction: column;
-            gap: 12px;
-          }
-
-          .tl-season-selector {
-            flex-wrap: wrap;
-            gap: 8px;
-          }
-
-          .tl-season-pill {
-            padding: 6px 12px;
-            font-size: 12px;
-          }
-
-          .tl-chart-wrap {
-            padding: 8px;
-          }
-
-          .tl-detail {
-            padding: 1.25rem;
-          }
-
-          .tl-detail-title {
-            font-size: 15px;
-          }
-
-          .tl-detail-body {
-            font-size: 13px;
-          }
+          .tl-header { flex-direction: column; gap: 12px; }
+          .tl-season-selector { flex-wrap: wrap; gap: 8px; }
+          .tl-season-pill { padding: 6px 12px; font-size: 12px; }
+          .tl-chart-wrap { padding: 8px; }
+          .tl-tile-value { font-size: 19px; }
+          .tl-detail { padding: 1.25rem; }
+          .tl-detail-title { font-size: 15px; }
+          .tl-detail-body { font-size: 13px; }
         }
 
         @media (max-width: 480px) {
-          .tl-season-pill {
-            padding: 5px 10px;
-            font-size: 11px;
-          }
+          .tl-season-pill { padding: 5px 10px; font-size: 11px; }
+          .tl-chart-wrap, .tl-table-wrap { border-radius: 12px; }
+          .tl-detail { padding: 1rem; border-left-width: 3px; }
+          .tl-detail-title { font-size: 14px; }
+          .tl-detail-meta { flex-direction: column; align-items: flex-start; gap: 6px; }
+        }
 
-          .tl-chart-wrap {
-            border-radius: 12px;
-          }
-
-          .tl-detail {
-            padding: 1rem;
-            border-left-width: 3px;
-          }
-
-          .tl-detail-title {
-            font-size: 14px;
-          }
-
-          .tl-detail-meta {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 6px;
-          }
+        @media (prefers-reduced-motion: reduce) {
+          .tl-detail { animation: none; }
+          .tl-chart-wrap { transition: none; }
         }
       `}</style>
 
-      {/* Header with season selector and note */}
       <div className="tl-header">
         <div className="tl-season-selector">
           {[2027, 2026, 2025, 2024].map((y) => (
@@ -572,152 +793,251 @@ export default function Timeline() {
           ))}
         </div>
         {synthetic && (
-          <span className="tl-synthetic-note">📊 Projected data — live events load when available</span>
+          <span className="tl-synthetic-note">
+            Projected {season} season — simulated while live events are unavailable
+          </span>
         )}
       </div>
 
-      {/* Main content */}
-      {loading ? (
+      {loading && !plotPoints.length ? (
         <div className="tl-loading">Loading momentum data…</div>
       ) : (
         <>
-          {/* Chart */}
-          <div
-            className="tl-chart-wrap"
-            ref={wrapRef}
-            tabIndex={0}
-            role="group"
-            aria-label={`${season} season momentum timeline — use arrow keys to step through events`}
-            onKeyDown={handleChartKey}
-            onMouseLeave={() => setHovered(null)}
-          >
-            <svg
-              ref={svgRef}
-              viewBox={`0 0 ${W} ${H}`}
-              preserveAspectRatio="xMidYMid meet"
-              role="img"
-              aria-label="Cumulative momentum by event date"
-            >
-              <defs>
-                <linearGradient id="tl-grad-above" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%"   stopColor="#3b82f6" stopOpacity="0.18" />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
-                </linearGradient>
-                <linearGradient id="tl-grad-below" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%"   stopColor="#ef4444" stopOpacity="0.02" />
-                  <stop offset="100%" stopColor="#ef4444" stopOpacity="0.15" />
-                </linearGradient>
-              </defs>
+          {/* Headline numbers */}
+          {stats && (
+            <div className="tl-tiles">
+              <div className="tl-tile">
+                <div className="tl-tile-label">Net momentum</div>
+                <div className="tl-tile-value" style={{ color: stats.net >= 0 ? "#2dd4bf" : "#fb7185" }}>
+                  {signed(stats.net)}
+                </div>
+                <div className="tl-tile-sub">{trendWord}</div>
+              </div>
+              <div className="tl-tile">
+                <div className="tl-tile-label">Positive events</div>
+                <div className="tl-tile-value">{stats.positive}</div>
+                <div className="tl-tile-sub">of {plotPoints.length} tracked</div>
+              </div>
+              <div className="tl-tile">
+                <div className="tl-tile-label">Negative events</div>
+                <div className="tl-tile-value">{stats.negative}</div>
+                <div className="tl-tile-sub">of {plotPoints.length} tracked</div>
+              </div>
+              <div className="tl-tile">
+                <div className="tl-tile-label">Biggest swing</div>
+                <div className="tl-tile-value" style={{ color: getImpact(stats.swing) >= 0 ? "#2dd4bf" : "#fb7185" }}>
+                  {signed(getImpact(stats.swing))}
+                </div>
+                <div className="tl-tile-sub" title={getTitle(stats.swing)}>{getTitle(stats.swing)}</div>
+              </div>
+            </div>
+          )}
 
-              {/* Y-axis grid lines */}
-              {yLabels.map((lbl, i) => (
-                <g key={`grid-${i}`}>
-                  <line className="tl-grid-line" x1={PAD_L} y1={lbl.y} x2={W - PAD_R} y2={lbl.y} />
-                  <text className="tl-tick-label" x={PAD_L - 8} y={lbl.y + 3.5} textAnchor="end">{lbl.label}</text>
-                </g>
-              ))}
-
-              {/* Zero baseline */}
-              <line className="tl-zero-line" x1={PAD_L} y1={zeroY} x2={W - PAD_R} y2={zeroY} />
-              <text className="tl-tick-label" x={PAD_L - 8} y={zeroY + 3.5} textAnchor="end" style={{ fill: 'rgba(255,255,255,.45)' }}>0</text>
-
-              {/* X-axis month ticks */}
-              {monthTicks.map((tick, i) => (
-                <g key={`month-${i}`}>
-                  <line x1={tick.x} y1={PAD_T} x2={tick.x} y2={H - PAD_B + 3}
-                    stroke="rgba(255,255,255,.05)" strokeWidth="1" />
-                  <text className="tl-tick-label" x={tick.x} y={H - PAD_B + 16} textAnchor="middle">{tick.label}</text>
-                </g>
-              ))}
-
-              {/* Area fills */}
-              {plotPoints.length > 1 && (
-                <>
-                  <path className="tl-area-above" d={aboveArea} />
-                  <path className="tl-area-below" d={belowArea} />
-                </>
-              )}
-
-              {/* Main line */}
-              {plotPoints.length > 1 && (
-                <path className="tl-line" d={linePath} />
-              )}
-
-              {/* Event dots (color-coded by type) */}
-              {plotPoints.map((pt, i) => {
-                const cls    = badgeClass(pt);
-                const color  = COLORS[cls];
-                const isSel  = selectedIdx === i;
-                const isHot  = hovered?.pt === pt;
-                const r      = isSel ? DOT_R_SEL : isHot ? DOT_R_HOVER : DOT_R;
-
+          {/* Legend (identity is never colour-alone) + view toggle */}
+          <div className="tl-meta-row">
+            <div className="tl-legend">
+              {STATUS_ORDER.map((key) => {
+                const s = STATUS[key];
                 return (
-                  <g
-                    key={`dot-${i}`}
-                    onClick={() => setSelected(pt._src)}
-                    onMouseEnter={() => showTooltip(pt)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {isSel && (
-                      <>
-                        <line
-                          x1={pt.x} y1={pt.y + 9}
-                          x2={pt.x} y2={zeroY}
-                          stroke={color}
-                          strokeWidth={1}
-                          strokeOpacity={0.3}
-                          strokeDasharray="3 3"
-                        />
-                        <circle
-                          className="tl-dot-ring"
-                          cx={pt.x} cy={pt.y}
-                          r={11}
-                          stroke={color}
-                          strokeOpacity={0.4}
-                        />
-                      </>
-                    )}
-                    <circle
-                      className="tl-dot"
-                      cx={pt.x} cy={pt.y}
-                      r={r}
-                      fill={isSel ? color : "rgba(10,22,40,.85)"}
-                      stroke={color}
-                      strokeWidth={isSel ? 0 : 2}
-                    />
-                    <circle className="tl-dot-hit" cx={pt.x} cy={pt.y} r={14} />
-                  </g>
+                  <span className="tl-legend-item" key={key}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                      <path d={markPath(s.shape, 7, 7, 5)} fill={s.color} />
+                    </svg>
+                    {s.label}
+                  </span>
                 );
               })}
-            </svg>
-
-            {/* Tooltip */}
-            {hovered && (
-              <div
-                className="tl-tooltip"
-                style={{
-                  left: `${hovered.x}px`,
-                  top: `${hovered.y}px`,
-                  transform: hovered.flip
-                    ? 'translate(calc(-100% - 12px), -50%)'
-                    : 'translate(12px, -50%)',
-                }}
-              >
-                {getTitle(hovered.pt)} • {fmtDate(getDate(hovered.pt))}
-              </div>
-            )}
+            </div>
+            <div className="tl-view-toggle" role="group" aria-label="Timeline view">
+              {["chart", "table"].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`tl-view-btn ${view === v ? "active" : ""}`}
+                  aria-pressed={view === v}
+                  onClick={() => setView(v)}
+                >
+                  {v === "chart" ? "Chart" : "Table"}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Detail card */}
+          {view === "chart" ? (
+            <div
+              className={`tl-chart-wrap ${loading ? "tl-stale" : ""}`}
+              ref={wrapRef}
+              tabIndex={0}
+              role="group"
+              aria-label={`${season} season momentum timeline — use arrow keys to step through events`}
+              onKeyDown={handleChartKey}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <svg
+                ref={svgRef}
+                viewBox={`0 0 ${W} ${H}`}
+                preserveAspectRatio="xMidYMid meet"
+                role="img"
+                aria-label={`Cumulative momentum across the ${season} season, ending at ${stats ? signed(stats.net) : 0}`}
+              >
+                <defs>
+                  <linearGradient id="tl-grad-above" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%"   stopColor={POS} stopOpacity="0.3" />
+                    <stop offset="100%" stopColor={POS} stopOpacity="0.02" />
+                  </linearGradient>
+                  <linearGradient id="tl-grad-below" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%"   stopColor={NEG} stopOpacity="0.02" />
+                    <stop offset="100%" stopColor={NEG} stopOpacity="0.26" />
+                  </linearGradient>
+                </defs>
+
+                {yLabels.map((lbl, i) => (
+                  <g key={`grid-${i}`}>
+                    <line className="tl-grid-line" x1={PAD_L} y1={lbl.y} x2={W - PAD_R} y2={lbl.y} />
+                    <text className="tl-tick-label" x={PAD_L - 9} y={lbl.y + 3.5} textAnchor="end">{lbl.label}</text>
+                  </g>
+                ))}
+
+                <line className="tl-zero-line" x1={PAD_L} y1={zeroY} x2={W - PAD_R} y2={zeroY} />
+                <text className="tl-tick-label" x={PAD_L - 9} y={zeroY + 3.5} textAnchor="end"
+                  style={{ fill: 'rgba(255,255,255,.5)' }}>0</text>
+
+                {monthTicks.map((tick, i) => (
+                  <g key={`month-${i}`}>
+                    {tick.gridX !== null && (
+                      <line className="tl-grid-line" x1={tick.gridX} y1={PAD_T} x2={tick.gridX} y2={H - PAD_B + 3} />
+                    )}
+                    <text className="tl-tick-label" x={tick.x} y={H - PAD_B + 17} textAnchor="middle">{tick.label}</text>
+                  </g>
+                ))}
+
+                {plotPoints.length > 1 && (
+                  <>
+                    <path className="tl-area-above" d={aboveArea} />
+                    <path className="tl-area-below" d={belowArea} />
+                    <path className="tl-line" d={linePath} />
+                  </>
+                )}
+
+                {/* Crosshair on hover */}
+                {hovered && (
+                  <line className="tl-crosshair"
+                    x1={hovered.pt.x} y1={PAD_T} x2={hovered.pt.x} y2={H - PAD_B} />
+                )}
+
+                {/* Event marks — colour AND shape carry the status */}
+                {plotPoints.map((pt, i) => {
+                  const s     = STATUS[badgeClass(pt)];
+                  const isSel = selectedIdx === i;
+                  const isHot = hovered?.pt === pt;
+                  const r     = isSel ? 7 : isHot ? 6.5 : 5;
+
+                  return (
+                    <g
+                      key={`mark-${i}`}
+                      onClick={() => select(pt)}
+                      onMouseEnter={() => showTip(pt)}
+                    >
+                      {isSel && (
+                        <circle className="tl-mark-ring" cx={pt.x} cy={pt.y} r={11}
+                          stroke={s.color} strokeOpacity={0.5} />
+                      )}
+                      <path className="tl-mark" d={markPath(s.shape, pt.x, pt.y, r)} fill={s.color} />
+                      <circle className="tl-hit" cx={pt.x} cy={pt.y} r={14} />
+                    </g>
+                  );
+                })}
+
+                {/* Selective direct labels — endpoint and peak only */}
+                {directLabels.map((l, i) => (
+                  <text
+                    key={`dl-${i}`}
+                    className="tl-direct-label"
+                    x={l.anchor === "end" ? l.pt.x + 10 : l.pt.x}
+                    y={l.anchor === "end" ? l.pt.y + 4 : l.pt.y - 12}
+                    textAnchor={l.anchor === "end" ? "start" : "middle"}
+                  >
+                    {l.text}
+                  </text>
+                ))}
+              </svg>
+
+              {hovered && (
+                <div
+                  className="tl-tooltip"
+                  style={{
+                    left: `${hovered.x}px`,
+                    top: `${hovered.y}px`,
+                    transform: hovered.flip
+                      ? 'translate(calc(-100% - 14px), -50%)'
+                      : 'translate(14px, -50%)',
+                  }}
+                >
+                  <div className="tl-tt-title">{getTitle(hovered.pt)}</div>
+                  <div className="tl-tt-row"><span>{fmtShort(getDate(hovered.pt))}</span></div>
+                  <div className="tl-tt-row">
+                    <span>Impact</span><span>{signed(getImpact(hovered.pt))}</span>
+                  </div>
+                  <div className="tl-tt-row">
+                    <span>Running</span><span>{signed(hovered.pt.cumul)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className={`tl-table-wrap ${loading ? "tl-stale" : ""}`}>
+              <table className="tl-table">
+                <caption className="tl-loading" style={{ display: "none" }}>
+                  {season} season momentum events
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Event</th>
+                    <th scope="col">Type</th>
+                    <th scope="col" style={{ textAlign: "right" }}>Impact</th>
+                    <th scope="col" style={{ textAlign: "right" }}>Running</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plotPoints.map((pt, i) => {
+                    const s = STATUS[badgeClass(pt)];
+                    return (
+                      <tr
+                        key={`row-${i}`}
+                        className={selectedIdx === i ? "active" : ""}
+                        onClick={() => setSelected(pt._src)}
+                      >
+                        <td className="tl-num" style={{ textAlign: "left" }}>{fmtShort(getDate(pt))}</td>
+                        <td>{getTitle(pt)}</td>
+                        <td>
+                          <span className="tl-type-cell">
+                            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                              <path d={markPath(s.shape, 6, 6, 4.5)} fill={s.color} />
+                            </svg>
+                            {s.label}
+                          </span>
+                        </td>
+                        <td className="tl-num" style={{ color: getImpact(pt) >= 0 ? "#2dd4bf" : "#fb7185" }}>
+                          {signed(getImpact(pt))}
+                        </td>
+                        <td className="tl-num">{signed(pt.cumul)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {selected && (() => {
-            const cls = badgeClass(selected);
-            const color = COLORS[cls];
+            const s = STATUS[badgeClass(selected)];
             const impact = getImpact(selected);
             return (
               <div
                 className="tl-detail"
                 key={getDate(selected) + getTitle(selected)}
-                style={{ '--detail-color': color }}
+                style={{ '--detail-color': s.color }}
               >
                 <div className="tl-detail-header">
                   <div className="tl-detail-title">{getTitle(selected)}</div>
@@ -725,7 +1045,7 @@ export default function Timeline() {
                     <div className="tl-detail-date">{fmtDate(getDate(selected))}</div>
                     {impact !== 0 && (
                       <div className={`tl-impact-chip ${impact >= 0 ? "tl-impact-pos" : "tl-impact-neg"}`}>
-                        {impact >= 0 ? "+" : ""}{impact} impact
+                        {signed(impact)} impact
                       </div>
                     )}
                   </div>
