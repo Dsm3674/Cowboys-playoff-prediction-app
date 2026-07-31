@@ -101,8 +101,8 @@ function Maps({ season: seasonProp }) {
     if (!el || typeof ResizeObserver === "undefined") return undefined;
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const w = Math.max(320, Math.floor(entry.contentRect.width));
-        setSize({ w, h: Math.max(360, Math.min(620, Math.round(w * 0.68))) });
+        const w = Math.max(240, Math.floor(entry.contentRect.width));
+        setSize({ w, h: Math.max(320, Math.min(620, Math.round(w * 0.68))) });
       }
     });
     ro.observe(el);

@@ -281,7 +281,11 @@ export default function Timeline({ season: seasonProp }) {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [synthetic, setSynthetic] = useState(false);
-  const [view, setView]         = useState("chart");   // "chart" | "table"
+  const [view, setView]         = useState(() => (
+    typeof window !== "undefined" && window.matchMedia?.("(max-width: 640px)").matches
+      ? "table"
+      : "chart"
+  ));   // "chart" | "table"
   const [hovered, setHovered]   = useState(null);
   const svgRef  = useRef(null);
   const wrapRef = useRef(null);
@@ -999,9 +1003,9 @@ export default function Timeline({ season: seasonProp }) {
                         className={selectedIdx === i ? "active" : ""}
                         onClick={() => setSelected(pt._src)}
                       >
-                        <td className="tl-num" style={{ textAlign: "left" }}>{fmtShort(getDate(pt))}</td>
-                        <td>{getTitle(pt)}</td>
-                        <td>
+                        <td data-label="Date" className="tl-num" style={{ textAlign: "left" }}>{fmtShort(getDate(pt))}</td>
+                        <td data-label="Event">{getTitle(pt)}</td>
+                        <td data-label="Type">
                           <span className="tl-type-cell">
                             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
                               <path d={markPath(s.shape, 6, 6, 4.5)} fill={s.color} />
@@ -1009,10 +1013,10 @@ export default function Timeline({ season: seasonProp }) {
                             {s.label}
                           </span>
                         </td>
-                        <td className="tl-num" style={{ color: getImpact(pt) >= 0 ? "#2dd4bf" : "#fb7185" }}>
+                        <td data-label="Impact" className="tl-num" style={{ color: getImpact(pt) >= 0 ? "#2dd4bf" : "#fb7185" }}>
                           {signed(getImpact(pt))}
                         </td>
-                        <td className="tl-num">{signed(pt.cumul)}</td>
+                        <td data-label="Running" className="tl-num">{signed(pt.cumul)}</td>
                       </tr>
                     );
                   })}

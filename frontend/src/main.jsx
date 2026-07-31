@@ -411,7 +411,7 @@ function PlayersPage({ year, selectedTeam }) {
       <div className="reveal-up" key={activeTab}>
         {activeTab === "team-profile" && <DetailedTeamProfilePage year={year} selectedTeam={selectedTeam} />}
         {activeTab === "compare" && <TeamComparisonPage year={year} selectedTeam={selectedTeam} />}
-        {activeTab === "analytics" && <PlayerRadar />}
+        {activeTab === "analytics" && <PlayerRadar season={year} />}
         {activeTab === "map" && <Maps />}
         {activeTab === "rival" && <RivalTeamImpactPage year={year} selectedTeam={selectedTeam} />}
       </div>

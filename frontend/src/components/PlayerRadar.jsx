@@ -1,7 +1,10 @@
 import React from "react";
 import { api } from "../api";
+import { useSeason } from "../workspace";
 
-function PlayerRadar() {
+function PlayerRadar({ season: seasonProp }) {
+  const contextSeason = useSeason();
+  const season = seasonProp ?? contextSeason;
   const [payload, setPayload] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -18,7 +21,7 @@ function PlayerRadar() {
           throw new Error("Player radar API is unavailable.");
         }
 
-        const json = await api.getPlayerRadar(new Date().getFullYear());
+        const json = await api.getPlayerRadar(season);
 
         const labels = Array.isArray(json.labels) && json.labels.length
           ? json.labels
@@ -60,7 +63,7 @@ function PlayerRadar() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [season]);
 
   function avg(metrics) {
     const values = Object.values(metrics || {});
@@ -149,6 +152,7 @@ function PlayerRadar() {
                   key={player.id}
                   type="button"
                   className={`player-radar-card ${isActive ? "is-active" : ""}`}
+                  aria-pressed={isActive}
                   onClick={() => setActiveId(player.id)}
                 >
                   <div className="player-radar-card__top">
