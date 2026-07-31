@@ -415,7 +415,7 @@ textarea:focus-visible,
   resize: vertical;
 }
 
-.workspace-main :is(button, .intel-button):not(.sub-tab):not(.nav-link) {
+.workspace-main :is(button, .intel-button):not(.sub-tab):not(.nav-link):not(.wsbar__pill):not(.wsbar__trigger):not(.wsbar__opt) {
   min-height: var(--workspace-control-h);
   justify-content: center;
 }
@@ -574,7 +574,9 @@ textarea:focus-visible,
 }
 
 @media (max-width: 420px) {
-  .workspace-main :is(button, .intel-button):not(.sub-tab):not(.nav-link) {
+  /* The workspace bar is a compact filter row, not a stack of page actions —
+     its controls size to their content on phones too. */
+  .workspace-main :is(button, .intel-button):not(.sub-tab):not(.nav-link):not(.wsbar__pill):not(.wsbar__trigger):not(.wsbar__opt) {
     width: 100%;
   }
 
