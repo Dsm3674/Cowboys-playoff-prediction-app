@@ -60,12 +60,24 @@ router.get("/path-probabilities", async (req, res) => {
 
 /* ── Market futures validation ─────────────────────────────────────────── */
 
+const DEVIG_METHODS = ["shin", "power", "proportional"];
+
 router.get("/market-validation", async (req, res) => {
   try {
     const year = Number(req.query.year) || undefined;
     const iterations = Number(req.query.iterations) || undefined;
-    const data = await validateAgainstMarket({ year, iterations });
-    res.json({ success: true, ...data });
+    // Shin by default; the others are exposed so the panel can show how much
+    // the de-vig choice moves the board.
+    const method = DEVIG_METHODS.includes(String(req.query.method))
+      ? String(req.query.method)
+      : "shin";
+    // Omitted means "weight by how far into the season we are".
+    const blendWeight = req.query.blendWeight === undefined
+      ? undefined
+      : Number(req.query.blendWeight);
+
+    const data = await validateAgainstMarket({ year, iterations, method, blendWeight });
+    res.json({ success: true, devigMethods: DEVIG_METHODS, ...data });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

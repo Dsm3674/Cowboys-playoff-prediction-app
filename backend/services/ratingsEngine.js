@@ -28,12 +28,21 @@ const {
   computeTeamAveragesFromGames,
 } = require("./espn");
 const { computeTSI } = require("../tsi");
+const { devig } = require("./oddsMath");
+const { readFutures } = require("./marketFutures");
 
 const ELO_BASE = 1500;
 const ELO_K = 20;
 const ELO_HOME_FIELD = 48;
 const ADJUSTMENT_LIMIT = 150; // max |Elo delta| a single adjustment may apply
 const RATINGS_TTL_MS = 10 * 60 * 1000;
+
+/* Preseason market prior. One Elo standard deviation across the NFL runs
+   around 65 points; MARKET_PRIOR_WEIGHT is the share of the preseason prior
+   taken from the betting market rather than from last season's carryover. */
+const MARKET_ELO_SD = 65;
+const MARKET_PRIOR_WEIGHT = 0.4;
+const MIN_MARKET_TEAMS = 24;
 
 const ADJUSTMENTS_FILE = path.join(__dirname, "..", "Data", "rating_adjustments.json");
 
@@ -183,23 +192,76 @@ async function buildLeagueGames(year) {
 }
 
 /**
- * Preseason prior: last season's final Elo regressed one-third back toward
- * the 1500 mean (the classic FiveThirtyEight carryover). Keeps early-season
- * and offseason ratings meaningful instead of a flat 1500 for everyone.
+ * Turn de-vigged championship futures into an Elo-scale prior.
+ *
+ * Championship probability is roughly log-linear in team strength, so log p is
+ * standardized across the league and mapped onto the Elo scale. The absolute
+ * probabilities matter less than the ordering and the spacing, which is what
+ * survives standardization.
+ *
+ * Returns null when the board is too thin to be worth trusting.
+ */
+function marketImpliedElo(oddsMap) {
+  const { probs } = devig(oddsMap, { method: "shin" });
+  const codes = Object.keys(probs);
+  if (codes.length < MIN_MARKET_TEAMS) return null;
+
+  const logs = codes.map((c) => Math.log(Math.max(1e-6, probs[c])));
+  const mean = logs.reduce((a, b) => a + b, 0) / logs.length;
+  const variance = logs.reduce((s, x) => s + (x - mean) ** 2, 0) / logs.length;
+  const sd = Math.sqrt(variance);
+  if (!(sd > 0)) return null;
+
+  const out = {};
+  codes.forEach((code, i) => {
+    out[code] = ELO_BASE + ((logs[i] - mean) / sd) * MARKET_ELO_SD;
+  });
+  return out;
+}
+
+/**
+ * Preseason prior: last season's final Elo regressed one-third back toward the
+ * 1500 mean (the classic FiveThirtyEight carryover), blended with a
+ * market-implied prior from Super Bowl futures.
+ *
+ * The carryover alone is purely backward-looking — it cannot see free agency,
+ * the draft, a traded quarterback or a coaching change, so a team that gutted
+ * or rebuilt its roster in March still opens the season rated on last
+ * November's evidence. The futures board has priced all of it. Blending the
+ * two is why the market belongs here and not only in the validation panel.
+ *
+ * Uses the *stored* snapshot rather than a live pull, so building ratings stays
+ * synchronous-ish, deterministic and free of a network dependency; the live
+ * feed refreshes that file on its own cadence.
  */
 async function computePreseasonPrior(year) {
+  const carryover = {};
   try {
     const { games } = await buildLeagueGames(year - 1);
     const { elo, ratedGames } = replayGamesToElo(games);
-    if (ratedGames.length < 100) return {}; // partial prior season — skip
-    const prior = {};
-    for (const [team, rating] of Object.entries(elo)) {
-      prior[team] = ELO_BASE + (rating - ELO_BASE) * (2 / 3);
+    if (ratedGames.length >= 100) { // partial prior season — skip
+      for (const [team, rating] of Object.entries(elo)) {
+        carryover[team] = ELO_BASE + (rating - ELO_BASE) * (2 / 3);
+      }
     }
-    return prior;
-  } catch (_err) {
-    return {};
+  } catch (_err) { /* no carryover; the market alone may still be usable */ }
+
+  let market = null;
+  try {
+    market = marketImpliedElo(readFutures().odds);
+  } catch (_err) { market = null; }
+
+  const hasCarryover = Object.keys(carryover).length > 0;
+  if (!market) return { prior: carryover, source: hasCarryover ? "carryover" : "none" };
+  if (!hasCarryover) return { prior: market, source: "market" };
+
+  const prior = {};
+  for (const team of new Set([...Object.keys(carryover), ...Object.keys(market)])) {
+    const c = carryover[team] ?? ELO_BASE;
+    const m = market[team] ?? ELO_BASE;
+    prior[team] = (1 - MARKET_PRIOR_WEIGHT) * c + MARKET_PRIOR_WEIGHT * m;
   }
+  return { prior, source: "carryover+market" };
 }
 
 /**
@@ -210,10 +272,11 @@ async function computePreseasonPrior(year) {
  */
 async function computePowerRatings({ year } = {}) {
   const resolvedYear = year || getNFLSeasonYear();
-  const [{ teams, games, schedules }, prior] = await Promise.all([
+  const [{ teams, games, schedules }, priorResult] = await Promise.all([
     buildLeagueGames(resolvedYear),
     computePreseasonPrior(resolvedYear),
   ]);
+  const { prior, source: priorSource } = priorResult;
   const { elo, ratedGames } = replayGamesToElo(games, prior);
   const adjustments = listAdjustments();
 
@@ -271,6 +334,8 @@ async function computePowerRatings({ year } = {}) {
   return {
     year: resolvedYear,
     system: "Elo v2 · K=20 · MOV-weighted · HFA +48 · ⅓-regressed carryover · TSI overlay",
+    priorSource,
+    priorMarketWeight: priorSource === "carryover+market" ? MARKET_PRIOR_WEIGHT : 0,
     lastCompletedWeek,
     gamesRated: ratedGames.length,
     updatedAt: new Date().toISOString(),
@@ -348,7 +413,11 @@ module.exports = {
   removeAdjustments,
   getPowerRatings,
   computePowerRatings,
+  computePreseasonPrior,
+  marketImpliedElo,
   getEloSnapshot,
   blendWithElo,
   _invalidateRatingsCache,
+  MARKET_ELO_SD,
+  MARKET_PRIOR_WEIGHT,
 };

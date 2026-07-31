@@ -409,7 +409,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
           <h2 className="rlab-h2">MARKET CHECK</h2>
           <span className="rlab-meta">
             {market
-              ? `Futures ${market.market.asOf} · overround ${market.market.overroundPct}% removed`
+              ? `Futures ${market.market.asOf} · ${market.market.devigMethod} de-vig · overround ${market.market.overroundPct}% removed`
               : "De-vigged Super Bowl futures"}
           </span>
         </div>
@@ -417,12 +417,18 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
           <>
             <div className="rlab-stat-row">
               <div className="rlab-stat">
-                <div className="rlab-stat__val">{market.summary.correlation}</div>
-                <div className="rlab-stat__label">MODEL ↔ MARKET CORRELATION</div>
+                <div className="rlab-stat__val">{market.summary.totalVariation}</div>
+                <div className="rlab-stat__label">MODEL ↔ MARKET DISTANCE</div>
               </div>
               <div className="rlab-stat">
-                <div className="rlab-stat__val">{market.summary.meanAbsEdgePts} pts</div>
-                <div className="rlab-stat__label">MEAN ABSOLUTE EDGE</div>
+                <div className="rlab-stat__val">{market.summary.klDivergenceBits} bits</div>
+                <div className="rlab-stat__label">KL DIVERGENCE</div>
+              </div>
+              <div className="rlab-stat">
+                <div className="rlab-stat__val">
+                  {market.blend ? `${Math.round(market.blend.modelWeight * 100)}/${Math.round(market.blend.marketWeight * 100)}` : "—"}
+                </div>
+                <div className="rlab-stat__label">MODEL / MARKET WEIGHT</div>
               </div>
               <div className="rlab-stat">
                 <div className="rlab-stat__val">
@@ -434,7 +440,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
             <div className="rlab-table-wrap">
               <table className="rlab-table">
                 <thead>
-                  <tr><th>Team</th><th>Model SB%</th><th>Market SB%</th><th>Edge</th></tr>
+                  <tr><th>Team</th><th>Model SB%</th><th>Market SB%</th><th>Blended</th><th>Edge</th></tr>
                 </thead>
                 <tbody>
                   {market.rows.slice(0, 16).map((r) => (
@@ -442,6 +448,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
                       <td className="rlab-table__team">{r.code}{!r.inModelField ? " *" : ""}</td>
                       <td>{fmtPct(r.modelPct)}</td>
                       <td>{fmtPct(r.marketPct)}</td>
+                      <td>{fmtPct(r.blendedPct)}</td>
                       <td><LiftChip value={r.edgePts} /></td>
                     </tr>
                   ))}
@@ -449,9 +456,12 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
               </table>
             </div>
             <p className="rlab-muted rlab-footnote">
-              * outside the model's projected playoff field. A high correlation with
-              a few explained divergences is the healthy state — matching the market
-              exactly would mean the model adds nothing.
+              * outside the model's projected playoff field. Distance is total variation —
+              the share of probability mass that would have to move for the two to agree —
+              and KL divergence measures the same disagreement in bits. Both read 0 only on
+              an exact match, unlike correlation, which a model reporting double the market
+              everywhere would still score a perfect 1.0.
+              {market.blend ? ` Blended is a logarithmic pool at the weights above: preseason the market leads, because Elo starts from a regressed carryover that cannot see the offseason, and the model's share grows with every completed week.` : ""}
             </p>
           </>
         ) : (
