@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api";
+import { useSeason } from "../workspace";
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 
@@ -271,8 +272,11 @@ function areaPath(pts, zeroY) {
 
 /* ── Main Component ──────────────────────────────────────────── */
 
-export default function Timeline() {
-  const [season, setSeason]     = useState(2027);
+export default function Timeline({ season: seasonProp }) {
+  /* The season now comes from the workspace bar, which scopes every page at
+     once. Timeline used to own a private pill row that changed only itself. */
+  const contextSeason = useSeason();
+  const season = seasonProp ?? contextSeason;
   const [events, setEvents]     = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading]   = useState(true);
@@ -778,26 +782,13 @@ export default function Timeline() {
         }
       `}</style>
 
-      <div className="tl-header">
-        <div className="tl-season-selector">
-          {[2027, 2026, 2025, 2024].map((y) => (
-            <button
-              key={y}
-              type="button"
-              className={`tl-season-pill ${season === y ? "active" : ""}`}
-              aria-pressed={season === y}
-              onClick={() => setSeason(y)}
-            >
-              {y}
-            </button>
-          ))}
-        </div>
-        {synthetic && (
+      {synthetic && (
+        <div className="tl-header">
           <span className="tl-synthetic-note">
             Projected {season} season — simulated while live events are unavailable
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {loading && !plotPoints.length ? (
         <div className="tl-loading">Loading momentum data…</div>

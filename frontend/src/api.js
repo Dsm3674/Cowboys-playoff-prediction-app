@@ -294,8 +294,8 @@
     });
   }
 
-  async function getPlayerMaps() {
-    return request("/api/players/maps");
+  async function getPlayerMaps(season) {
+    return request("/api/players/maps", { query: season ? { season } : {} });
   }
 
   async function getPlayerRadar(season) {
@@ -475,6 +475,8 @@
     getSchedule,
     getTSI,
     getPaths,
+    // Identity — exposed so pages can gate content on being signed in.
+    getSignedInUser,
     getSeasonPaths,
     getMustWin,
     getMustWinGames,

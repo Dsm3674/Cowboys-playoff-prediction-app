@@ -1,7 +1,10 @@
 import React from "react";
 import { api } from "../api";
+import { useSeason } from "../workspace";
 
-function RivalTeamImpactPage({ year = 2027, selectedTeam = "DAL" }) {
+function RivalTeamImpactPage({ year, selectedTeam = "DAL" }) {
+  const contextSeason = useSeason();
+  const season = year ?? contextSeason;
   const [loading, setLoading] = React.useState(false);
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState("");
@@ -12,13 +15,13 @@ function RivalTeamImpactPage({ year = 2027, selectedTeam = "DAL" }) {
 
   React.useEffect(() => {
     loadRivalImpactData();
-  }, [year, selectedTeam, chaos, iterations]);
+  }, [season, selectedTeam, chaos, iterations]);
 
   async function loadRivalImpactData() {
     try {
       setLoading(true);
       setError("");
-      const result = await api.getRivalImpact(selectedTeam, year, chaos, iterations);
+      const result = await api.getRivalImpact(selectedTeam, season, chaos, iterations);
       setData(result);
     } catch (err) {
       setError(err.message || "Failed to load rival impact analysis.");
@@ -56,7 +59,7 @@ function RivalTeamImpactPage({ year = 2027, selectedTeam = "DAL" }) {
 
         <div className="intel-hero__meta">
           <div className="intel-chip">{selectedTeam}</div>
-          <div className="intel-chip intel-chip--muted">Season {year}</div>
+          <div className="intel-chip intel-chip--muted">Season {season}</div>
         </div>
       </section>
 

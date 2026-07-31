@@ -31,6 +31,10 @@ import StandingsPage from "./components/StandingsPage";
 import TSICard from "./components/TSICard";
 import TeamComparisonPage from "./components/TeamComparisonPage";
 import Timeline from "./components/Timeline";
+import Maps from "./components/Maps";
+import AboutPage from "./components/AboutPage";
+import WorkspaceBar from "./components/WorkspaceBar";
+import { WorkspaceProvider, useWorkspace } from "./workspace";
 import PlayoffBracket from "./components/PlayoffBracket";
 import UserProfileCard from "./components/UserProfileCard";
 import WarRoomPage from "./components/WarRoomPage";
@@ -183,6 +187,7 @@ function CommandPalette({ isOpen, onClose, onNavigate }) {
     { id: 'predictions', label: 'Predictions',       desc: 'Model output and scenarios' },
     { id: 'insights',    label: 'Insights',          desc: 'League standings and trends' },
     { id: 'warroom',     label: 'War Room',          desc: 'Pro prediction markets + analyst chatbot' },
+    { id: 'about',       label: 'About',             desc: 'How the model works (signed in)' },
   ];
 
   const results = pages.filter(p => p.label.toLowerCase().includes(query.toLowerCase()));
@@ -392,6 +397,7 @@ function PlayersPage({ year, selectedTeam }) {
     { id: "team-profile", label: "Team Profile" },
     { id: "compare", label: "Comparison" },
     { id: "analytics", label: "Player Radar" },
+    { id: "map", label: "Performance Map" },
     { id: "rival", label: "Rival Impact" }
   ];
 
@@ -405,6 +411,7 @@ function PlayersPage({ year, selectedTeam }) {
         {activeTab === "team-profile" && <DetailedTeamProfilePage year={year} selectedTeam={selectedTeam} />}
         {activeTab === "compare" && <TeamComparisonPage year={year} selectedTeam={selectedTeam} />}
         {activeTab === "analytics" && <PlayerRadar />}
+        {activeTab === "map" && <Maps />}
         {activeTab === "rival" && <RivalTeamImpactPage year={year} selectedTeam={selectedTeam} />}
       </div>
     </PageShell>
@@ -479,8 +486,8 @@ function InsightsPage({ year, selectedTeam }) {
         {activeTab === "playoff" && <PlayoffPulsePage year={year} />}
         {activeTab === "division" && <DivisionPowerPage year={year} />}
         {activeTab === "conference" && <ConferenceRacePage year={year} />}
-        {activeTab === "clutch" && <ClutchIndex />}
-        {activeTab === "timeline" && <Timeline />}
+        {activeTab === "clutch" && <ClutchIndex season={year} />}
+        {activeTab === "timeline" && <Timeline season={year} />}
       </div>
     </PageShell>
   );
@@ -617,11 +624,13 @@ function useAppRouter() {
 
 /* ── App ────────────────────────────────────────────────────── */
 
-function App() {
+function AppShell() {
   const currentPage = useAppRouter();
-  const [selectedTeam, setSelectedTeam] = useState("DAL");
+  /* Season and team come from the workspace context so every page agrees.
+     They used to be a local useState the UI could never change, plus a
+     calendar year that disagreed with the seasons the pages hard-coded. */
+  const { season, team: selectedTeam } = useWorkspace();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     function handleGlobalKey(e) {
@@ -643,7 +652,7 @@ function App() {
   }, []);
 
   function renderPage() {
-    const year = currentYear;
+    const year = season;
     switch (currentPage) {
       case "dashboard":
         return <Dashboard year={year} selectedTeam={selectedTeam} />;
@@ -668,6 +677,8 @@ function App() {
         );
       case "events":
         return <EventsAdmin />;
+      case "about":
+        return <AboutPage />;
       case "profile":
         return <UserProfileCard team={selectedTeam} />;
       case "history":
@@ -680,8 +691,11 @@ function App() {
   return (
     <div className="app-container">
       <div className="workspace-surface">
-        <div className="workspace-main">{renderPage()}</div>
-        <LinearInspector currentPage={currentPage} selectedTeam={selectedTeam} year={currentYear} />
+        <div className="workspace-main">
+          <WorkspaceBar teams={NFL_TEAMS} />
+          {renderPage()}
+        </div>
+        <LinearInspector currentPage={currentPage} selectedTeam={selectedTeam} year={season} />
       </div>
       <Footer />
       <CommandPalette
@@ -690,6 +704,14 @@ function App() {
         onNavigate={(page) => window.setPage(page)}
       />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <WorkspaceProvider>
+      <AppShell />
+    </WorkspaceProvider>
   );
 }
 

@@ -1,7 +1,13 @@
 import React from "react";
 import { api } from "../api";
+import { useSeason } from "../workspace";
 
-function ClutchIndex() {
+function ClutchIndex({ season: seasonProp }) {
+  /* Follows the workspace season. This used to be a hard-coded 2027 that
+     ignored the rest of the app, so the Insights page could show 2026
+     standings next to a 2027 clutch index. */
+  const contextSeason = useSeason();
+  const season = seasonProp ?? contextSeason;
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [selectedSituation, setSelectedSituation] = React.useState("all");
@@ -11,12 +17,12 @@ function ClutchIndex() {
 
   React.useEffect(() => {
     loadClutchData();
-  }, []);
+  }, [season]);
 
   const loadClutchData = async () => {
     try {
       setLoading(true);
-      const result = await api.getClutchIndex(2027);
+      const result = await api.getClutchIndex(season);
       setData(result);
     } catch (error) {
       console.error("Error loading clutch data:", error);

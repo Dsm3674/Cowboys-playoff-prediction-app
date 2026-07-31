@@ -12,86 +12,30 @@ const { computeClutchIndex } = require("../clutch");
 const { computeConsistencyExplosiveness } = require("../Maps");
 
 
-const ROSTER_MAP =[
-  // --- QUARTERBACKS ---
-  { id: "dak", name: "Dak Prescott", pos: "QB", role: "Starter", side: "offense", regex: /\b(d\.prescott|dak prescott)\b/ },
-  { id: "rush", name: "Cooper Rush", pos: "QB", role: "Backup", side: "offense", regex: /\b(c\.rush|cooper rush)\b/ },
-  { id: "lance", name: "Trey Lance", pos: "QB", role: "Depth", side: "offense", regex: /\b(t\.lance|trey lance)\b/ },
-
-  // --- RUNNING BACKS / FULLBACKS ---
-  { id: "zeke", name: "Ezekiel Elliott", pos: "RB", role: "Rotation", side: "offense", regex: /\b(e\.elliott|ezekiel elliott)\b/ },
-  { id: "dowdle", name: "Rico Dowdle", pos: "RB", role: "Starter", side: "offense", regex: /\b(r\.dowdle|rico dowdle)\b/ },
-  { id: "vaughn", name: "Deuce Vaughn", pos: "RB", role: "Depth", side: "offense", regex: /\b(d\.vaughn|deuce vaughn)\b/ },
-  { id: "luepke", name: "Hunter Luepke", pos: "FB", role: "Specialist", side: "offense", regex: /\b(h\.luepke|hunter luepke)\b/ },
-
-  // --- WIDE RECEIVERS ---
-  { id: "ceedee", name: "CeeDee Lamb", pos: "WR", role: "Elite", side: "offense", regex: /\b(c\.lamb|ceedee lamb)\b/ },
-  { id: "brandin", name: "Brandin Cooks", pos: "WR", role: "Starter", side: "offense", regex: /\b(b\.cooks|brandin cooks)\b/ },
-  { id: "tolbert", name: "Jalen Tolbert", pos: "WR", role: "Rotation", side: "offense", regex: /\b(j\.tolbert|jalen tolbert)\b/ },
-  { id: "turpin", name: "KaVontae Turpin", pos: "WR", role: "Returner", side: "offense", regex: /\b(k\.turpin|kavontae turpin)\b/ },
-  { id: "brooks", name: "Jalen Brooks", pos: "WR", role: "Depth", side: "offense", regex: /\b(j\.brooks|jalen brooks)\b/ },
-  { id: "flournoy", name: "Ryan Flournoy", pos: "WR", role: "Depth", side: "offense", regex: /\b(r\.flournoy|ryan flournoy)\b/ },
-
-  // --- TIGHT ENDS ---
-  { id: "ferguson", name: "Jake Ferguson", pos: "TE", role: "Starter", side: "offense", regex: /\b(j\.ferguson|jake ferguson)\b/ },
-  { id: "schoonmaker", name: "Luke Schoonmaker", pos: "TE", role: "Rotation", side: "offense", regex: /\b(l\.schoonmaker|luke schoonmaker)\b/ },
-  { id: "stephens", name: "John Stephens Jr.", pos: "TE", role: "Depth", side: "offense", regex: /\b(j\.stephens|john stephens)\b/ },
-
-  // --- OFFENSIVE LINE (Tackles, Guards, Centers) ---
-  { id: "smith_t", name: "Tyler Smith", pos: "OL", role: "Starter", side: "oline", regex: /\b(t\.smith|tyler smith)\b/ },
-  { id: "martin", name: "Zack Martin", pos: "OL", role: "Starter", side: "oline", regex: /\b(z\.martin|zack martin)\b/ },
-  { id: "steele", name: "Terence Steele", pos: "OL", role: "Starter", side: "oline", regex: /\b(t\.steele|terence steele)\b/ },
-  { id: "guyton", name: "Tyler Guyton", pos: "OL", role: "Starter", side: "oline", regex: /\b(t\.guyton|tyler guyton)\b/ },
-  { id: "beebe", name: "Cooper Beebe", pos: "OL", role: "Starter", side: "oline", regex: /\b(c\.beebe|cooper beebe)\b/ },
-  { id: "hoffman", name: "Brock Hoffman", pos: "OL", role: "Depth", side: "oline", regex: /\b(b\.hoffman|brock hoffman)\b/ },
-  { id: "bass", name: "T.J. Bass", pos: "OL", role: "Depth", side: "oline", regex: /\b(t\.bass|t\.j\. bass)\b/ },
-  { id: "edoga", name: "Chuma Edoga", pos: "OL", role: "Depth", side: "oline", regex: /\b(c\.edoga|chuma edoga)\b/ },
-
-  // --- DEFENSIVE LINE / EDGE ---
-  { id: "micah", name: "Micah Parsons", pos: "EDGE", role: "Elite", side: "defense", regex: /\b(m\.parsons|micah parsons)\b/ },
-  { id: "tank", name: "DeMarcus Lawrence", pos: "EDGE", role: "Starter", side: "defense", regex: /\b(d\.lawrence|demarcus lawrence)\b/ },
-  { id: "osa", name: "Osa Odighizuwa", pos: "DT", role: "Starter", side: "defense", regex: /\b(o\.odighizuwa|osa odighizuwa)\b/ },
-  { id: "mazi", name: "Mazi Smith", pos: "DT", role: "Rotation", side: "defense", regex: /\b(m\.smith|mazi smith)\b/ },
-  { id: "golston", name: "Chauncey Golston", pos: "DT", role: "Rotation", side: "defense", regex: /\b(c\.golston|chauncey golston)\b/ },
-  { id: "kneeland", name: "Marshawn Kneeland", pos: "EDGE", role: "Rotation", side: "defense", regex: /\b(m\.kneeland|marshawn kneeland)\b/ },
-  { id: "joseph", name: "Linval Joseph", pos: "DT", role: "Veteran", side: "defense", regex: /\b(l\.joseph|linval joseph)\b/ },
-
-  // --- LINEBACKERS ---
-  { id: "kendricks", name: "Eric Kendricks", pos: "LB", role: "Starter", side: "defense", regex: /\b(e\.kendricks|eric kendricks)\b/ },
-  { id: "overshown", name: "DeMarvion Overshown", pos: "LB", role: "Starter", side: "defense", regex: /\b(d\.overshown|demarvion overshown)\b/ },
-  { id: "clark", name: "Damone Clark", pos: "LB", role: "Rotation", side: "defense", regex: /\b(d\.clark|damone clark)\b/ },
-  { id: "liufau", name: "Marist Liufau", pos: "LB", role: "Depth", side: "defense", regex: /\b(m\.liufau|marist liufau)\b/ },
-
-  // --- CORNERBACKS ---
-  { id: "diggs", name: "Trevon Diggs", pos: "CB", role: "Elite", side: "defense", regex: /\b(t\.diggs|trevon diggs)\b/ },
-  { id: "bland", name: "Daron Bland", pos: "CB", role: "Elite", side: "defense", regex: /\b(d\.bland|daron bland)\b/ },
-  { id: "lewis", name: "Jourdan Lewis", pos: "CB", role: "Starter", side: "defense", regex: /\b(j\.lewis|jourdan lewis)\b/ },
-  { id: "carson", name: "Caelen Carson", pos: "CB", role: "Rotation", side: "defense", regex: /\b(c\.carson|caelen carson)\b/ },
-  { id: "booth", name: "Andrew Booth", pos: "CB", role: "Depth", side: "defense", regex: /\b(a\.booth|andrew booth)\b/ },
-  { id: "mukuamu", name: "Israel Mukuamu", pos: "CB", role: "Depth", side: "defense", regex: /\b(i\.mukuamu|israel mukuamu)\b/ },
-
-  // --- SAFETIES ---
-  { id: "hooker", name: "Malik Hooker", pos: "SAF", role: "Starter", side: "defense", regex: /\b(m\.hooker|malik hooker)\b/ },
-  { id: "wilson", name: "Donovan Wilson", pos: "SAF", role: "Starter", side: "defense", regex: /\b(d\.wilson|donovan wilson)\b/ },
-  { id: "bell", name: "Markquese Bell", pos: "SAF", role: "Rotation", side: "defense", regex: /\b(m\.bell|markquese bell)\b/ },
-  { id: "thomas", name: "Juanyeh Thomas", pos: "SAF", role: "Depth", side: "defense", regex: /\b(j\.thomas|juanyeh thomas)\b/ },
-
-  // --- SPECIAL TEAMS ---
-  { id: "aubrey", name: "Brandon Aubrey", pos: "K", role: "Starter", side: "special", regex: /\b(b\.aubrey|brandon aubrey)\b/ },
-  { id: "anger", name: "Bryan Anger", pos: "P", role: "Starter", side: "special", regex: /\b(b\.anger|bryan anger)\b/ },
-  { id: "sieg", name: "Trent Sieg", pos: "LS", role: "Starter", side: "special", regex: /\b(t\.sieg|trent sieg)\b/ }
-];
+/* The roster (and the play-by-play patterns used to spot each player) now
+   comes from services/roster, which derives it from Data/roster.js. It used
+   to be 48 hand-written entries right here, which drifted out of date the
+   moment the roster changed and silently capped these endpoints at the
+   handful of players who happened to still be listed. */
+const { ROSTER_MAP } = require("../services/roster");
 
 
 async function fetchRealCowboysDeepStats(year) {
   const fetch = require("node-fetch");
 
-  let games = await espn.fetchCowboysGamesSeasonToDate(year);
-  let completedGames = games.filter(g => g.completed && g.id);
-
-  if (completedGames.length === 0) {
-    games = await espn.fetchCowboysGamesSeasonToDate(year - 1);
+  /* Walk back until a season with completed games turns up. Heading into a
+     season nothing has been played yet, and the old single-step fallback could
+     still land on another empty year — which left every player at zero snaps
+     and these endpoints returning an empty roster. Three steps covers the
+     preseason gap without trawling the archive. */
+  let games = [];
+  let completedGames = [];
+  let statsYear = year;
+  for (let back = 0; back <= 3; back++) {
+    statsYear = year - back;
+    games = await espn.fetchCowboysGamesSeasonToDate(statsYear);
     completedGames = games.filter(g => g.completed && g.id);
+    if (completedGames.length > 0) break;
   }
 
   // 1. Initialize High-Fidelity Data Matrix
