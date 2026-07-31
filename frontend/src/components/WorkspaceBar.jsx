@@ -8,8 +8,12 @@ import { useWorkspace } from "../workspace";
  * inside individual cards — which is what the app had before, when Timeline
  * carried its own season pills that changed nothing else on screen.
  */
-export default function WorkspaceBar({ teams = [] }) {
+export default function WorkspaceBar({ teams = [], showSeason = true, showTeam = true }) {
   const { season, seasons, setSeason, team, setTeam } = useWorkspace();
+
+  /* Only render a control that actually scopes the page being shown — see
+     PAGE_SCOPE in main.jsx. The bar itself isn't rendered when neither does. */
+  const showTeamPicker = showTeam && teams.length > 0;
 
   return (
     <div className="wsbar">
@@ -71,6 +75,7 @@ export default function WorkspaceBar({ teams = [] }) {
         }
       `}</style>
 
+      {showSeason && (
       <div className="wsbar__group">
         <span className="wsbar__label" id="wsbar-season">Season</span>
         <div className="wsbar__pills" role="group" aria-labelledby="wsbar-season">
@@ -87,8 +92,9 @@ export default function WorkspaceBar({ teams = [] }) {
           ))}
         </div>
       </div>
+      )}
 
-      {teams.length > 0 && (
+      {showTeamPicker && (
         <div className="wsbar__group">
           <label className="wsbar__label" htmlFor="wsbar-team">Team</label>
           <select
@@ -105,7 +111,11 @@ export default function WorkspaceBar({ teams = [] }) {
       )}
 
       <div className="wsbar__spacer" />
-      <span className="wsbar__note">Applies to every page</span>
+      <span className="wsbar__note">
+        {showSeason && showTeamPicker
+          ? "Scopes this page"
+          : showSeason ? "Season applies to this page" : "Team applies to this page"}
+      </span>
     </div>
   );
 }

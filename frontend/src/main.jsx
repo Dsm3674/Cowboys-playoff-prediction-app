@@ -58,7 +58,8 @@ const CATEGORY_MAP = {
   warroom: 'Pro',
   events: 'System',
   profile: 'System',
-  history: 'System'
+  history: 'System',
+  about: 'System'
 };
 
 const NFL_TEAMS = [
@@ -462,7 +463,7 @@ function BracketPage({ year }) {
 
 /* ── Insights Page (consolidated) ───────────────────────────── */
 
-function InsightsPage({ year, selectedTeam }) {
+function InsightsPage({ year }) {
   const [activeTab, setActiveTab] = useState("overview");
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -540,7 +541,7 @@ function LinearInspector({ currentPage, selectedTeam, year }) {
 
 function useAppRouter() {
   const allowedPages = useMemo(
-    () => new Set(["dashboard", "games", "players", "predictions", "insights", "bracket", "warroom", "events", "profile", "history"]),
+    () => new Set(["dashboard", "games", "players", "predictions", "insights", "bracket", "warroom", "events", "profile", "history", "about"]),
     []
   );
 
@@ -624,6 +625,31 @@ function useAppRouter() {
 
 /* ── App ────────────────────────────────────────────────────── */
 
+/**
+ * Which workspace controls genuinely scope each page.
+ *
+ * A control that changes nothing on screen is worse than no control — it
+ * implies the page is filtered when it isn't. Insights takes a team prop it
+ * never reads; the bracket is league-wide; the War Room's markets, the events
+ * admin (which has its own season field for writing events), profile, history
+ * and about aren't season-scoped at all.
+ */
+const PAGE_SCOPE = {
+  dashboard:   { season: true,  team: true  },
+  games:       { season: true,  team: true  },
+  players:     { season: true,  team: true  },
+  predictions: { season: true,  team: true  },
+  insights:    { season: true,  team: false },
+  bracket:     { season: true,  team: false },
+  profile:     { season: false, team: true  },
+  warroom:     { season: false, team: false },
+  events:      { season: false, team: false },
+  about:       { season: false, team: false },
+  history:     { season: false, team: false },
+};
+
+const DEFAULT_SCOPE = { season: true, team: true };
+
 function AppShell() {
   const currentPage = useAppRouter();
   /* Season and team come from the workspace context so every page agrees.
@@ -631,6 +657,7 @@ function AppShell() {
      calendar year that disagreed with the seasons the pages hard-coded. */
   const { season, team: selectedTeam } = useWorkspace();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const scope = PAGE_SCOPE[currentPage] || DEFAULT_SCOPE;
 
   useEffect(() => {
     function handleGlobalKey(e) {
@@ -663,7 +690,7 @@ function AppShell() {
       case "predictions":
         return <PredictionsPage year={year} selectedTeam={selectedTeam} />;
       case "insights":
-        return <InsightsPage year={year} selectedTeam={selectedTeam} />;
+        return <InsightsPage year={year} />;
       case "bracket":
         return <BracketPage year={year} />;
       case "warroom":
@@ -692,7 +719,13 @@ function AppShell() {
     <div className="app-container">
       <div className="workspace-surface">
         <div className="workspace-main">
-          <WorkspaceBar teams={NFL_TEAMS} />
+          {(scope.season || scope.team) && (
+            <WorkspaceBar
+              teams={NFL_TEAMS}
+              showSeason={scope.season}
+              showTeam={scope.team}
+            />
+          )}
           {renderPage()}
         </div>
         <LinearInspector currentPage={currentPage} selectedTeam={selectedTeam} year={season} />
