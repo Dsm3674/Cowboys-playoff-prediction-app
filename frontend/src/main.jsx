@@ -47,6 +47,7 @@ import "./styles/MotionPolish.css";
 import "./styles/WorkspaceConsistency.css";
 import "./styles/WarRoom.css";
 import "./styles/RatingsLab.css";
+import "./styles/About.css";
 
 const CATEGORY_MAP = {
   dashboard: 'Core',

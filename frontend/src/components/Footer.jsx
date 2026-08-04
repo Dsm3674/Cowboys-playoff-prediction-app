@@ -16,6 +16,9 @@ function Footer() {
       } else {
         window.location.hash = page;
       }
+      /* The footer sits at the bottom of the document, so without this the
+         new page opens scrolled past its own hero. */
+      window.scrollTo({ top: 0, behavior: "smooth" });
     };
   }
 
@@ -43,7 +46,7 @@ function Footer() {
 
           <div className="site-footer__col">
             <h4 className="site-footer__heading">Company</h4>
-            <a href="#about" onClick={(e) => e.preventDefault()}>About</a>
+            <a href="#about" onClick={go("about")}>About</a>
             <a href="#changelog" onClick={(e) => e.preventDefault()}>Changelog</a>
             <a
               href="https://github.com/Dsm3674/Cowboys-playoff-prediction-app"

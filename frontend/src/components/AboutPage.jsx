@@ -8,7 +8,19 @@ import { api } from "../api";
  * auth blob or the identity cookie; an empty string means signed out. The
  * gate is a UX affordance, not a security boundary — nothing here is secret,
  * it is just not shown to anonymous visitors.
+ *
+ * Presentation lives in styles/About.css and is built on the workspace design
+ * tokens, so this page inherits the same ink/cream/electric palette, panel
+ * geometry and type scale as every other page instead of carrying its own.
  */
+
+/** Headline constants of the model, pulled from the copy below. */
+const FIGURES = [
+  { value: "20", label: "Elo K-factor" },
+  { value: "+48", label: "Home field" },
+  { value: "25k", label: "Simulations" },
+  { value: "32", label: "Teams rated" },
+];
 
 const SECTIONS = [
   {
@@ -38,6 +50,7 @@ const SECTIONS = [
     body: "Not betting advice, and not a sportsbook. Odds appear as a modelling input and "
       + "a sanity check, never as a pick or a recommended wager. Star Coins in the War Room "
       + "are virtual and have no cash value.",
+    caution: true,
   },
 ];
 
@@ -48,6 +61,23 @@ const ENGINES = [
   { name: "Performance map", detail: "Consistency against explosiveness by player" },
   { name: "Timeline", detail: "Cumulative season momentum by event" },
   { name: "Market check", detail: "Shin de-vig, KL divergence against the model" },
+];
+
+const SOURCES = [
+  {
+    name: "ESPN public APIs",
+    detail: "Schedules, scores and play-by-play. Everything the ratings replay is built from.",
+  },
+  {
+    name: "The Odds API",
+    detail: "Super Bowl futures, read from a stored book-consensus snapshot and refreshed "
+      + "live when an API key is configured.",
+  },
+  {
+    name: "Projected fallback",
+    detail: "When a feed is unreachable the app falls back to clearly-labelled projected "
+      + "data rather than presenting a gap as fact.",
+  },
 ];
 
 export default function AboutPage() {
@@ -79,69 +109,32 @@ export default function AboutPage() {
 
   if (!user) {
     return (
-      <div className="intel-page">
+      <div className="intel-page about">
         <section className="intel-hero">
           <div className="intel-hero__copy">
             <div className="intel-kicker">About</div>
-            <h1 className="intel-title">Sign in to read this</h1>
+            <h1 className="intel-title">How LoneStar works</h1>
             <p className="intel-subtitle">
-              The about page — what the model does, how the ratings are built, and where
-              market odds fit in — is available once you're signed in.
+              The model, the data behind it, and the limits of what it claims.
             </p>
           </div>
+        </section>
+
+        <section className="about-gate">
+          <div className="about-gate__mark" aria-hidden="true">✦</div>
+          <h2 className="about-gate__title">Sign in to read this</h2>
+          <p className="about-gate__body">
+            The about page — what the model does, how the ratings are built, and where
+            market odds fit in — is available once you're signed in. Nothing here is
+            secret; it just isn't shown to anonymous visitors.
+          </p>
         </section>
       </div>
     );
   }
 
   return (
-    <div className="intel-page">
-      <style>{`
-        .about-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 14px;
-        }
-        .about-card {
-          background: rgba(10,22,40,.82);
-          border: 1px solid rgba(255,255,255,.07);
-          border-left: 3px solid #3987e5;
-          border-radius: 12px;
-          padding: 1.15rem 1.25rem;
-        }
-        .about-card h3 {
-          font-size: 14px;
-          font-weight: 700;
-          color: #fff;
-          margin: 0 0 .5rem;
-        }
-        .about-card p {
-          font-size: 13.5px;
-          line-height: 1.65;
-          color: #a1aec5;
-          margin: 0;
-        }
-        .about-engines {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 10px;
-          margin-top: .25rem;
-        }
-        .about-engine {
-          background: rgba(255,255,255,.03);
-          border: 1px solid rgba(255,255,255,.07);
-          border-radius: 10px;
-          padding: .7rem .85rem;
-        }
-        .about-engine__name { font-size: 12.5px; font-weight: 700; color: #cfe3fb; }
-        .about-engine__detail { font-size: 11.5px; color: #7a8fa8; margin-top: 3px; }
-        .about-signed {
-          font-family: ui-monospace, monospace;
-          font-size: 11px;
-          color: #7a8fa8;
-        }
-      `}</style>
-
+    <div className="intel-page about">
       <section className="intel-hero">
         <div className="intel-hero__copy">
           <div className="intel-kicker">About</div>
@@ -151,24 +144,40 @@ export default function AboutPage() {
           </p>
         </div>
         <div className="intel-hero__meta">
-          <div className="intel-chip intel-chip--muted">
-            <span className="about-signed">{user}</span>
-          </div>
+          <span className="intel-chip intel-chip--muted">Hybrid Elo v2</span>
+          <span className="intel-chip intel-chip--success about__identity">
+            <span className="about__identity-dot" aria-hidden="true" />
+            <span className="about__identity-user">{user}</span>
+          </span>
         </div>
       </section>
 
-      <section className="about-grid">
-        {SECTIONS.map((section) => (
-          <article className="about-card" key={section.title}>
-            <h3>{section.title}</h3>
-            <p>{section.body}</p>
+      <section className="about-figures" aria-label="Model constants">
+        {FIGURES.map((figure) => (
+          <div className="about-figure" key={figure.label}>
+            <div className="about-figure__value">{figure.value}</div>
+            <div className="about-figure__label">{figure.label}</div>
+          </div>
+        ))}
+      </section>
+
+      <section className="about-grid" aria-label="Method">
+        {SECTIONS.map((section, index) => (
+          <article
+            className={`about-card${section.caution ? " about-card--caution" : ""}`}
+            key={section.title}
+          >
+            <div className="about-card__index">{String(index + 1).padStart(2, "0")}</div>
+            <h2 className="about-card__title">{section.title}</h2>
+            <p className="about-card__body">{section.body}</p>
           </article>
         ))}
       </section>
 
-      <section className="intel-panel" style={{ marginTop: "1.25rem" }}>
+      <section className="intel-panel">
         <div className="intel-panel__header">
           <h2 className="intel-section-title">Engines</h2>
+          <span className="intel-section-meta text-muted">{ENGINES.length} running</span>
         </div>
         <div className="about-engines">
           {ENGINES.map((engine) => (
@@ -180,16 +189,18 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="intel-panel" style={{ marginTop: "1.25rem" }}>
+      <section className="intel-panel">
         <div className="intel-panel__header">
           <h2 className="intel-section-title">Data sources</h2>
         </div>
-        <p style={{ lineHeight: 1.7, fontSize: "13.5px", color: "#a1aec5" }}>
-          Schedules, scores and play-by-play come from ESPN's public feeds. Super Bowl
-          futures come from a stored book-consensus snapshot, refreshed from The Odds API
-          when a key is configured. When a feed is unreachable the app falls back to
-          clearly-labelled projected data rather than presenting a gap as fact.
-        </p>
+        <div className="about-sources">
+          {SOURCES.map((source) => (
+            <div className="about-source" key={source.name}>
+              <div className="about-source__name">{source.name}</div>
+              <div className="about-source__detail">{source.detail}</div>
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   );

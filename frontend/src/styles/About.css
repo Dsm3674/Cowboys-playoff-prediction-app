@@ -1,0 +1,278 @@
+/* ============================================================
+   About — how the model works
+   ------------------------------------------------------------
+   Built entirely on the app's design tokens (ink / cream /
+   electric, Geist + JetBrains Mono) rather than the hard-coded
+   navy the page used to carry, so it inherits the workspace
+   look and flips correctly inside a `.section-cream` block.
+   ============================================================ */
+
+.about {
+  --about-step: var(--electric-hi);
+  color: var(--fg);
+}
+
+/* ── Hero meta ────────────────────────────────────────────── */
+
+.about__identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.about__identity-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: var(--signal-success);
+  box-shadow: 0 0 0 3px rgba(31, 138, 76, 0.18);
+  flex: 0 0 auto;
+}
+
+.about__identity-user {
+  font-family: var(--font-mono);
+  font-size: var(--fz-caption);
+  letter-spacing: 0;
+  text-transform: none;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Numbers strip ────────────────────────────────────────── */
+
+.about-figures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.about-figure {
+  padding: 1rem 1.15rem;
+  background: var(--bg-elev);
+}
+
+.about-figure__value {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg);
+}
+
+.about-figure__label {
+  margin-top: 0.35rem;
+  font-size: var(--fz-eyebrow);
+  font-weight: 700;
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+/* ── Method cards ─────────────────────────────────────────── */
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.about-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1.25rem 1.35rem 1.35rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  background: var(--bg-elev);
+  overflow: hidden;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+/* The accent rule reads as a spine down the left edge, matching the
+   electric hairline the panels elsewhere in the workspace use. */
+.about-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: var(--about-step);
+  opacity: 0.7;
+}
+
+.about-card:hover {
+  border-color: var(--rule-strong);
+  transform: translateY(-2px);
+}
+
+.about-card--caution {
+  --about-step: var(--signal-warn);
+}
+
+.about-card__index {
+  font-family: var(--font-mono);
+  font-size: var(--fz-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wider);
+  color: var(--about-step);
+}
+
+.about-card__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fz-h3);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: var(--tracking-snug);
+  text-transform: none;
+  color: var(--fg);
+}
+
+.about-card__body {
+  margin: 0;
+  font-size: var(--fz-body);
+  line-height: 1.65;
+  color: var(--fg-muted);
+}
+
+/* ── Engine tiles ─────────────────────────────────────────── */
+
+.about-engines {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.65rem;
+}
+
+.about-engine {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-md);
+  background: rgba(244, 239, 230, 0.03);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.about-engine:hover {
+  border-color: var(--rule-strong);
+}
+
+.about-engine__name {
+  font-size: var(--fz-small);
+  font-weight: 700;
+  letter-spacing: var(--tracking-snug);
+  color: var(--fg);
+}
+
+.about-engine__detail {
+  font-size: var(--fz-caption);
+  line-height: 1.5;
+  color: var(--fg-muted);
+}
+
+/* ── Source rows ──────────────────────────────────────────── */
+
+.about-sources {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.about-source {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
+  gap: 0.35rem 1.25rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.about-source:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.about-source:last-child {
+  padding-bottom: 0;
+}
+
+.about-source__name {
+  font-family: var(--font-mono);
+  font-size: var(--fz-caption);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.about-source__detail {
+  font-size: var(--fz-body);
+  line-height: 1.65;
+  color: var(--fg-muted);
+}
+
+/* ── Signed-out gate ──────────────────────────────────────── */
+
+.about-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  background: var(--bg-elev);
+}
+
+.about-gate__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-md);
+  font-size: 1.1rem;
+  color: var(--fg-muted);
+}
+
+.about-gate__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fz-h3);
+  font-weight: 700;
+  letter-spacing: var(--tracking-snug);
+  text-transform: none;
+  color: var(--fg);
+}
+
+.about-gate__body {
+  margin: 0;
+  max-width: 56ch;
+  font-size: var(--fz-body);
+  line-height: 1.7;
+  color: var(--fg-muted);
+}
+
+/* ── Narrow viewports ─────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .about-figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .about-source {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
