@@ -20,6 +20,12 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<!-- The app only talks to its API over standard HTTPS, which is exempt
+	     under the encryption export rules. Declaring it here answers the
+	     export-compliance question up front so every TestFlight/App Store
+	     build processes without stopping to ask. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
