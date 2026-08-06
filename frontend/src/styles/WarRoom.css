@@ -1194,6 +1194,17 @@
   font-size: 12px;
 }
 
+/* Restore Purchases sits under the buy button on iOS. Apple requires it to be
+   reachable, but it's a recovery path — secondary weight, not a second CTA. */
+.wr-paywall__restore {
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px 16px;
+  font-size: 11px;
+  background: transparent;
+  color: var(--wr-ink-2);
+}
+
 .wr-paywall__signin {
   font-family: var(--wr-serif);
   font-size: 13.5px;
@@ -3306,13 +3317,15 @@
 }
 
 .page-shell .wr-paywall__cta,
+.page-shell .wr-paywall__restore,
 .page-shell .wr-paywall__signin,
 .page-shell .wr-paywall__note,
 .page-shell .wr-paywall > .wr-error {
   grid-column: 1 / -1;
 }
 
-.page-shell .wr-paywall__cta {
+.page-shell .wr-paywall__cta,
+.page-shell .wr-paywall__restore {
   width: 100%;
 }
 

@@ -118,13 +118,6 @@ Then **Add for Review → Submit**.
 
 ### Known review risks for this app
 
-- **Paid features must use In-App Purchase.** `frontend/pro.html` sells War
-  Room Pro for $1/month through Stripe Checkout. Unlocking digital features
-  inside an iOS app with an outside payment processor is a guideline 3.1.1
-  rejection. Either hide the Pro upsell in the native shell, or implement
-  StoreKit subscriptions. The relative `fetch("/api/billing/...")` in
-  `pro.html` doesn't resolve under `capacitor://` anyway, so those buttons
-  are already dead in the app.
 - **Bare website wrappers get rejected** (4.2), but this app bundles its UI
   locally and only uses the network for data — that plus native touches
   (safe-area layout, offline-tolerant ticker fallbacks) is the standard
@@ -136,6 +129,91 @@ Then **Add for Review → Submit**.
 - **Gambling adjacency.** Odds and win probabilities are fine as analytics,
   but avoid any language that reads as betting advice, and keep
   `frontend/disclaimer.html` reachable from inside the app.
+
+## In-App Purchase — War Room Pro
+
+Guideline 3.1.1 requires digital content unlocked inside an iOS app to be sold
+through Apple, so the native shell buys War Room Pro through StoreKit 2 while
+the web build keeps using Stripe. Both write to the same `subscriptions` table,
+so `isPro()` in `backend/routes/warroom.js` unlocks Pro without caring which
+one paid.
+
+| Piece | Where |
+| --- | --- |
+| Native StoreKit bridge | `frontend/ios/App/App/StoreKitPlugin.swift` |
+| Web-side client | `frontend/src/iap.js` |
+| Paywalls | `frontend/pro.html`, `frontend/src/components/WarRoomPage.jsx` |
+| Verification + entitlement | `backend/routes/appleIap.js` |
+
+The app never grants Pro on its own say-so. StoreKit hands back a signed
+transaction (JWS), the backend re-verifies it against Apple's root certificate,
+and only then is the entitlement written.
+
+### 1. Create the subscription in App Store Connect
+
+1. **Agreements, Tax, and Banking** → sign the **Paid Apps** agreement and fill
+   in tax and banking. Until this is active, StoreKit returns *no products* and
+   the paywall can't load a price. This is the single most common reason IAP
+   "doesn't work".
+2. **Your app → Subscriptions** → create a group (e.g. `War Room`), then a
+   subscription inside it:
+   - **Product ID:** `one.lstar.app.pro.monthly` — must match
+     `PRO_PRODUCT_ID` in `frontend/src/iap.js` and `APPLE_PRO_PRODUCT_ID`
+     on the server.
+   - **Duration:** 1 month, **Price:** $0.99 (Apple's nearest tier to $1).
+3. Add a localized display name, description, and a review screenshot.
+
+### 2. Point the backend at Apple
+
+```bash
+APPLE_BUNDLE_ID=one.lstar.app
+APPLE_PRO_PRODUCT_ID=one.lstar.app.pro.monthly
+APPLE_APP_APPLE_ID=<numeric Apple ID from App Information>
+# optional — defaults to backend/certs/apple
+APPLE_ROOT_CA_DIR=/path/to/apple/roots
+```
+
+Then download Apple's root certificate as described in
+`backend/certs/apple/README.md`. Without it the server refuses to verify
+purchases rather than trusting the client.
+
+### 3. Turn on App Store Server Notifications
+
+App Store Connect → your app → **General → App Information → App Store Server
+Notifications**. Set the **Version 2** production and sandbox URLs to:
+
+```
+https://www.lstar.one/api/billing/apple/notifications
+```
+
+This is what keeps Pro accurate after the sale — renewals, cancellations,
+billing failures, refunds and expiries all arrive here rather than through the
+app. Use **Send Test Notification** to confirm the endpoint answers 200.
+
+### 4. Test in the sandbox
+
+1. App Store Connect → **Users and Access → Sandbox → Test Accounts** — create
+   one. Use an email you control that is *not* an existing Apple ID.
+2. On the iPhone: **Settings → Developer → Sandbox Apple Account** and sign in
+   as the tester. (Don't sign into the real App Store with it.)
+3. Run the app from Xcode and buy. Sandbox subscriptions renew on an
+   accelerated clock — a month becomes five minutes — so renewal and expiry
+   notifications can be watched in minutes.
+
+Renewals, refunds and Ask-to-Buy approvals arrive through
+`Transaction.updates`, so the paywall updates without a relaunch.
+
+### Things Apple checks on an IAP submission
+
+- **Restore Purchases must exist and work.** Both paywalls render it inside
+  the native shell; test it by deleting and reinstalling the app.
+- **The price shown must match the storefront.** Both paywalls ask StoreKit
+  for the localized price rather than printing `$1`.
+- **Subscription terms must be visible at the point of purchase** — duration,
+  price, auto-renewal — and the privacy policy and terms must be linked.
+  `frontend/privacy.html` and `frontend/terms.html` are already in the build.
+- **Reviewers need a working account.** Leave sandbox or demo credentials in
+  App Review Information, since the War Room is behind sign-in.
 
 ### Resubmitting after changes
 

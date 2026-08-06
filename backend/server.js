@@ -91,6 +91,7 @@ const teamsRoutes = require("./routes/teams");
 const cowboysRoutes = require("./routes/cowboys");
 const authRoutes = require("./routes/auth");
 const billingRoutes = require("./routes/billing");
+const appleIapRoutes = require("./routes/appleIap");
 const predictionRoutes = require("./superbowlPath");
 const simulationRoutes = require("./routes/simulation");
 const analyticsRoutes = require("./routes/analytics");
@@ -100,6 +101,8 @@ const warroomRoutes = require("./routes/warroom");
 const modelRoutes = require("./routes/model");
 
 app.use("/api/auth", authRoutes);
+// Mounted ahead of the Stripe router so /api/billing/apple/* is unambiguous.
+app.use("/api/billing/apple", appleIapRoutes);
 app.use("/api/billing", billingRoutes);
 app.use("/api/teams", teamsRoutes);
 app.use("/api/cowboys", cowboysRoutes);

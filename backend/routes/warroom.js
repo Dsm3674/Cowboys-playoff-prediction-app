@@ -779,4 +779,10 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
   }
 });
 
+// Lets the Apple IAP route drop a cached answer the moment a purchase, refund
+// or expiry lands, instead of leaving Pro wrong for up to five minutes.
+router.invalidatePro = function invalidatePro(email) {
+  proCache.delete(normalizeEmail(email));
+};
+
 module.exports = router;

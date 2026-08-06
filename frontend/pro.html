@@ -378,7 +378,15 @@
   <div class="edu-footer__copy">© LoneStar AI · War Room Pro. Not affiliated with the NFL or Dallas Cowboys.</div>
 </footer>
 
-<script>
+<script type="module">
+  import {
+    isNativeShell,
+    purchasePro,
+    restorePro,
+    getProPrice,
+    openManageSubscriptions
+  } from "/src/iap.js";
+
   (function () {
     var reveals = document.querySelectorAll(".edu-reveal");
     if (!("IntersectionObserver" in window) || !reveals.length) {
@@ -406,6 +414,11 @@
       });
     });
 
+  })();
+
+  // Checkout lives in its own IIFE so the reveal-animation bail-out above can
+  // never leave the subscribe buttons unwired.
+  (function () {
     function signedInUser() {
       // Gmail address or anonymous identity (anon-xxxx-xxxx-xxxx) — the
       // subscription gets linked to whichever account is signed in.
@@ -423,7 +436,97 @@
       return valid(match ? decodeURIComponent(match.slice(9)) : "");
     }
 
-    document.querySelectorAll(".pro-checkout-btn").forEach(function (btn) {
+    var buttons = Array.prototype.slice.call(document.querySelectorAll(".pro-checkout-btn"));
+
+    function withBusyButton(btn, label, work) {
+      var original = btn.textContent;
+      btn.textContent = label;
+      btn.style.pointerEvents = "none";
+      return Promise.resolve()
+        .then(work)
+        .finally(function () {
+          btn.textContent = original;
+          btn.style.pointerEvents = "";
+        });
+    }
+
+    // ---- iOS: In-App Purchase ---------------------------------------------
+    // Apple requires digital content bought inside the app to go through
+    // StoreKit, so the native shell never opens Stripe.
+    if (isNativeShell()) {
+      // Apple also requires the displayed price to match the user's
+      // storefront, so take the real localised string from StoreKit.
+      getProPrice().then(function (price) {
+        if (!price) return;
+        buttons.forEach(function (btn) {
+          btn.textContent = "Subscribe — " + price + "/month";
+        });
+        document.querySelectorAll(".pro-pricing-card__price strong").forEach(function (el) {
+          if (el.textContent.trim() === "$1") el.textContent = price;
+        });
+      });
+
+      buttons.forEach(function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          withBusyButton(btn, "Opening App Store…", function () {
+            return purchasePro(signedInUser()).then(function (result) {
+              if (result.status === "cancelled") return;
+              if (result.status === "pending") {
+                alert("Your purchase needs approval. Pro unlocks as soon as it's approved.");
+                return;
+              }
+              if (result.pro) {
+                if (result.linked === false) {
+                  alert("You're subscribed. Sign in to link Pro to your account.");
+                } else {
+                  window.location.href = "/pro-success.html";
+                }
+                return;
+              }
+              alert("The purchase didn't complete. Please try again.");
+            });
+          }).catch(function (err) {
+            alert(err.message || "The purchase didn't complete. Please try again.");
+          });
+        });
+      });
+
+      // Restore Purchases is mandatory on iOS — without it, a reinstall or a
+      // new device looks like a lost subscription.
+      buttons.forEach(function (btn) {
+        var restore = document.createElement("button");
+        restore.type = "button";
+        restore.className = "edu-btn pro-restore-btn";
+        restore.textContent = "Restore Purchases";
+        restore.addEventListener("click", function () {
+          withBusyButton(restore, "Restoring…", function () {
+            return restorePro(signedInUser()).then(function (result) {
+              if (result.pro) {
+                window.location.href = "/pro-success.html";
+              } else {
+                alert("No active subscription found on this Apple ID.");
+              }
+            });
+          }).catch(function (err) {
+            alert(err.message || "Could not restore purchases.");
+          });
+        });
+        btn.insertAdjacentElement("afterend", restore);
+      });
+
+      document.querySelectorAll(".pro-manage-subscription").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+          e.preventDefault();
+          openManageSubscriptions().catch(function () {});
+        });
+      });
+
+      return;
+    }
+
+    // ---- Web: Stripe Checkout ---------------------------------------------
+    buttons.forEach(function (btn) {
       btn.addEventListener("click", async function (e) {
         e.preventDefault();
         var original = btn.textContent;

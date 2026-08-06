@@ -1,6 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api";
+import {
+  isNativeShell,
+  purchasePro,
+  restorePro,
+  getProPrice,
+  syncEntitlement,
+  onEntitlementChanged,
+  openManageSubscriptions
+} from "../iap";
 import PerfectSeason from "./PerfectSeason";
 
 /*
@@ -15,20 +24,34 @@ import PerfectSeason from "./PerfectSeason";
  * label carries identity, never the text itself.
  */
 
-// Inside the iOS shell, App Store rules (3.1.1) forbid selling digital
-// subscriptions outside Apple's IAP — so the native app never shows the
-// price or checkout. Pro bought on the web still unlocks here via account.
-const IS_NATIVE_SHELL =
-  typeof window !== "undefined" &&
-  /^(capacitor|ionic|file):/.test(window.location.protocol);
+// App Store rule 3.1.1 requires digital subscriptions bought inside the iOS
+// app to go through Apple's IAP, so the native shell sells via StoreKit while
+// the web keeps using Stripe. Either purchase unlocks the same account.
+const IS_NATIVE_SHELL = isNativeShell();
 
-function Paywall({ signedIn }) {
+function Paywall({ signedIn, user, onUnlocked }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  // Apple requires the price shown to match the user's storefront, so on iOS
+  // it comes from StoreKit rather than the hardcoded "$1" below.
+  const [storePrice, setStorePrice] = useState(null);
+
+  useEffect(() => {
+    if (!IS_NATIVE_SHELL) return;
+    let cancelled = false;
+    getProPrice().then((price) => {
+      if (!cancelled && price) setStorePrice(price);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function subscribe() {
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const data = await api.startProCheckout();
       if (data && data.url) {
@@ -42,6 +65,47 @@ function Paywall({ signedIn }) {
     setBusy(false);
   }
 
+  async function buyWithApple() {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await purchasePro(user);
+      if (result.status === "cancelled") {
+        // Backing out of the App Store sheet isn't an error worth showing.
+      } else if (result.status === "pending") {
+        setNotice("Your purchase needs approval. Pro unlocks as soon as it's approved.");
+      } else if (result.pro) {
+        await onUnlocked();
+        return;
+      } else {
+        setError("The purchase didn't complete. Please try again.");
+      }
+    } catch (err) {
+      setError(err.message || "The purchase didn't complete. Please try again.");
+    }
+    setBusy(false);
+  }
+
+  // Apple requires a restore path — without it a reinstall or a new device
+  // looks like a lost subscription.
+  async function restore() {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await restorePro(user);
+      if (result.pro) {
+        await onUnlocked();
+        return;
+      }
+      setNotice("No active subscription found on this Apple ID.");
+    } catch (err) {
+      setError(err.message || "Could not restore purchases.");
+    }
+    setBusy(false);
+  }
+
   return (
     <div className="wr-paywall">
       <div className="wr-paywall__badge">Pro exclusive</div>
@@ -51,16 +115,14 @@ function Paywall({ signedIn }) {
         grill the War Room Analyst about playoff odds.
       </p>
 
-      {!IS_NATIVE_SHELL && (
-        <div className="wr-paywall__price">
-          <span className="wr-paywall__amount">$1</span>
-          <span className="wr-paywall__per">
-            per month
-            <br />
-            cancel anytime
-          </span>
-        </div>
-      )}
+      <div className="wr-paywall__price">
+        <span className="wr-paywall__amount">{storePrice || "$1"}</span>
+        <span className="wr-paywall__per">
+          per month
+          <br />
+          cancel anytime
+        </span>
+      </div>
 
       <ul className="wr-paywall__list">
         <li>
@@ -81,30 +143,52 @@ function Paywall({ signedIn }) {
         </li>
       </ul>
 
-      {IS_NATIVE_SHELL ? (
-        <p className="wr-paywall__signin">
-          War Room Pro is linked to your LoneStar account. If your account has
-          Pro, sign in and it unlocks here automatically.
-        </p>
-      ) : signedIn ? (
-        <button className="wr-btn wr-btn--primary wr-paywall__cta" onClick={subscribe} disabled={busy}>
-          {busy ? "Opening secure checkout…" : "Unlock the War Room"}
-        </button>
-      ) : (
+      {!signedIn ? (
         <p className="wr-paywall__signin">
           Sign in first — Gmail or an anonymous identity both work (use the
           sign-in on the home screen), then come back here to subscribe or
           unlock.
         </p>
+      ) : IS_NATIVE_SHELL ? (
+        <>
+          <button className="wr-btn wr-btn--primary wr-paywall__cta" onClick={buyWithApple} disabled={busy}>
+            {busy ? "Talking to the App Store…" : "Unlock the War Room"}
+          </button>
+          <button className="wr-btn wr-paywall__restore" onClick={restore} disabled={busy}>
+            Restore Purchases
+          </button>
+        </>
+      ) : (
+        <button className="wr-btn wr-btn--primary wr-paywall__cta" onClick={subscribe} disabled={busy}>
+          {busy ? "Opening secure checkout…" : "Unlock the War Room"}
+        </button>
       )}
       {error ? <div className="wr-error">{error}</div> : null}
-      {!IS_NATIVE_SHELL && (
-        <div className="wr-paywall__note">
-          Already subscribed? Sign in with the same account you used at checkout
-          — Gmail or anonymous identity. Star Coins are virtual and have no cash
-          value.
-        </div>
-      )}
+      {notice ? <div className="wr-paywall__note">{notice}</div> : null}
+      <div className="wr-paywall__note">
+        {IS_NATIVE_SHELL ? (
+          <>
+            Billed through your Apple ID and renews monthly until cancelled.
+            Manage or cancel it in{" "}
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                openManageSubscriptions().catch(() => {});
+              }}
+            >
+              your App Store subscriptions
+            </a>
+            . Star Coins are virtual and have no cash value.
+          </>
+        ) : (
+          <>
+            Already subscribed? Sign in with the same account you used at
+            checkout — Gmail or anonymous identity. Star Coins are virtual and
+            have no cash value.
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -388,12 +472,32 @@ export default function WarRoomPage() {
     }
   }
 
+  async function refreshStatus() {
+    const s = await api.getWarRoomStatus();
+    setStatus(s);
+    if (s.pro) await loadMarkets();
+    return s;
+  }
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const s = await api.getWarRoomStatus();
+        let s = await api.getWarRoomStatus();
         if (cancelled) return;
+
+        // In the iOS app, ask StoreKit what this device already owns. It's how
+        // a subscription bought before signing in — or on another device —
+        // gets attached to the account without the user hunting for Restore.
+        if (IS_NATIVE_SHELL && s.signedIn && !s.pro) {
+          const entitlement = await syncEntitlement(s.email);
+          if (cancelled) return;
+          if (entitlement.pro) {
+            s = await api.getWarRoomStatus();
+            if (cancelled) return;
+          }
+        }
+
         setStatus(s);
         if (s.pro) await loadMarkets();
       } catch (err) {
@@ -403,6 +507,16 @@ export default function WarRoomPage() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // Renewals, refunds and Ask-to-Buy approvals arrive from StoreKit rather
+  // than a button press — re-check entitlement when one lands.
+  useEffect(() => {
+    if (!IS_NATIVE_SHELL) return undefined;
+    return onEntitlementChanged(() => {
+      refreshStatus().catch(() => {});
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleBet(marketId, side, amount) {
@@ -451,7 +565,11 @@ export default function WarRoomPage() {
   if (!status.pro) {
     return (
       <div className="wr-page">
-        <Paywall signedIn={status.signedIn} />
+        <Paywall
+          signedIn={status.signedIn}
+          user={status.email}
+          onUnlocked={refreshStatus}
+        />
       </div>
     );
   }

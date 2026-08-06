@@ -27,3 +27,8 @@ Thumbs.db
 *.tmp
 tmp/
 temp/
+# Apple root certificates — fetched at deploy time, see certs/apple/README.md
+certs/apple/*.cer
+certs/apple/*.pem
+certs/apple/*.der
+certs/apple/*.crt

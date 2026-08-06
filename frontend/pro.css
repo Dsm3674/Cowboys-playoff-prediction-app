@@ -387,3 +387,20 @@
     animation: none !important;
   }
 }
+
+/* ── Restore Purchases (iOS only) ─────────────────────────────
+   Injected next to each subscribe button inside the native shell. Apple
+   requires a restore path, but it's a recovery action rather than a second
+   call to action — so it reads quieter than the primary button. */
+.pro-restore-btn {
+  display: block;
+  margin: 0.6rem auto 0;
+  padding: 0.7rem 1.4rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.pro-restore-btn:hover {
+  opacity: 1;
+}
