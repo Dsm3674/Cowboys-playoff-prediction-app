@@ -3,6 +3,7 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const { X509Certificate } = require("crypto");
 const rateLimit = require("express-rate-limit");
 const db = require("../databases");
 const warroom = require("./warroom");
@@ -40,6 +41,11 @@ let verifiersPromise = null;
 
 /// Apple's root certificates, read once from disk. Missing certs disable IAP
 /// rather than silently accepting unverified purchases.
+///
+/// Each file is parsed here rather than trusted, because a half-finished
+/// download leaves a file that looks like a certificate and isn't. One bad
+/// file would otherwise throw deep inside the verifier and take down every
+/// purchase, including ones the good roots could have verified.
 function loadRootCertificates() {
   let files = [];
   try {
@@ -50,7 +56,18 @@ function loadRootCertificates() {
   } catch (_err) {
     return [];
   }
-  return files.map((file) => fs.readFileSync(file));
+
+  const certificates = [];
+  for (const file of files) {
+    try {
+      const buffer = fs.readFileSync(file);
+      new X509Certificate(buffer); // throws on anything unparseable
+      certificates.push(buffer);
+    } catch (err) {
+      console.error(`[apple-iap] ignoring unreadable certificate ${file}: ${err.message}`);
+    }
+  }
+  return certificates;
 }
 
 /// One verifier per environment. A sandbox/TestFlight purchase is signed for
