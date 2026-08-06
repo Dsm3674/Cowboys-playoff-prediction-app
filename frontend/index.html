@@ -303,8 +303,15 @@
       var AUTH_KEY = "cowboys_iq_auth_v3";
       var HISTORY_COOKIE = "lsi_history";
       var USER_COOKIE = "lsi_user";
+      // Capacitor serves the iOS app from capacitor://localhost, so the
+      // hostname really is "localhost" inside the native shell — without this
+      // first branch the checks below send every auth call to
+      // http://localhost:3001, which on a phone is the phone itself. Keep the
+      // production host in step with src/api.js.
       var AUTH_BASE =
-        location.protocol === "file:"
+        /^(capacitor|ionic):/.test(location.protocol)
+          ? "https://www.lstar.one"
+          : location.protocol === "file:"
           ? "http://localhost:3001"
           : (location.hostname === "localhost" || location.hostname === "127.0.0.1") && location.port !== "3001"
           ? "http://localhost:3001"
