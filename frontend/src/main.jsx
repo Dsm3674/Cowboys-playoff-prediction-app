@@ -749,5 +749,28 @@ function App() {
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
+/* Signing out has to tear the workspace down — it holds the signed-in user's
+   data and its pages keep polling the API. Clearing the container's innerHTML
+   doesn't do that: React keeps the root and still believes it rendered that
+   tree, so the next sign-in renders nothing and the app comes back blank until
+   a full reload. Unmounting is what actually releases it, so expose the
+   lifecycle for the auth code in index.html to drive. */
+const container = document.getElementById("root");
+let root = null;
+
+function mountApp() {
+  if (root) return;
+  root = ReactDOM.createRoot(container);
+  root.render(<App />);
+}
+
+function unmountApp() {
+  if (!root) return;
+  root.unmount();
+  root = null;
+  container.innerHTML = "";
+}
+
+window.__lonestarApp = { mount: mountApp, unmount: unmountApp };
+
+mountApp();

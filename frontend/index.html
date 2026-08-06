@@ -736,6 +736,9 @@
           body.classList.remove("lp-locked");
           if (stage) stage.classList.remove("is-exiting");
           injectSignOut();
+          // Bring the workspace back after a sign-out tore it down. On first
+          // load this is a no-op: main.jsx hasn't run yet and mounts itself.
+          if (window.__lonestarApp) window.__lonestarApp.mount();
           if (!location.hash) location.hash = "dashboard";
         };
         if (opts.silent) finish();
@@ -751,8 +754,21 @@
           var btn = document.getElementById("lp-signout-btn");
           if (btn) btn.remove();
           body.classList.add("lp-locked");
-          var root = document.getElementById("root");
-          if (root) root.innerHTML = "";
+          // Unmount rather than wiping innerHTML — see main.jsx. A wipe leaves
+          // React holding a root it thinks is rendered, so the next sign-in
+          // comes back blank.
+          if (window.__lonestarApp) {
+            window.__lonestarApp.unmount();
+          } else {
+            var root = document.getElementById("root");
+            if (root) root.innerHTML = "";
+          }
+          // The breadcrumb is plain DOM the router writes into, so it survives
+          // the teardown and would still name the last page you were on.
+          var catEl = document.getElementById("active-category");
+          var pageEl = document.getElementById("active-page");
+          if (catEl) catEl.textContent = "Intelligence";
+          if (pageEl) pageEl.textContent = "Dashboard";
           if (location.hash) history.replaceState(null, "", location.pathname + location.search);
           if (stage) stage.classList.remove("is-exiting");
           window.scrollTo({ top: 0 });
