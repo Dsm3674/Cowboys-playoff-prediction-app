@@ -37,4 +37,27 @@ describe("Analytics matchup response", () => {
     expect(response.teams[0].averagePointDiff).toBe(3);
     expect(response.teams[0].playoffProbability).toEqual(expect.any(Number));
   });
+
+  test("converts internal strength ratings into realistic point margins", () => {
+    const underdog = team("KC", 45, -12, 2, 15);
+    const favorite = team("LAR", 90, 18, 15, 2);
+    underdog._elo = 1200;
+    favorite._elo = 1800;
+
+    const response = analyticsRouter.buildMatchupResponse(underdog, favorite, 2025);
+
+    expect(response.expectedMargin).toBe(-21);
+    expect(response.homeWinProbability).toBe(10);
+    expect(response.awayWinProbability).toBe(90);
+  });
+
+  test("includes a modest home-field edge for evenly matched teams", () => {
+    const home = team("DAL", 60, 3, 10, 7);
+    const away = team("PHI", 60, 3, 10, 7);
+
+    const response = analyticsRouter.buildMatchupResponse(home, away, 2025);
+
+    expect(response.expectedMargin).toBe(1.5);
+    expect(response.homeWinProbability).toBeGreaterThan(50);
+  });
 });
