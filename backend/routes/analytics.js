@@ -306,6 +306,24 @@ function simulateMatchup(left, right) {
   };
 }
 
+function buildMatchupResponse(left, right, year) {
+  const matchup = simulateMatchup(left, right);
+  const teams = [left, right].map((team) => ({
+    ...team,
+    averagePointDiff: Number((team.averages?.pointDiffPerGame || 0).toFixed(1)),
+    playoffProbability: computePlayoffProbability(team)
+  }));
+
+  return {
+    success: true,
+    year: year || new Date().getFullYear(),
+    teams,
+    matchup,
+    // Keep the result available at the top level for existing clients.
+    ...matchup
+  };
+}
+
 function buildScheduleStrength(rows) {
   const teamIndex = new Map(rows.map((team) => [team.code, team]));
 
@@ -560,9 +578,7 @@ router.get("/matchup", async (req, res) => {
     const left = await fetchTeamSummary(team1, year);
     const right = await fetchTeamSummary(team2, year);
     await attachElo([left, right], year);
-    const matchup = simulateMatchup(left, right);
-
-    res.json({ success: true, year: year || new Date().getFullYear(), teams: [left, right], matchup });
+    res.json(buildMatchupResponse(left, right, year));
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -675,5 +691,7 @@ router.get("/metrics", async (req, res) => {
     res.status(500).send(`# ERROR: ${e.message}`);
   }
 });
+
+router.buildMatchupResponse = buildMatchupResponse;
 
 module.exports = router;
