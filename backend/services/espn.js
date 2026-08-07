@@ -43,15 +43,20 @@ const NFL_TEAM_ALIASES = {
   WSH: "WAS"
 };
 
+const ESPN_TEAM_ALIASES = {
+  WAS: "WSH"
+};
+
 function normalizeTeamAbbr(teamAbbr, fallback = "DAL") {
   const raw = String(teamAbbr || "").trim().toUpperCase();
-  return raw || fallback;
+  const fallbackAbbr = String(fallback || "").trim().toUpperCase();
+  const resolved = raw || fallbackAbbr;
+  return NFL_TEAM_ALIASES[resolved] || resolved;
 }
 
 function getNFLCatalogItem(teamAbbr) {
   const abbr = normalizeTeamAbbr(teamAbbr);
-  const canonical = NFL_TEAM_ALIASES[abbr] || abbr;
-  return NFL_TEAM_CATALOG.find((item) => item.abbreviation === canonical) || null;
+  return NFL_TEAM_CATALOG.find((item) => item.abbreviation === abbr) || null;
 }
 
 let _teamMapCache = null;
@@ -86,7 +91,9 @@ async function getNflTeamIdMap() {
   const map = {};
   teams.forEach((tWrap) => {
     const t = tWrap.team || tWrap;
-    const abbr = (t.abbreviation || "").toUpperCase();
+    // ESPN currently reports Washington as WSH while the rest of this app
+    // uses the NFL-style WAS code. Canonicalize provider codes at the edge.
+    const abbr = normalizeTeamAbbr(t.abbreviation, "");
     const id = t.id;
     const name = t.displayName || t.location || t.name || abbr;
     if (abbr && id) map[abbr] = { id: String(id), name };
@@ -151,8 +158,8 @@ function parseEspnScheduleEvents(events = []) {
         date: event.date,
         homeTeamName: home.team?.displayName ?? "Home",
         awayTeamName: away.team?.displayName ?? "Away",
-        homeTeamAbbr: home.team?.abbreviation,
-        awayTeamAbbr: away.team?.abbreviation,
+        homeTeamAbbr: normalizeTeamAbbr(home.team?.abbreviation, ""),
+        awayTeamAbbr: normalizeTeamAbbr(away.team?.abbreviation, ""),
         homeScore: getScore(home),
         awayScore: getScore(away),
         completed: isCompleted(comp.status?.type),
@@ -187,7 +194,8 @@ async function _doFetchSchedule(abbr, year) {
     const teamId = map[abbr]?.id;
 
     if (!teamId) {
-      const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${abbr.toLowerCase()}/schedule?season=${year}`;
+      const providerAbbr = ESPN_TEAM_ALIASES[abbr] || abbr;
+      const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${providerAbbr.toLowerCase()}/schedule?season=${year}`;
       const res = await fetch(url);
       if (!res.ok) return [];
       const data = await res.json();
@@ -206,7 +214,7 @@ async function _doFetchSchedule(abbr, year) {
 }
 
 function fetchTeamGamesSeasonToDate(teamAbbr, year = getNFLSeasonYear()) {
-  const abbr = String(teamAbbr || "").toUpperCase();
+  const abbr = normalizeTeamAbbr(teamAbbr, "");
   if (!abbr) return Promise.resolve([]);
 
   const resolvedYear = year || getNFLSeasonYear();
@@ -232,7 +240,7 @@ function fetchCowboysGamesSeasonToDate(year = getNFLSeasonYear()) {
 }
 
 function computeRecordFromGames(games, teamAbbr = "DAL") {
-  const abbr = String(teamAbbr || "DAL").toUpperCase();
+  const abbr = normalizeTeamAbbr(teamAbbr);
 
   let wins = 0;
   let losses = 0;
@@ -246,7 +254,7 @@ function computeRecordFromGames(games, teamAbbr = "DAL") {
       return;
     }
 
-    const teamIsHome = (g.homeTeamAbbr || "").toUpperCase() === abbr;
+    const teamIsHome = normalizeTeamAbbr(g.homeTeamAbbr, "") === abbr;
     const teamScore = teamIsHome ? g.homeScore : g.awayScore;
     const oppScore  = teamIsHome ? g.awayScore : g.homeScore;
 
@@ -265,14 +273,14 @@ function computeRecordFromGames(games, teamAbbr = "DAL") {
 }
 
 function computeTeamAveragesFromGames(teamAbbr, games) {
-  const abbr = String(teamAbbr || "").toUpperCase();
+  const abbr = normalizeTeamAbbr(teamAbbr, "");
   const completed = (games || []).filter((g) => g.completed);
 
   let pf = 0;
   let pa = 0;
 
   completed.forEach((g) => {
-    const isHome = (g.homeTeamAbbr || "").toUpperCase() === abbr;
+    const isHome = normalizeTeamAbbr(g.homeTeamAbbr, "") === abbr;
     const teamScore = isHome ? g.homeScore : g.awayScore;
     const oppScore = isHome ? g.awayScore : g.homeScore;
     pf += teamScore;
@@ -290,6 +298,8 @@ function computeTeamAveragesFromGames(teamAbbr, games) {
 
 function _resetScheduleCache() {
   _scheduleCache.clear();
+  _teamMapCache = null;
+  _teamMapCacheTs = 0;
 }
 
 module.exports = {
