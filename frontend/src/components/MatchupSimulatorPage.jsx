@@ -39,6 +39,12 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
   // top-level response as well so the screen remains compatible with older
   // and newer backend response shapes.
   const outcome = matchup?.matchup || matchup;
+  const expectedMargin = Number(outcome?.expectedMargin);
+  const marginDisplay = Number.isFinite(expectedMargin)
+    ? Math.abs(expectedMargin) < 0.1
+      ? "Even"
+      : `${expectedMargin > 0 ? team1 : team2} by ${Math.abs(expectedMargin).toFixed(1)}`
+    : "—";
 
   const selectStyle = {
     width: "100%",
@@ -227,7 +233,7 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
               <div className="text-muted" style={{ fontWeight: 700 }}>
                 Expected Margin
               </div>
-              <div style={valueStyle}>{outcome.expectedMargin} pts</div>
+              <div style={valueStyle}>{marginDisplay}</div>
             </div>
           </div>
         </div>
