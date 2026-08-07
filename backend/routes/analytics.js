@@ -16,7 +16,7 @@ const {
   computeTeamAveragesFromGames,
   normalizeTeamAbbr
 } = require("../services/espn");
-const { getEloSnapshot, blendWithElo, eloWinProb } = require("../services/ratingsEngine");
+const { getEloSnapshot } = require("../services/ratingsEngine");
 
 /* Stamp each row with the Elo engine's power number so downstream strength
    formulas can fold it in. No-op when Elo has nothing informative to say. */
@@ -290,19 +290,19 @@ function buildPlayoffPulse(rows) {
 function simulateMatchup(left, right) {
   const leftScore = teamStrength(left);
   const rightScore = teamStrength(right);
-  const spread = Number((leftScore - rightScore).toFixed(1));
-  let winProb = Math.max(5, Math.min(95, 50 + spread * 1.4)) / 100;
-
-  // Blend in Elo's head-to-head read when both sides carry a rating.
-  if (Number.isFinite(left._elo) && Number.isFinite(right._elo)) {
-    winProb = blendWithElo(winProb, eloWinProb(left._elo, right._elo, 0), 0.5);
-  }
-
-  const winProbability = Number((Math.max(0.05, Math.min(0.95, winProb)) * 100).toFixed(1));
+  // teamStrength is an internal rating scale, not a football point spread.
+  // Convert it to projected points, include a modest home-field edge, and
+  // bound the result so even extreme data cannot produce absurd margins.
+  const rawMargin = (leftScore - rightScore) / 6.5 + 1.5;
+  const expectedMargin = Number(Math.max(-21, Math.min(21, rawMargin)).toFixed(1));
+  // Use a deliberately conservative curve: model estimates should express
+  // uncertainty instead of presenting NFL matchups as near-certainties.
+  const winProb = 1 / (1 + Math.exp(-expectedMargin / 8.5));
+  const winProbability = Number((Math.max(0.1, Math.min(0.9, winProb)) * 100).toFixed(1));
   return {
     homeWinProbability: winProbability,
     awayWinProbability: Number((100 - winProbability).toFixed(1)),
-    expectedMargin: spread
+    expectedMargin
   };
 }
 
