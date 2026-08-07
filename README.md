@@ -77,10 +77,21 @@ VITE_STACK_PUBLISHABLE_CLIENT_KEY=your_publishable_key_here
 STACK_SECRET_SERVER_KEY=your_secret_key_here
 
 # Auth
-# Login uses Gmail + password only. No email delivery key is required.
+# Use independent, randomly generated secrets in production.
+SESSION_SECRET=replace_with_a_long_random_value
+EMAIL_OTP_SECRET=replace_with_a_different_long_random_value
+ANON_AUTH_SECRET=replace_with_another_long_random_value
+
+# Required for production Gmail signup and password reset codes.
+RESEND_API_KEY=re_your_resend_api_key
+NOTIFICATION_EMAIL_FROM=LoneStar AI <login@your-verified-domain.example>
 ```
 
 **Important**: Never commit your `.env` file to version control!
+
+Production authentication fails closed when these secrets or email delivery
+are unavailable. Development and test environments may return a `devCode` for
+local testing, but production never exposes verification codes in API responses.
 
 ### 4. Database Setup
 

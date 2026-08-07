@@ -2,6 +2,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const fetch = require("node-fetch");
 const db = require("../databases");
+const { getSessionIdentity } = require("../middleware/sessionAuth");
 
 const router = express.Router();
 
@@ -256,7 +257,13 @@ router.post("/create-checkout-session", requestLimiter, async (req, res) => {
   // identity (anon-xxxx-xxxx-xxxx). Gmail goes to Stripe as customer_email;
   // an anon identity isn't an email, so it rides along as metadata instead
   // and the webhook links the subscription back to it.
-  const user = normalizeEmail(req.body.user || req.body.email);
+  const user = normalizeEmail(getSessionIdentity(req));
+  if (!isGmail(user) && !isAnonIdentity(user)) {
+    return res.status(401).json({
+      error: "Sign in before starting checkout.",
+      code: "signin_required"
+    });
+  }
   const email = isAnonIdentity(user) ? "" : user;
   const anonUser = isAnonIdentity(user) ? user : "";
   const base = publicBaseUrl(req);

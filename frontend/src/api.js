@@ -105,13 +105,26 @@
     return isKnownUser(cookieUser) ? cookieUser.trim().toLowerCase() : "";
   }
 
+  export function getSessionToken() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
+      return isKnownUser(stored?.user) && typeof stored?.sessionToken === "string"
+        ? stored.sessionToken
+        : "";
+    } catch (_err) {
+      return "";
+    }
+  }
+
   function getIdentityHeaders() {
     const historyId = ensureHistoryId();
     const user = getSignedInUser();
+    const sessionToken = getSessionToken();
 
     return {
       ...(historyId ? { "X-LoneStar-History-Id": historyId } : {}),
-      ...(user ? { "X-LoneStar-User": user } : {})
+      ...(user ? { "X-LoneStar-User": user } : {}),
+      ...(sessionToken ? { "X-LoneStar-Session": sessionToken } : {})
     };
   }
 

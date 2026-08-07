@@ -14,7 +14,7 @@ module.exports = {
   resetMocks: true,
   testTimeout: 10000,
   coveragePathIgnorePatterns: ['/node_modules/'],
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 50,
       functions: 50,

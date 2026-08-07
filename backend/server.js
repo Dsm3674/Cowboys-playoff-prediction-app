@@ -6,6 +6,10 @@ const fs = require("fs");
 const path = require("path");
 const rateLimit = require("express-rate-limit");
 
+// Load the repository-level environment file before importing any route.
+// Several routes read secrets during module initialization.
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+
 const app = express();
 
 // Railway terminates TLS at its edge, so the x-forwarded-proto header tells us
@@ -163,4 +167,13 @@ if (fs.existsSync(frontendIndexPath)) {
 }
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
+function startServer(port = PORT) {
+  return app.listen(port, () => console.log(`✅ Server running on port ${port}`));
+}
+
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { app, startServer };

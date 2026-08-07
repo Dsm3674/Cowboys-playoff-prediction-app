@@ -436,6 +436,15 @@
       return valid(match ? decodeURIComponent(match.slice(9)) : "");
     }
 
+    function signedInSession() {
+      try {
+        var stored = JSON.parse(localStorage.getItem("cowboys_iq_auth_v3") || "null");
+        return stored && typeof stored.sessionToken === "string" ? stored.sessionToken : "";
+      } catch (e) {
+        return "";
+      }
+    }
+
     var buttons = Array.prototype.slice.call(document.querySelectorAll(".pro-checkout-btn"));
 
     function withBusyButton(btn, label, work) {
@@ -535,7 +544,10 @@
         try {
           var res = await fetch("/api/billing/create-checkout-session", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(signedInSession() ? { "X-LoneStar-Session": signedInSession() } : {})
+            },
             body: JSON.stringify({ plan: "War Room Pro", user: signedInUser() })
           });
           var data = await res.json();

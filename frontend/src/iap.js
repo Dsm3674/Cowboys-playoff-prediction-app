@@ -1,5 +1,5 @@
 import { registerPlugin } from "@capacitor/core";
-import { BASE_URL } from "./api.js";
+import { BASE_URL, getSessionToken } from "./api.js";
 
 // ---------------------------------------------------------------------------
 // War Room Pro on iOS.
@@ -47,11 +47,13 @@ export async function getProPrice() {
 /// Hands a signed transaction to the backend, which verifies it with Apple and
 /// records the entitlement against the signed-in identity.
 async function verifyWithServer(jws, user) {
+  const sessionToken = getSessionToken();
   const res = await fetch(`${BASE_URL}/api/billing/apple/verify`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(user ? { "x-lonestar-user": user } : {})
+      ...(user ? { "x-lonestar-user": user } : {}),
+      ...(sessionToken ? { "x-lonestar-session": sessionToken } : {})
     },
     body: JSON.stringify({ jws, user: user || "" })
   });

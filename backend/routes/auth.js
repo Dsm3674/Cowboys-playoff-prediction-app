@@ -1,8 +1,11 @@
 "use strict";
 
 const crypto = require("crypto");
+const { promisify } = require("util");
 const express = require("express");
 const rateLimit = require("express-rate-limit");
+const db = require("../databases");
+const { createSessionToken } = require("../middleware/sessionAuth");
 
 const router = express.Router();
 
@@ -25,8 +28,45 @@ function makeSession(user) {
   return {
     ok: true,
     user,
-    sessionToken: crypto.randomBytes(24).toString("hex")
+    sessionToken: createSessionToken(user)
   };
+}
+
+const scrypt = promisify(crypto.scrypt);
+const PASSWORD_KEY_BYTES = 64;
+let usersTableReady = false;
+
+async function ensureUsersTable() {
+  if (usersTableReady) return;
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      user_id SERIAL PRIMARY KEY,
+      username VARCHAR(255) UNIQUE NOT NULL,
+      password_hash VARCHAR(255),
+      theme_preference VARCHAR(20) DEFAULT 'cowboys',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await db.query("ALTER TABLE users ALTER COLUMN username TYPE VARCHAR(255)");
+  usersTableReady = true;
+}
+
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16);
+  const derived = await scrypt(password, salt, PASSWORD_KEY_BYTES);
+  return `scrypt$${salt.toString("base64url")}$${derived.toString("base64url")}`;
+}
+
+async function verifyPassword(password, storedHash) {
+  const [algorithm, saltB64, hashB64, ...extra] = String(storedHash || "").split("$");
+  if (algorithm !== "scrypt" || !saltB64 || !hashB64 || extra.length) return false;
+  try {
+    const expected = Buffer.from(hashB64, "base64url");
+    const actual = await scrypt(password, Buffer.from(saltB64, "base64url"), expected.length);
+    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+  } catch (_error) {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -43,7 +83,9 @@ function makeSession(user) {
 // table is needed — matching the stateless model of the Gmail session above.
 // ---------------------------------------------------------------------------
 
-const ANON_SECRET = process.env.ANON_AUTH_SECRET || "lonestar-anon-v1";
+const ANON_SECRET =
+  process.env.ANON_AUTH_SECRET ||
+  (process.env.NODE_ENV === "production" ? "" : "lonestar-anon-development-v1");
 const ANON_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 const ANON_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const usedChallenges = new Map();
@@ -69,6 +111,11 @@ function anonIdFromPublicKey(spkiDer) {
 }
 
 router.post("/anon/challenge", authLimiter, (req, res) => {
+  if (!ANON_SECRET) {
+    return res.status(503).json({
+      error: "Anonymous authentication is not configured. Set ANON_AUTH_SECRET."
+    });
+  }
   const body = `${Date.now()}.${crypto.randomBytes(16).toString("hex")}`;
   res.json({
     challenge: `${body}.${challengeMac(body)}`,
@@ -77,6 +124,11 @@ router.post("/anon/challenge", authLimiter, (req, res) => {
 });
 
 router.post("/anon/verify", authLimiter, (req, res) => {
+  if (!ANON_SECRET) {
+    return res.status(503).json({
+      error: "Anonymous authentication is not configured. Set ANON_AUTH_SECRET."
+    });
+  }
   const challenge = String(req.body?.challenge || "");
   const signatureB64 = String(req.body?.signature || "");
   const publicKeyB64 = String(req.body?.publicKey || "");
@@ -151,7 +203,9 @@ router.post("/anon/verify", authLimiter, (req, res) => {
 // endpoints below).
 // ---------------------------------------------------------------------------
 
-const OTP_SECRET = process.env.EMAIL_OTP_SECRET || "lonestar-otp-v1";
+const OTP_SECRET =
+  process.env.EMAIL_OTP_SECRET ||
+  (process.env.NODE_ENV === "production" ? "" : "lonestar-otp-development-v1");
 const OTP_TTL_MS = 10 * 60 * 1000;
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const OTP_EMAIL_FROM =
@@ -162,12 +216,18 @@ function otpCodeFor(payloadB64) {
   return String(digest.readUInt32BE(0) % 1000000).padStart(6, "0");
 }
 
-function makeEmailChallenge(email, purpose) {
+function makeEmailChallenge(email, purpose, extra = {}) {
+  if (!OTP_SECRET) {
+    const error = new Error("Email verification is not configured. Set EMAIL_OTP_SECRET.");
+    error.statusCode = 503;
+    throw error;
+  }
   const payload = JSON.stringify({
     e: email,
     p: purpose,
     t: Date.now(),
-    r: crypto.randomBytes(8).toString("hex")
+    r: crypto.randomBytes(8).toString("hex"),
+    ...extra
   });
   const payloadB64 = Buffer.from(payload).toString("base64url");
   const mac = crypto.createHmac("sha256", OTP_SECRET).update(payloadB64).digest("hex");
@@ -175,6 +235,9 @@ function makeEmailChallenge(email, purpose) {
 }
 
 function verifyEmailChallenge(challengeId, code, purpose) {
+  if (!OTP_SECRET) {
+    return { ok: false, status: 503, error: "Email verification is not configured." };
+  }
   const parts = String(challengeId || "").split(".");
   if (parts.length !== 2) {
     return { ok: false, status: 400, error: "Invalid code request. Start over." };
@@ -219,7 +282,7 @@ function verifyEmailChallenge(challengeId, code, purpose) {
   }
 
   usedChallenges.set(challengeId, Number(payload.t) + OTP_TTL_MS);
-  return { ok: true, email: payload.e };
+  return { ok: true, email: payload.e, payload };
 }
 
 async function sendCodeEmail(email, code, subject, intro) {
@@ -255,8 +318,18 @@ function codeResponse(challengeId, delivery, code) {
     delivery,
     // Dev mode only: without an email provider the code has nowhere to go,
     // so surface it in the response (same pattern as the legacy endpoints).
-    ...(delivery.delivered ? {} : { devCode: code })
+    ...(delivery.delivered || process.env.NODE_ENV === "production" ? {} : { devCode: code })
   };
+}
+
+function deliveryUnavailable(res, delivery) {
+  if (process.env.NODE_ENV === "production" && !delivery.delivered) {
+    res.status(503).json({
+      error: "Email delivery is unavailable. Configure RESEND_API_KEY and try again."
+    });
+    return true;
+  }
+  return false;
 }
 
 // Step 1 of Gmail signup: validate credentials, then email a 2FA code.
@@ -271,23 +344,61 @@ router.post("/2fa/start", authLimiter, async (req, res) => {
     return res.status(400).json({ error: "Password must be at least 6 characters." });
   }
 
-  const { challengeId, code } = makeEmailChallenge(email, "signup-2fa");
-  const delivery = await sendCodeEmail(
-    email,
-    code,
-    "Your LoneStar AI verification code",
-    "Verify your email to finish creating your LoneStar AI account."
-  );
-  res.json(codeResponse(challengeId, delivery, code));
+  try {
+    await ensureUsersTable();
+    const existing = await db.query(
+      "SELECT 1 FROM users WHERE LOWER(username) = $1 LIMIT 1",
+      [email]
+    );
+    if (existing.rows.length) {
+      return res.status(409).json({ error: "An account already exists for this Gmail address." });
+    }
+
+    const passwordHash = await hashPassword(password);
+    const { challengeId, code } = makeEmailChallenge(email, "signup-2fa", {
+      h: passwordHash
+    });
+    const delivery = await sendCodeEmail(
+      email,
+      code,
+      "Your LoneStar AI verification code",
+      "Verify your email to finish creating your LoneStar AI account."
+    );
+    if (deliveryUnavailable(res, delivery)) return;
+    res.json(codeResponse(challengeId, delivery, code));
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      error: error.statusCode ? error.message : "Unable to start account verification."
+    });
+  }
 });
 
 // Step 2 of Gmail signup: verify the emailed code, then open the session.
-router.post("/2fa/verify", authLimiter, (req, res) => {
+router.post("/2fa/verify", authLimiter, async (req, res) => {
   const result = verifyEmailChallenge(req.body?.challengeId, req.body?.code, "signup-2fa");
   if (!result.ok) {
     return res.status(result.status).json({ error: result.error });
   }
-  res.json(makeSession(result.email));
+  if (!String(result.payload?.h || "").startsWith("scrypt$")) {
+    return res.status(400).json({ error: "Invalid signup request. Start over." });
+  }
+
+  try {
+    await ensureUsersTable();
+    const saved = await db.query(
+      `INSERT INTO users (username, password_hash)
+       VALUES ($1, $2)
+       ON CONFLICT (username) DO NOTHING
+       RETURNING user_id`,
+      [result.email, result.payload.h]
+    );
+    if (!saved.rows.length) {
+      return res.status(409).json({ error: "An account already exists for this Gmail address." });
+    }
+    res.json(makeSession(result.email));
+  } catch (_error) {
+    res.status(500).json({ error: "Unable to create the account right now." });
+  }
 });
 
 // Forgot password: email a reset code.
@@ -297,18 +408,23 @@ router.post("/password/forgot", authLimiter, async (req, res) => {
     return res.status(400).json({ error: "Use a Gmail address to continue." });
   }
 
-  const { challengeId, code } = makeEmailChallenge(email, "password-reset");
-  const delivery = await sendCodeEmail(
-    email,
-    code,
-    "Your LoneStar AI password reset code",
-    "Use this code to reset your LoneStar AI password."
-  );
-  res.json(codeResponse(challengeId, delivery, code));
+  try {
+    const { challengeId, code } = makeEmailChallenge(email, "password-reset");
+    const delivery = await sendCodeEmail(
+      email,
+      code,
+      "Your LoneStar AI password reset code",
+      "Use this code to reset your LoneStar AI password."
+    );
+    if (deliveryUnavailable(res, delivery)) return;
+    res.json(codeResponse(challengeId, delivery, code));
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
 });
 
 // Reset password: verify the code and the new password, then sign the user in.
-router.post("/password/reset", authLimiter, (req, res) => {
+router.post("/password/reset", authLimiter, async (req, res) => {
   const newPassword = String(req.body?.newPassword || "");
   if (newPassword.length < 6) {
     return res.status(400).json({ error: "New password must be at least 6 characters." });
@@ -318,10 +434,25 @@ router.post("/password/reset", authLimiter, (req, res) => {
   if (!result.ok) {
     return res.status(result.status).json({ error: result.error });
   }
-  res.json({ ...makeSession(result.email), message: "Password updated." });
+  try {
+    await ensureUsersTable();
+    const passwordHash = await hashPassword(newPassword);
+    const updated = await db.query(
+      `UPDATE users SET password_hash = $1
+       WHERE LOWER(username) = $2
+       RETURNING user_id`,
+      [passwordHash, result.email]
+    );
+    if (!updated.rows.length) {
+      return res.status(404).json({ error: "No account exists for this Gmail address." });
+    }
+    res.json({ ...makeSession(result.email), message: "Password updated." });
+  } catch (_error) {
+    res.status(500).json({ error: "Unable to reset the password right now." });
+  }
 });
 
-router.post("/session", authLimiter, (req, res) => {
+router.post("/session", authLimiter, async (req, res) => {
   const email = String(req.body?.email || "").trim().toLowerCase();
   const password = String(req.body?.password || "");
 
@@ -333,41 +464,36 @@ router.post("/session", authLimiter, (req, res) => {
     return res.status(400).json({ error: "Password must be at least 6 characters." });
   }
 
-  res.json(makeSession(email));
+  try {
+    await ensureUsersTable();
+    const result = await db.query(
+      `SELECT password_hash FROM users
+       WHERE LOWER(username) = $1
+       LIMIT 1`,
+      [email]
+    );
+    const valid = result.rows[0] && await verifyPassword(password, result.rows[0].password_hash);
+    if (!valid) {
+      return res.status(401).json({ error: "Incorrect Gmail address or password." });
+    }
+    res.json(makeSession(email));
+  } catch (_error) {
+    res.status(500).json({ error: "Unable to sign in right now." });
+  }
 });
 
 // Compatibility for users with an old cached frontend. The current app uses
 // /session directly, but older HTML called these OTP endpoints.
 router.post("/request-otp", authLimiter, (req, res) => {
-  const email = String(req.body?.email || "").trim().toLowerCase();
-
-  if (!isGmail(email)) {
-    return res.status(400).json({ error: "Use a Gmail address to continue." });
-  }
-
-  res.json({
-    challengeId: Buffer.from(email).toString("base64url"),
-    expiresInSeconds: 300,
-    delivery: { delivered: false, provider: "disabled" },
-    devCode: "000000"
+  res.status(410).json({
+    error: "This legacy sign-in flow is no longer supported. Refresh the app and sign in again."
   });
 });
 
 router.post("/verify-otp", authLimiter, (req, res) => {
-  try {
-    const email = Buffer.from(String(req.body?.challengeId || ""), "base64url")
-      .toString("utf8")
-      .trim()
-      .toLowerCase();
-
-    if (!isGmail(email)) {
-      return res.status(400).json({ error: "Use a Gmail address to continue." });
-    }
-
-    res.json(makeSession(email));
-  } catch (_err) {
-    res.status(400).json({ error: "Two-factor code expired. Request a new code." });
-  }
+  res.status(410).json({
+    error: "This legacy sign-in flow is no longer supported. Refresh the app and sign in again."
+  });
 });
 
 module.exports = router;

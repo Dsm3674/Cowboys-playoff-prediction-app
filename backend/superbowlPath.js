@@ -3,6 +3,7 @@ const router = express.Router();
 const Team = require("./teams");
 const Season = require("./seasons");
 const Prediction = require("./predictions");
+const { getSessionIdentity } = require("./middleware/sessionAuth");
 
 const { generateEspnPrediction } = require("./prediction");
 
@@ -44,12 +45,7 @@ function normalizeHistoryId(value) {
 function getHistoryIdentity(req) {
   const cookies = parseCookies(req.headers.cookie);
   return {
-    userEmail: normalizeEmail(
-      req.get("X-LoneStar-User") ||
-        req.get("X-Lonestar-User") ||
-        cookies.lsi_user ||
-        req.query.user
-    ),
+    userEmail: normalizeEmail(getSessionIdentity(req)),
     historyClientId: normalizeHistoryId(
       req.get("X-LoneStar-History-Id") ||
         req.get("X-Lonestar-History-Id") ||

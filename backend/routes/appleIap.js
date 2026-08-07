@@ -7,6 +7,7 @@ const { X509Certificate } = require("crypto");
 const rateLimit = require("express-rate-limit");
 const db = require("../databases");
 const warroom = require("./warroom");
+const { getSessionIdentity } = require("../middleware/sessionAuth");
 
 const router = express.Router();
 
@@ -240,7 +241,7 @@ router.post("/verify", verifyLimiter, async (req, res) => {
     return res.status(400).json({ error: "A signed transaction is required." });
   }
 
-  const identity = validIdentity(req.body.user || req.headers["x-lonestar-user"]);
+  const identity = validIdentity(getSessionIdentity(req));
 
   try {
     const transaction = await verifyAcrossEnvironments((verifier) =>

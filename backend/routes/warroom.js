@@ -3,6 +3,7 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const db = require("../databases");
+const { getSessionIdentity } = require("../middleware/sessionAuth");
 
 
 const router = express.Router();
@@ -103,7 +104,7 @@ function isAnonIdentity(user) {
 }
 
 function requestEmail(req) {
-  const email = normalizeEmail(req.headers["x-lonestar-user"]);
+  const email = normalizeEmail(getSessionIdentity(req));
   return isGmail(email) || isAnonIdentity(email) ? email : "";
 }
 

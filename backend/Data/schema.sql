@@ -82,7 +82,7 @@ CREATE INDEX IF NOT EXISTS idx_predictions_history_client_date
 -- 6. USERS (New Feature)
 CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
+    username VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255),
     theme_preference VARCHAR(20) DEFAULT 'cowboys',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
