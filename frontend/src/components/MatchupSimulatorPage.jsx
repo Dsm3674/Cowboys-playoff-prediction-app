@@ -35,6 +35,10 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
   }, [team1, team2, year]);
 
   const [left, right] = matchup?.teams || [];
+  // The API keeps the calculated outcome under `matchup`. Fall back to the
+  // top-level response as well so the screen remains compatible with older
+  // and newer backend response shapes.
+  const outcome = matchup?.matchup || matchup;
 
   const selectStyle = {
     width: "100%",
@@ -76,6 +80,11 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
   const renderTeamProfile = (team) => {
     if (!team) return null;
 
+    const pointDiff = team.averagePointDiff ?? team.averages?.pointDiffPerGame;
+    const formattedPointDiff = Number.isFinite(Number(pointDiff))
+      ? Number(pointDiff).toFixed(1)
+      : "—";
+
     return (
       <div style={panelStyle}>
         <h3
@@ -105,7 +114,7 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
         <div style={profileRowStyle}>
           <span className="text-muted">Point Diff</span>
           <strong style={{ color: "var(--fg-strong)" }}>
-            {team.averagePointDiff ?? "—"}
+            {formattedPointDiff}
           </strong>
         </div>
 
@@ -204,21 +213,21 @@ function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = 
               <div className="text-muted" style={{ fontWeight: 700 }}>
                 {team1} Win %
               </div>
-              <div style={valueStyle}>{matchup.homeWinProbability}%</div>
+              <div style={valueStyle}>{outcome.homeWinProbability}%</div>
             </div>
 
             <div style={panelStyle}>
               <div className="text-muted" style={{ fontWeight: 700 }}>
                 {team2} Win %
               </div>
-              <div style={valueStyle}>{matchup.awayWinProbability}%</div>
+              <div style={valueStyle}>{outcome.awayWinProbability}%</div>
             </div>
 
             <div style={panelStyle}>
               <div className="text-muted" style={{ fontWeight: 700 }}>
                 Expected Margin
               </div>
-              <div style={valueStyle}>{matchup.expectedMargin} pts</div>
+              <div style={valueStyle}>{outcome.expectedMargin} pts</div>
             </div>
           </div>
         </div>
