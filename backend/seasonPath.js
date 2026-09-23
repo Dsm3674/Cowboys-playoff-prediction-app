@@ -10,6 +10,8 @@ const {
   getEloSnapshot,
   blendWithElo,
   eloWinProb,
+  powerForGame,
+  nextGameOf,
   ELO_HOME_FIELD
 } = require("./services/ratingsEngine");
 
@@ -277,11 +279,14 @@ async function loadSeasonModel({ teamAbbr = "DAL", year, chaos = 0 }) {
   const teamAverages = computeTeamAveragesFromGames(normalizedTeam, games);
 
   // Elo's read on each remaining game, blended into the legacy estimate.
-  const teamElo = eloSnap.byTeam[normalizedTeam]?.power;
+  // The next game carries full current injury costs; later ones the average.
+  const nextGame = nextGameOf(games);
   const eloProbFor = (game) => {
-    if (!eloSnap.available || !Number.isFinite(teamElo)) return null;
-    const oppElo = eloSnap.byTeam[opponentOf(normalizedTeam, game)]?.power;
-    if (!Number.isFinite(oppElo)) return null;
+    if (!eloSnap.available) return null;
+    const isNext = game === nextGame;
+    const teamElo = powerForGame(eloSnap.byTeam[normalizedTeam], isNext);
+    const oppElo = powerForGame(eloSnap.byTeam[opponentOf(normalizedTeam, game)], isNext);
+    if (!Number.isFinite(teamElo) || !Number.isFinite(oppElo)) return null;
     const isHome = game.homeTeamAbbr === normalizedTeam;
     return eloWinProb(teamElo, oppElo, isHome ? ELO_HOME_FIELD : -ELO_HOME_FIELD);
   };
