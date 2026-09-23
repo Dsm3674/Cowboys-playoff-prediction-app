@@ -9,7 +9,9 @@
  * no manual weekly batch job. On top of the pure results-based Elo sits a
  * persisted adjustment layer for news that results can't see yet: QB outs,
  * injury clusters, trades. Adjustments are Elo-point deltas with a reason and
- * an optional expiry week.
+ * an optional expiry week. Injuries are also priced automatically from ESPN's
+ * injury report (services/injuries.js); a manual QB/INJURY adjustment for a
+ * team replaces its automatic injury delta so the two never stack.
  *
  * Elo spec (FiveThirtyEight-style):
  *   base 1500, K = 20, home field = +48 Elo pts,
@@ -28,6 +30,7 @@ const {
   computeTeamAveragesFromGames,
 } = require("./espn");
 const { computeTSI } = require("../tsi");
+const { getInjuryDeltas } = require("./injuries");
 const { devig } = require("./oddsMath");
 const { readFutures } = require("./marketFutures");
 
@@ -170,6 +173,23 @@ function activeAdjustmentTotal(team, adjustments, currentWeek) {
     .reduce((sum, a) => sum + a.deltaElo, 0);
 }
 
+/**
+ * Automatic injury delta for a team, unless an active manual QB/INJURY
+ * adjustment already covers it.
+ */
+function resolveInjuryDelta(team, injuryReport, adjustments, currentWeek) {
+  const auto = injuryReport?.byTeam?.[team];
+  if (!auto) return { delta: 0, overridden: false, players: [] };
+  const manual = adjustments.some(
+    (a) =>
+      a.team === team &&
+      (a.tag === "QB" || a.tag === "INJURY") &&
+      (a.expiresWeek == null || currentWeek == null || currentWeek <= a.expiresWeek)
+  );
+  if (manual) return { delta: 0, overridden: true, players: auto.players };
+  return { delta: auto.delta, overridden: false, players: auto.players };
+}
+
 /* ── League table ──────────────────────────────────────────────────────── */
 
 async function buildLeagueGames(year) {
@@ -272,9 +292,10 @@ async function computePreseasonPrior(year) {
  */
 async function computePowerRatings({ year } = {}) {
   const resolvedYear = year || getNFLSeasonYear();
-  const [{ teams, games, schedules }, priorResult] = await Promise.all([
+  const [{ teams, games, schedules }, priorResult, injuryReport] = await Promise.all([
     buildLeagueGames(resolvedYear),
     computePreseasonPrior(resolvedYear),
+    getInjuryDeltas(),
   ]);
   const { prior, source: priorSource } = priorResult;
   const { elo, ratedGames } = replayGamesToElo(games, prior);
@@ -298,7 +319,8 @@ async function computePowerRatings({ year } = {}) {
 
     const baseElo = elo[team.code] ?? prior[team.code] ?? ELO_BASE;
     const newsDelta = activeAdjustmentTotal(team.code, adjustments, lastCompletedWeek);
-    const adjustedElo = baseElo + newsDelta;
+    const injury = resolveInjuryDelta(team.code, injuryReport, adjustments, lastCompletedWeek);
+    const adjustedElo = baseElo + newsDelta + injury.delta;
 
     // Efficiency overlay: ±14 pts/game differential maps to ±42 Elo.
     const efficiencyDelta = Math.max(-14, Math.min(14, averages.pointDiffPerGame || 0)) * 3;
@@ -319,6 +341,9 @@ async function computePowerRatings({ year } = {}) {
       pointDiffPerGame: Number((averages.pointDiffPerGame || 0).toFixed(1)),
       elo: Number(baseElo.toFixed(1)),
       newsDelta: Number(newsDelta.toFixed(1)),
+      injuryDelta: injury.delta,
+      injuryOverridden: injury.overridden,
+      injuries: injury.players.slice(0, 5),
       adjustedElo: Number(adjustedElo.toFixed(1)),
       efficiencyDelta: Number(efficiencyDelta.toFixed(1)),
       tsi: Number.isFinite(tsiValue) ? Number(tsiValue.toFixed(1)) : null,
@@ -333,13 +358,14 @@ async function computePowerRatings({ year } = {}) {
 
   return {
     year: resolvedYear,
-    system: "Elo v2 · K=20 · MOV-weighted · HFA +48 · ⅓-regressed carryover · TSI overlay",
+    system: "Elo v2 · K=20 · MOV-weighted · HFA +48 · ⅓-regressed carryover · TSI overlay · ESPN injury deltas",
     priorSource,
     priorMarketWeight: priorSource === "carryover+market" ? MARKET_PRIOR_WEIGHT : 0,
     lastCompletedWeek,
     gamesRated: ratedGames.length,
     updatedAt: new Date().toISOString(),
-    cadence: "Ratings replay all completed games on request; news deltas applied live.",
+    cadence: "Ratings replay all completed games on request; news and ESPN injury deltas applied live.",
+    injuryFeed: injuryReport.available ? "espn" : "unavailable",
     ratings: rows,
   };
 }
@@ -410,6 +436,7 @@ module.exports = {
   replayGamesToElo,
   listAdjustments,
   upsertAdjustment,
+  resolveInjuryDelta,
   removeAdjustments,
   getPowerRatings,
   computePowerRatings,

@@ -246,6 +246,9 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
                   {t.record?.wins}-{t.record?.losses}
                   {t.record?.ties ? `-${t.record.ties}` : ""} · {t.pointDiffPerGame > 0 ? "+" : ""}
                   {t.pointDiffPerGame}/gm
+                  {t.injuryDelta < 0 && !t.injuryOverridden && (
+                    <span className="rlab-neg"> · injuries {t.injuryDelta}</span>
+                  )}
                   {t.newsDelta !== 0 && (
                     <span className={t.newsDelta > 0 ? "rlab-pos" : "rlab-neg"}>
                       {" "}· news {t.newsDelta > 0 ? "+" : ""}{t.newsDelta}
@@ -266,7 +269,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
               <thead>
                 <tr>
                   <th>#</th><th>Team</th><th>Conf</th><th>Record</th>
-                  <th>Elo</th><th>News Δ</th><th>Eff Δ</th><th>Power</th>
+                  <th>Elo</th><th>News Δ</th><th>Injury Δ</th><th>Eff Δ</th><th>Power</th>
                 </tr>
               </thead>
               <tbody>
@@ -286,6 +289,14 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
                     <td>{t.elo}</td>
                     <td className={t.newsDelta > 0 ? "rlab-pos" : t.newsDelta < 0 ? "rlab-neg" : ""}>
                       {t.newsDelta > 0 ? "+" : ""}{t.newsDelta || 0}
+                    </td>
+                    <td
+                      className={t.injuryDelta < 0 ? "rlab-neg" : ""}
+                      title={(t.injuries || [])
+                        .map((p) => `${p.name} (${p.position}, ${p.status}) ${p.elo}`)
+                        .join("\n") || undefined}
+                    >
+                      {t.injuryOverridden ? "manual" : t.injuryDelta || 0}
                     </td>
                     <td>{t.efficiencyDelta > 0 ? "+" : ""}{t.efficiencyDelta}</td>
                     <td className="rlab-table__power">{t.power}</td>
