@@ -8,6 +8,8 @@ const {
   getEloSnapshot,
   blendWithElo,
   eloWinProb,
+  powerForGame,
+  nextGameOf,
   ELO_HOME_FIELD,
 } = require("./services/ratingsEngine");
 
@@ -97,6 +99,7 @@ async function generateEspnPrediction({
   const cowAvg = computeTeamAveragesFromGames("DAL", cowboysGames);
 
   const remaining = cowboysGames.filter((g) => !g.completed);
+  const nextGame = nextGameOf(remaining);
 
   const probs = [];
 
@@ -123,8 +126,10 @@ async function generateEspnPrediction({
 
     // Hybrid: mix the legacy model with the Elo engine's read of the game.
     let pHybrid = pBase;
-    const dalElo = eloSnap.byTeam.DAL?.power;
-    const oppElo = eloSnap.byTeam[String(oppAbbr || "").toUpperCase()]?.power;
+    // The next game carries full current injury costs; later ones the average.
+    const isNext = g === nextGame;
+    const dalElo = powerForGame(eloSnap.byTeam.DAL, isNext);
+    const oppElo = powerForGame(eloSnap.byTeam[String(oppAbbr || "").toUpperCase()], isNext);
     if (eloSnap.available && Number.isFinite(dalElo) && Number.isFinite(oppElo)) {
       const pElo = eloWinProb(dalElo, oppElo, isHome ? ELO_HOME_FIELD : -ELO_HOME_FIELD);
       pHybrid = blendWithElo(pBase, pElo, 0.5);

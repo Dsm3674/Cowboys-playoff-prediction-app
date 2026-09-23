@@ -9,8 +9,14 @@ const {
   parseInjuryReport,
   parseDepthChart,
   scoreTeamInjuries,
+  expectedGamesOut,
+  seasonDelta,
 } = require("../services/injuries");
-const { resolveInjuryDelta } = require("../services/ratingsEngine");
+const { resolveInjuryDelta, powerForGame, nextGameOf } = require("../services/ratingsEngine");
+const analyticsRouter = require("../routes/analytics");
+const cache = require("../cache");
+
+afterAll(() => cache.destroy());
 
 const NOW = Date.parse("2026-09-23T12:00:00Z");
 const daysAgo = (d) => new Date(NOW - d * 86400000).toISOString();
@@ -170,10 +176,18 @@ describe("injuries — scoring", () => {
 });
 
 describe("ratingsEngine — injury delta resolution", () => {
-  const report = { byTeam: { DAL: { delta: -120, players: [{ name: "Dak Prescott" }] } } };
+  const report = {
+    byTeam: { DAL: { delta: -120, players: [{ name: "Dak Prescott", elo: -120, gamesOut: 1 }] } },
+  };
 
   test("applies automatic delta when no manual override", () => {
-    expect(resolveInjuryDelta("DAL", report, [], 3)).toMatchObject({ delta: -120, overridden: false });
+    expect(resolveInjuryDelta("DAL", report, [], 3)).toMatchObject({ delta: -120, nextGame: -120, overridden: false });
+  });
+
+  test("one-game absence is spread across the remaining schedule", () => {
+    const res = resolveInjuryDelta("DAL", report, [], 3, 10);
+    expect(res.nextGame).toBe(-120);
+    expect(res.delta).toBe(-12);
   });
 
   test("active manual QB adjustment replaces automatic delta", () => {
@@ -186,11 +200,73 @@ describe("ratingsEngine — injury delta resolution", () => {
       { team: "DAL", tag: "QB", deltaElo: -90, expiresWeek: 2 },
       { team: "DAL", tag: "TRADE", deltaElo: 20, expiresWeek: null },
     ];
-    expect(resolveInjuryDelta("DAL", report, adj, 3).delta).toBe(-120);
+    expect(resolveInjuryDelta("DAL", report, adj, 3, 1).delta).toBe(-120);
   });
 
   test("unknown team or unavailable feed is zero", () => {
     expect(resolveInjuryDelta("NYG", report, [], 3).delta).toBe(0);
     expect(resolveInjuryDelta("DAL", { available: false, byTeam: {} }, [], 3).delta).toBe(0);
+  });
+});
+
+describe("injuries — duration", () => {
+  test("return date sets games out, else IR minimum or one game", () => {
+    expect(expectedGamesOut({ status: "Out", returnDate: daysAgo(-20) }, NOW)).toBe(3);
+    expect(expectedGamesOut({ status: "Injured Reserve" }, NOW)).toBe(4);
+    expect(expectedGamesOut({ status: "Questionable" }, NOW)).toBe(1);
+    expect(expectedGamesOut({ status: "Out", returnDate: daysAgo(3) }, NOW)).toBe(1);
+  });
+
+  test("seasonDelta weights each player by share of games missed", () => {
+    const players = [{ elo: -100, gamesOut: 1 }, { elo: -20, gamesOut: 8 }];
+    expect(seasonDelta(players, 4)).toBe(-45);
+    expect(seasonDelta(players, 0)).toBe(0);
+  });
+
+  test("parser keeps ESPN return date", () => {
+    const report = parseInjuryReport({
+      injuries: [{ id: "6", injuries: [{ status: "Out", details: { returnDate: "2026-10-05" },
+        athlete: { id: "1", displayName: "A", position: { abbreviation: "QB" } } }] }],
+    }, { 6: "DAL" });
+    expect(report.DAL[0].returnDate).toBe("2026-10-05");
+  });
+});
+
+describe("ratingsEngine — per-game power", () => {
+  const entry = { power: 1500, injuryDelta: -12, nextGameInjuryDelta: -120 };
+
+  test("next game swaps the averaged cost for the full one", () => {
+    expect(powerForGame(entry, true)).toBe(1392);
+    expect(powerForGame(entry, false)).toBe(1500);
+    expect(powerForGame(undefined, true)).toBeNaN();
+  });
+
+  test("next game is the earliest unfinished one regardless of order", () => {
+    const games = [
+      { id: "c", date: "2026-10-12", completed: false },
+      { id: "a", date: "2026-09-14", completed: true },
+      { id: "b", date: "2026-09-28", completed: false },
+    ];
+    expect(nextGameOf(games).id).toBe("b");
+    expect(nextGameOf([{ id: "x", completed: false }]).id).toBe("x");
+    expect(nextGameOf([])).toBeNull();
+  });
+});
+
+describe("analytics — injuries in forecast and playoff pulse", () => {
+  const row = (code, injuryDelta) => ({
+    code, name: code, conference: "NFC", division: "East",
+    record: { wins: 2, losses: 1, ties: 0, winPct: 0.667 },
+    averages: { pointDiffPerGame: 3 }, tsi: 60, _injuryDelta: injuryDelta,
+  });
+
+  test("injured team projects fewer wins and lower playoff odds", () => {
+    const [healthy] = analyticsRouter.buildForecast([row("DAL", 0)]);
+    const [hurt] = analyticsRouter.buildForecast([row("DAL", -60)]);
+    expect(hurt.projectedWins).toBeLessThan(healthy.projectedWins);
+
+    const [pHealthy] = analyticsRouter.buildPlayoffPulse([row("DAL", 0)]);
+    const [pHurt] = analyticsRouter.buildPlayoffPulse([row("DAL", -60)]);
+    expect(pHurt.playoffProbability).toBeLessThan(pHealthy.playoffProbability);
   });
 });

@@ -16,7 +16,7 @@ const {
   computeTeamAveragesFromGames,
   normalizeTeamAbbr
 } = require("../services/espn");
-const { getEloSnapshot } = require("../services/ratingsEngine");
+const { getEloSnapshot, eloWinProb, ELO_BASE } = require("../services/ratingsEngine");
 
 /* Stamp each row with the Elo engine's power number so downstream strength
    formulas can fold it in. No-op when Elo has nothing informative to say. */
@@ -28,6 +28,23 @@ async function attachElo(rows, year) {
     row._elo = snap.available && Number.isFinite(power) ? power : null;
   }
   return rows;
+}
+
+/* Stamp each row with its season-averaged injury Elo cost. Forecast and
+   playoff pulse are built from results and TSI, which can't see who's hurt;
+   this is the only forward-looking roster signal they get. */
+async function attachInjuries(rows, year) {
+  const snap = await getEloSnapshot({ year });
+  for (const row of Array.isArray(rows) ? rows : [rows]) {
+    row._injuryDelta = snap.byTeam[row.code]?.injuryDelta || 0;
+  }
+  return rows;
+}
+
+/* Per-game win-probability change implied by an Elo delta vs an even opponent. */
+function injuryWinShift(team) {
+  const d = Number(team._injuryDelta) || 0;
+  return d ? eloWinProb(ELO_BASE + d, ELO_BASE, 0) - 0.5 : 0;
 }
 
 function sortStandings(a, b) {
@@ -155,7 +172,7 @@ function buildForecast(rows) {
     const currentWinPct = team.record.winPct || 0;
     const projectedWinRate = Math.max(
       0,
-      Math.min(1, currentWinPct * 0.55 + (team.tsi / 100) * 0.45)
+      Math.min(1, currentWinPct * 0.55 + (team.tsi / 100) * 0.45 + injuryWinShift(team))
     );
     const projectedWins = Number((team.record.wins + projectedWinRate * remainingGames).toFixed(1));
     const projectedLosses = Number((team.record.losses + (1 - projectedWinRate) * remainingGames).toFixed(1));
@@ -268,7 +285,11 @@ function computePlayoffProbability(team) {
   const winPct = team.record.winPct || 0;
   const pointDiff = team.averages.pointDiffPerGame || 0;
   const base = winPct * 100;
-  const adjusted = base + (team.tsi - 50) * 0.55 + pointDiff * 2.2;
+  // Injuries only touch the games still to play.
+  const played = (team.record.wins || 0) + (team.record.losses || 0) + (team.record.ties || 0);
+  const remainingShare = Math.max(0, 17 - played) / 17;
+  const injury = injuryWinShift(team) * 100 * remainingShare;
+  const adjusted = base + (team.tsi - 50) * 0.55 + pointDiff * 2.2 + injury;
   return Number(Math.max(5, Math.min(99, Math.round(adjusted * 10) / 10)).toFixed(1));
 }
 
@@ -380,6 +401,7 @@ router.get("/forecast", async (req, res) => {
       teams.map((team) => fetchTeamSummary(team.code, year))
     );
 
+    await attachInjuries(rows, year);
     const forecast = buildForecast(rows);
     res.json({ success: true, year: year || new Date().getFullYear(), forecast });
   } catch (e) {
@@ -410,6 +432,7 @@ router.get("/playoff", async (req, res) => {
       teams.map((team) => fetchTeamSummary(team.code, year))
     );
 
+    await attachInjuries(rows, year);
     const pulse = buildPlayoffPulse(rows);
     res.json({ success: true, year: year || new Date().getFullYear(), pulse });
   } catch (e) {
@@ -578,6 +601,7 @@ router.get("/matchup", async (req, res) => {
     const left = await fetchTeamSummary(team1, year);
     const right = await fetchTeamSummary(team2, year);
     await attachElo([left, right], year);
+    await attachInjuries([left, right], year);
     res.json(buildMatchupResponse(left, right, year));
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -693,5 +717,7 @@ router.get("/metrics", async (req, res) => {
 });
 
 router.buildMatchupResponse = buildMatchupResponse;
+router.buildForecast = buildForecast;
+router.buildPlayoffPulse = buildPlayoffPulse;
 
 module.exports = router;

@@ -18,6 +18,11 @@
  *   staleness         Results-based Elo absorbs a long absence on its own, so
  *                     weight fades from 100% (≤2 weeks) to 25% (≥8 weeks).
  *
+ * That gives the cost for the *next* game. Season projections apply one
+ * rating to every remaining game, so seasonDelta() spreads each player's cost
+ * over the games he's expected to miss: ESPN's return date when given, else
+ * 4 for IR/PUP/NFI (the minimum stint) and 1 for game-status designations.
+ *
  * Only depth-chart starters count; a backup's absence is noise. Every piece
  * fails soft: if ESPN is down or reshapes a payload the delta is 0.
  */
@@ -82,6 +87,22 @@ function stalenessWeight(injuryDate, now = Date.now()) {
   return 1 - ((weeks - 2) / 6) * 0.75;
 }
 
+const LONG_TERM_MIN_GAMES = 4;
+
+/* Games a player is expected to miss, counting the next one. */
+function expectedGamesOut(inj, now = Date.now()) {
+  const ret = Date.parse(inj?.returnDate);
+  if (Number.isFinite(ret) && ret > now) {
+    return Math.max(1, Math.ceil((ret - now) / (7 * 86400000)));
+  }
+  const s = String(inj?.status || "").toLowerCase();
+  if (s.includes("injured reserve") || s === "ir" || s.includes("pup") ||
+      s.includes("physically unable") || s.includes("non-football")) {
+    return LONG_TERM_MIN_GAMES;
+  }
+  return 1;
+}
+
 /* ── Payload parsing (defensive: ESPN's shapes are undocumented) ────────── */
 
 function teamAbbrFromEntry(entry, idToAbbr) {
@@ -112,6 +133,7 @@ function parseInjuryReport(payload, idToAbbr = {}) {
       status: String(status),
       date: row?.date || null,
       detail: row?.details?.type || row?.shortComment || null,
+      returnDate: row?.details?.returnDate || null,
     });
   };
 
@@ -205,6 +227,7 @@ function scoreTeamInjuries(injuries = [], depth = null, { now = Date.now() } = {
       status: inj.status,
       detail: inj.detail,
       elo: Number(elo.toFixed(1)),
+      gamesOut: expectedGamesOut(inj, now),
       starter: starterWeight === 1,
     });
   }
@@ -216,6 +239,17 @@ function scoreTeamInjuries(injuries = [], depth = null, { now = Date.now() } = {
     capped: raw < -TEAM_CAP_ELO,
     players,
   };
+}
+
+/**
+ * Average per-game injury cost across a team's remaining schedule: each
+ * player's next-game cost × share of remaining games he's expected to miss.
+ */
+function seasonDelta(players = [], remainingGames = 0) {
+  const n = Math.floor(Number(remainingGames) || 0);
+  if (n <= 0) return 0;
+  const raw = players.reduce((sum, p) => sum + p.elo * Math.min(p.gamesOut || 1, n) / n, 0);
+  return Number(Math.max(-TEAM_CAP_ELO, raw).toFixed(1));
 }
 
 /* ── Fetching ───────────────────────────────────────────────────────────── */
@@ -284,6 +318,8 @@ module.exports = {
   POSITION_POINTS,
   playProbability,
   stalenessWeight,
+  expectedGamesOut,
+  seasonDelta,
   parseInjuryReport,
   parseDepthChart,
   scoreTeamInjuries,

@@ -166,7 +166,7 @@ The prediction engine calculates probabilities based on:
 1. **Win Percentage** (30% weight) - Team's current season record
 2. **Offensive Rating** (25% weight) - Based on points scored, total yards, and turnovers
 3. **Defensive Rating** (25% weight) - Based on points allowed
-4. **Injury Impact** - Automatic Elo deltas from ESPN's injury report and depth charts: `(1 - P(plays)) × positional spread value × 25 Elo/pt`, starters only, faded for long absences, capped at -250 Elo per team. A manual QB/INJURY adjustment replaces the automatic delta for that team. See `backend/services/injuries.js`.
+4. **Injury Impact** - Automatic Elo deltas from ESPN's injury report and depth charts: `(1 - P(plays)) × positional spread value × 25 Elo/pt`, starters only, faded for long absences, capped at -250 Elo per team. The upcoming game takes the full cost; season projections spread it over the games each player is expected to miss (ESPN return date, else 4 for IR, 1 for game designations). A manual QB/INJURY adjustment replaces the automatic delta for that team. See `backend/services/injuries.js`.
 
 The algorithm outputs:
 - Playoff probability

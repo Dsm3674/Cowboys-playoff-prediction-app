@@ -294,6 +294,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
                       className={t.injuryDelta < 0 ? "rlab-neg" : ""}
                       title={(t.injuries || [])
                         .map((p) => `${p.name} (${p.position}, ${p.status}) ${p.elo}`)
+                        .concat(t.nextGameInjuryDelta ? [`Next game: ${t.nextGameInjuryDelta}`] : [])
                         .join("\n") || undefined}
                     >
                       {t.injuryOverridden ? "manual" : t.injuryDelta || 0}

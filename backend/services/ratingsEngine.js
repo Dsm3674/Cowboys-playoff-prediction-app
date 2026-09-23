@@ -30,7 +30,7 @@ const {
   computeTeamAveragesFromGames,
 } = require("./espn");
 const { computeTSI } = require("../tsi");
-const { getInjuryDeltas } = require("./injuries");
+const { getInjuryDeltas, seasonDelta } = require("./injuries");
 const { devig } = require("./oddsMath");
 const { readFutures } = require("./marketFutures");
 
@@ -174,20 +174,54 @@ function activeAdjustmentTotal(team, adjustments, currentWeek) {
 }
 
 /**
- * Automatic injury delta for a team, unless an active manual QB/INJURY
- * adjustment already covers it.
+ * Automatic injury deltas for a team, unless an active manual QB/INJURY
+ * adjustment already covers it. `nextGame` is the full cost for the upcoming
+ * game; `delta` is that cost averaged over the remaining schedule, which is
+ * what belongs in a rating applied to every remaining game.
  */
-function resolveInjuryDelta(team, injuryReport, adjustments, currentWeek) {
+function resolveInjuryDelta(team, injuryReport, adjustments, currentWeek, remainingGames = 1) {
+  const none = { delta: 0, nextGame: 0, overridden: false, players: [] };
   const auto = injuryReport?.byTeam?.[team];
-  if (!auto) return { delta: 0, overridden: false, players: [] };
+  if (!auto) return none;
   const manual = adjustments.some(
     (a) =>
       a.team === team &&
       (a.tag === "QB" || a.tag === "INJURY") &&
       (a.expiresWeek == null || currentWeek == null || currentWeek <= a.expiresWeek)
   );
-  if (manual) return { delta: 0, overridden: true, players: auto.players };
-  return { delta: auto.delta, overridden: false, players: auto.players };
+  if (manual) return { ...none, overridden: true, players: auto.players };
+  return {
+    delta: seasonDelta(auto.players, Math.max(1, remainingGames)),
+    nextGame: auto.delta,
+    overridden: false,
+    players: auto.players,
+  };
+}
+
+/**
+ * The next game to be played: earliest-dated unfinished game, falling back to
+ * list order when dates are missing.
+ */
+function nextGameOf(games = []) {
+  let best = null;
+  let bestT = Infinity;
+  for (const g of games) {
+    if (!g || g.completed) continue;
+    const t = Date.parse(g.date);
+    if (best == null) best = g;
+    if (Number.isFinite(t) && t < bestT) { best = g; bestT = t; }
+  }
+  return best;
+}
+
+/**
+ * A team's power for one game. Ratings carry the season-averaged injury
+ * cost; the upcoming game gets the full next-game cost instead.
+ */
+function powerForGame(entry, isNextGame = false) {
+  if (!entry || !Number.isFinite(entry.power)) return NaN;
+  if (!isNextGame) return entry.power;
+  return entry.power - (entry.injuryDelta || 0) + (entry.nextGameInjuryDelta || 0);
 }
 
 /* ── League table ──────────────────────────────────────────────────────── */
@@ -319,7 +353,8 @@ async function computePowerRatings({ year } = {}) {
 
     const baseElo = elo[team.code] ?? prior[team.code] ?? ELO_BASE;
     const newsDelta = activeAdjustmentTotal(team.code, adjustments, lastCompletedWeek);
-    const injury = resolveInjuryDelta(team.code, injuryReport, adjustments, lastCompletedWeek);
+    const remainingGames = teamGames.filter((g) => !g.completed).length;
+    const injury = resolveInjuryDelta(team.code, injuryReport, adjustments, lastCompletedWeek, remainingGames);
     const adjustedElo = baseElo + newsDelta + injury.delta;
 
     // Efficiency overlay: ±14 pts/game differential maps to ±42 Elo.
@@ -342,6 +377,7 @@ async function computePowerRatings({ year } = {}) {
       elo: Number(baseElo.toFixed(1)),
       newsDelta: Number(newsDelta.toFixed(1)),
       injuryDelta: injury.delta,
+      nextGameInjuryDelta: injury.nextGame,
       injuryOverridden: injury.overridden,
       injuries: injury.players.slice(0, 5),
       adjustedElo: Number(adjustedElo.toFixed(1)),
@@ -401,7 +437,12 @@ async function getEloSnapshot({ year } = {}) {
     const byTeam = {};
     let informative = false;
     for (const t of ratings.ratings) {
-      byTeam[t.code] = { adjustedElo: t.adjustedElo, power: t.power };
+      byTeam[t.code] = {
+        adjustedElo: t.adjustedElo,
+        power: t.power,
+        injuryDelta: t.injuryDelta || 0,
+        nextGameInjuryDelta: t.nextGameInjuryDelta || 0,
+      };
       if (Math.abs(t.power - ELO_BASE) > 1) informative = true;
     }
     return {
@@ -437,6 +478,8 @@ module.exports = {
   listAdjustments,
   upsertAdjustment,
   resolveInjuryDelta,
+  powerForGame,
+  nextGameOf,
   removeAdjustments,
   getPowerRatings,
   computePowerRatings,
