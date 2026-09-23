@@ -309,6 +309,7 @@ module.exports = {
   computeRecordFromGames,
   computeTeamAveragesFromGames,
   getNFLTeamList,
+  getNflTeamIdMap,
   getNFLTeamCatalog: () => NFL_TEAM_CATALOG,
   getNFLTeamMetadata: getNFLCatalogItem,
   normalizeTeamAbbr,
