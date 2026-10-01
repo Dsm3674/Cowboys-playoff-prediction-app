@@ -532,7 +532,7 @@ function LinearInspector({ currentPage, selectedTeam, year }) {
 
       <div className="linear-inspector__block">
         <div className="linear-inspector__label">Model</div>
-        <div className="linear-inspector__pill">Hybrid Elo v2</div>
+        <div className="linear-inspector__pill">Elo v3 · League Sim</div>
       </div>
     </aside>
   );

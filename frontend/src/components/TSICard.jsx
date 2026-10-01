@@ -21,7 +21,7 @@ function TSICard({ year, team = "DAL" }) {
   return (
     <div className="card tsi-card">
       <div className="eyebrow">Team Strength Index</div>
-      <h3 className="tsi-card__title">{team} Power Rating</h3>
+      <h3 className="tsi-card__title">{team} Strength Index</h3>
       
       <div className="tsi-card__hero">
         <div style={{ 

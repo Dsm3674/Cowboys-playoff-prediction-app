@@ -181,8 +181,36 @@ function startServer(port = PORT) {
   return app.listen(port, () => console.log(`✅ Server running on port ${port}`));
 }
 
+/**
+ * Stop cleanly on SIGTERM (Railway, on every deploy) and SIGINT (Ctrl+C):
+ * stop taking connections, close the database pool, exit. A handler that
+ * never exits keeps the old instance alive until the platform force-kills it.
+ */
+function registerShutdown(server) {
+  let stopping = false;
+  const stop = (signal) => {
+    if (stopping) return;
+    stopping = true;
+    console.log(`${signal} received, shutting down`);
+    const force = setTimeout(() => process.exit(0), 10000);
+    force.unref();
+    server.close(async () => {
+      try {
+        await require("./databases").end();
+      } catch (err) {
+        console.error("Failed to close database pool cleanly:", err.message);
+      }
+      process.exit(0);
+    });
+    // Idle keep-alive sockets would otherwise hold close() open.
+    if (typeof server.closeIdleConnections === "function") server.closeIdleConnections();
+  };
+  process.on("SIGTERM", () => stop("SIGTERM"));
+  process.on("SIGINT", () => stop("SIGINT"));
+}
+
 if (require.main === module) {
-  startServer();
+  registerShutdown(startServer());
 }
 
 module.exports = { app, startServer };

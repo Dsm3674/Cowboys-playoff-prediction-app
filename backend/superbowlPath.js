@@ -8,6 +8,37 @@ const { getSessionIdentity } = require("./middleware/sessionAuth");
 
 const { generateEspnPrediction } = require("./prediction");
 const { getSeasonSimulation } = require("./services/seasonSimulator");
+const { getPowerRatings, buildLeagueGames, eloWinProb, ELO_BASE, ELO_HOME_FIELD } = require("./services/ratingsEngine");
+
+/**
+ * Teams ordered by remaining-schedule difficulty, hardest first, using the
+ * Schedule Strength page's measure: how often an average team would lose
+ * those games. Also returns the top-rated team.
+ */
+async function scheduleOrder(year) {
+  const ratings = await getPowerRatings({ year });
+  const { games } = await buildLeagueGames(ratings.year);
+  const power = Object.fromEntries(ratings.ratings.map((r) => [r.code, r.power]));
+  const difficulty = {};
+  for (const code of Object.keys(power)) {
+    const shares = games
+      .filter((g) => !g.completed && (g.homeTeamAbbr === code || g.awayTeamAbbr === code))
+      .map((g) => {
+        const home = g.homeTeamAbbr === code;
+        const opp = home ? g.awayTeamAbbr : g.homeTeamAbbr;
+        if (!Number.isFinite(power[opp])) return null;
+        const hfa = g.neutralSite ? 0 : home ? ELO_HOME_FIELD : -ELO_HOME_FIELD;
+        return 1 - eloWinProb(ELO_BASE, power[opp], hfa);
+      })
+      .filter((x) => x != null);
+    if (shares.length) difficulty[code] = shares.reduce((a, b) => a + b, 0) / shares.length;
+  }
+  const top = ratings.ratings.slice().sort((a, b) => b.power - a.power)[0];
+  return {
+    order: Object.keys(difficulty).sort((a, b) => difficulty[b] - difficulty[a]),
+    topPower: top ? { code: top.code, power: Math.round(top.power) } : null,
+  };
+}
 
 function normalizeEmail(email) {
   const normalized = String(email || "").trim().toLowerCase();
@@ -141,6 +172,9 @@ router.get("/current", async (req, res) => {
     if (!row) return res.status(404).json({ error: `No simulation for ${team}` });
 
     const favorite = sim.teams.slice().sort((a, b) => b.winSBPct - a.winSBPct)[0];
+    const schedule = await scheduleOrder(sim.year).catch(() => null);
+    const sosIndex = schedule ? schedule.order.indexOf(team) : -1;
+    const sosRank = sosIndex >= 0 ? sosIndex + 1 : null;
     const bubble = sim.teams
       .filter((t) => t.playoffPct >= 30 && t.playoffPct <= 70)
       .sort((a, b) => Math.abs(a.playoffPct - 50) - Math.abs(b.playoffPct - 50))
@@ -157,6 +191,9 @@ router.get("/current", async (req, res) => {
         conference_probability: toProb(row.reachSBPct),
         superbowl_probability: toProb(row.winSBPct),
         expected_wins: row.avgWins,
+        sos_rank: sosRank,
+        // Share of simulated seasons ending on each win total.
+        win_distribution: row.winsDistribution,
       },
       league: {
         topSeeds: {
@@ -165,6 +202,8 @@ router.get("/current", async (req, res) => {
         },
         superBowlFavorite: favorite ? { code: favorite.code, pct: favorite.winSBPct } : null,
         bubble,
+        toughestSchedule: schedule?.order[0] || null,
+        topPower: schedule?.topPower || null,
       },
       meta: {
         engine: sim.engine,

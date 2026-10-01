@@ -153,7 +153,7 @@ export default function AboutPage() {
           </p>
         </div>
         <div className="intel-hero__meta">
-          <span className="intel-chip intel-chip--muted">Hybrid Elo v2</span>
+          <span className="intel-chip intel-chip--muted">Elo v3 · League Sim</span>
           <span className="intel-chip intel-chip--success about__identity">
             <span className="about__identity-dot" aria-hidden="true" />
             <span className="about__identity-user">{user}</span>

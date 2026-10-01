@@ -239,14 +239,9 @@ function registerShutdownHandlers() {
 
   if (isTestEnv()) return;
 
-  process.on("SIGTERM", async () => {
-    await shutdown("SIGTERM");
-  });
-
-  process.on("SIGINT", async () => {
-    await shutdown("SIGINT");
-  });
-
+  // SIGTERM/SIGINT are handled in server.js, which also stops the HTTP
+  // server and exits. Handling them here as well (without exiting) used to
+  // leave the process running after every shutdown request.
   process.on("beforeExit", async () => {
     await shutdown("beforeExit");
   });

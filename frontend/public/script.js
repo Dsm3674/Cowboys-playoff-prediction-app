@@ -20,8 +20,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initializeLandingPrediction() {
-  const currentEndpoints = ["/predictions/current", "/prediction/current"];
-  const generateEndpoints = ["/predictions/generate", "/prediction/generate"];
+  // The deployed API uses the singular prefix; the plural is a legacy fallback.
+  const currentEndpoints = ["/prediction/current", "/predictions/current"];
+  const generateEndpoints = ["/prediction/generate", "/predictions/generate"];
 
   for (const endpoint of currentEndpoints) {
     try {
@@ -84,6 +85,8 @@ function updateRail(pred, league) {
     "DAL Playoff Odds": pred.playoff_probability != null ? `${toPercent(pred.playoff_probability)}%` : null,
     "DAL SB Odds": pred.superbowl_probability != null ? `${toPercentOneDecimal(pred.superbowl_probability)}%` : null,
     Bubble: league?.bubble?.length ? league.bubble.join(", ") : null,
+    "SOS Toughest": league?.toughestSchedule || null,
+    "Top Power": league?.topPower ? `${league.topPower.code} · ${league.topPower.power}` : null,
   };
 
   document.querySelectorAll(".lp-rail__item").forEach((item) => {
@@ -125,6 +128,28 @@ function updatePredictionDisplay(pred) {
   if (projWins != null) {
     setText("proj-wins", Number(projWins).toFixed(1));
   }
+
+  if (pred.sos_rank != null) setText("sos-rank", `#${pred.sos_rank}`);
+  drawWinSpread(pred.win_distribution);
+}
+
+/* Projected final-win distribution from the league simulation, as a sparkline. */
+function drawWinSpread(dist) {
+  if (!dist || typeof dist !== "object") return;
+  const wins = Object.keys(dist).map(Number).sort((a, b) => a - b);
+  if (wins.length < 2) return;
+  const max = Math.max(...wins.map((w) => dist[w])) || 1;
+  const pts = wins.map((w, i) => {
+    const x = (i / (wins.length - 1)) * 200;
+    const y = 36 - (dist[w] / max) * 32;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const line = document.getElementById("spark-line");
+  const area = document.getElementById("spark-area");
+  if (line) line.setAttribute("points", pts.join(" "));
+  if (area) area.setAttribute("points", `${pts.join(" ")} 200,38 0,38`);
+  const peak = wins.reduce((a, b) => (dist[b] > dist[a] ? b : a));
+  setText("spark-peak", `most likely ${peak} wins`);
 }
 
 async function fetchJSON(url, options = {}) {
