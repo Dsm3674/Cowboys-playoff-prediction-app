@@ -14,6 +14,7 @@ const {
   nextGameOf,
   ELO_HOME_FIELD
 } = require("./services/ratingsEngine");
+const { getSeasonSimulation, playoffCurve } = require("./services/seasonSimulator");
 
 const DEFAULT_ITERATIONS = 10000;
 
@@ -173,7 +174,16 @@ function normalizeGame(teamAbbr, game, teamAverages, record, chaos, idx, eloProb
   };
 }
 
-function projectPlayoffProbability(totalWins) {
+/**
+ * Playoff odds for a final win total. `curve` is this team's measured curve
+ * from the league simulation (its division, schedule and tiebreak context);
+ * the fixed league-average table is the fallback when the sim is unavailable.
+ */
+function projectPlayoffProbability(totalWins, curve = null) {
+  if (curve) {
+    const w = Math.max(0, Math.min(17, Math.round(totalWins)));
+    if (Number.isFinite(curve[w])) return curve[w];
+  }
   if (totalWins >= 14) return 0.995;
   if (totalWins === 13) return 0.985;
   if (totalWins === 12) return 0.955;
@@ -192,7 +202,7 @@ function classifyLeverage(swing) {
   return "NORMAL";
 }
 
-function simulateSeasonOutcome({ currentWins, remainingGames, forcedGameIndex = null, forcedOutcome = null, seed = 1 }) {
+function simulateSeasonOutcome({ currentWins, remainingGames, forcedGameIndex = null, forcedOutcome = null, seed = 1, curve = null }) {
   const rng = createSeededRng(seed);
   let wins = currentWins;
 
@@ -206,7 +216,7 @@ function simulateSeasonOutcome({ currentWins, remainingGames, forcedGameIndex = 
     if (rng() < p) wins += 1;
   }
 
-  const playoffProbability = projectPlayoffProbability(wins);
+  const playoffProbability = projectPlayoffProbability(wins, curve);
 
   return {
     totalWins: wins,
@@ -248,7 +258,7 @@ function summarizeSimulations(results) {
   };
 }
 
-function runScenario({ currentWins, remainingGames, iterations, seasonYear, forcedGameIndex = null, forcedOutcome = null }) {
+function runScenario({ currentWins, remainingGames, iterations, seasonYear, forcedGameIndex = null, forcedOutcome = null, curve = null }) {
   const results = [];
 
   for (let i = 0; i < iterations; i += 1) {
@@ -258,6 +268,7 @@ function runScenario({ currentWins, remainingGames, iterations, seasonYear, forc
         remainingGames,
         forcedGameIndex,
         forcedOutcome,
+        curve,
         seed: seasonYear * 100000 + i * 97 + (forcedGameIndex === null ? 7 : forcedGameIndex * 13) + (forcedOutcome === "WIN" ? 3 : 11)
       })
     );
@@ -271,9 +282,10 @@ async function loadSeasonModel({ teamAbbr = "DAL", year, chaos = 0 }) {
   const normalizedTeam = normalizeAbbr(teamAbbr);
   const normalizedChaos = normalizeChaos(chaos);
 
-  const [games, eloSnap] = await Promise.all([
+  const [games, eloSnap, sim] = await Promise.all([
     fetchTeamGamesSeasonToDate(normalizedTeam, seasonYear),
-    getEloSnapshot({ year: seasonYear })
+    getEloSnapshot({ year: seasonYear }),
+    getSeasonSimulation({ year: seasonYear }).catch(() => null)
   ]);
   const record = computeRecordFromGames(games);
   const teamAverages = computeTeamAveragesFromGames(normalizedTeam, games);
@@ -305,7 +317,8 @@ async function loadSeasonModel({ teamAbbr = "DAL", year, chaos = 0 }) {
     currentWins: teamRecordWins(record),
     currentLosses: teamRecordLosses(record),
     remainingGames,
-    chaos: normalizedChaos
+    chaos: normalizedChaos,
+    playoffCurve: playoffCurve(sim?.teams.find((t) => t.code === normalizedTeam))
   };
 }
 
@@ -317,7 +330,8 @@ async function buildSeasonPaths({ teamAbbr = "DAL", year, chaos = 0, iterations 
     currentWins: model.currentWins,
     remainingGames: model.remainingGames,
     iterations: normalizedIterations,
-    seasonYear: model.seasonYear
+    seasonYear: model.seasonYear,
+    curve: model.playoffCurve
   });
 
   return {
@@ -354,7 +368,8 @@ async function computeMustWinGames({ teamAbbr = "DAL", year, chaos = 0, iteratio
     currentWins: model.currentWins,
     remainingGames: model.remainingGames,
     iterations: normalizedIterations,
-    seasonYear: model.seasonYear
+    seasonYear: model.seasonYear,
+    curve: model.playoffCurve
   });
 
   const games = model.remainingGames.map((game, index) => {
@@ -363,6 +378,7 @@ async function computeMustWinGames({ teamAbbr = "DAL", year, chaos = 0, iteratio
       remainingGames: model.remainingGames,
       iterations: normalizedIterations,
       seasonYear: model.seasonYear,
+      curve: model.playoffCurve,
       forcedGameIndex: index,
       forcedOutcome: "WIN"
     });
@@ -372,6 +388,7 @@ async function computeMustWinGames({ teamAbbr = "DAL", year, chaos = 0, iteratio
       remainingGames: model.remainingGames,
       iterations: normalizedIterations,
       seasonYear: model.seasonYear,
+      curve: model.playoffCurve,
       forcedGameIndex: index,
       forcedOutcome: "LOSS"
     });
@@ -411,14 +428,16 @@ async function computeScheduleSensitivity({ teamAbbr = "DAL", year, chaos = 0, i
     currentWins: model.currentWins,
     remainingGames: model.remainingGames.map((game) => ({ ...game, pWin: clamp(game.pWin + 0.03, 0.04, 0.96) })),
     iterations: normalizedIterations,
-    seasonYear: model.seasonYear
+    seasonYear: model.seasonYear,
+    curve: model.playoffCurve
   });
 
   const highChaos = runScenario({
     currentWins: model.currentWins,
     remainingGames: model.remainingGames.map((game) => ({ ...game, pWin: clamp(game.pWin - 0.03, 0.04, 0.96) })),
     iterations: normalizedIterations,
-    seasonYear: model.seasonYear
+    seasonYear: model.seasonYear,
+    curve: model.playoffCurve
   });
 
   return {
@@ -436,5 +455,6 @@ module.exports = {
   computeMustWinGames,
   computeScheduleSensitivity,
   estimateGameWinProbability,
+  projectPlayoffProbability,
   simulateSeasonOutcome
 };

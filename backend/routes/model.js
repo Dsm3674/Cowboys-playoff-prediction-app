@@ -15,6 +15,16 @@ const {
   MAX_ITERATIONS,
 } = require("../services/playoffPathEngine");
 const {
+  simulateSeason,
+  getSeasonSimulation,
+  publicTeam,
+  DEFAULT_ITERATIONS: SEASON_DEFAULT_ITERATIONS,
+  MAX_ITERATIONS: SEASON_MAX_ITERATIONS,
+  _invalidateSimulationCache,
+} = require("../services/seasonSimulator");
+const { runBacktest, DEFAULT_CHECKPOINTS } = require("../services/backtest");
+const { getNFLSeasonYear } = require("../services/espn");
+const {
   getFutures,
   saveFutures,
   validateAgainstMarket,
@@ -53,6 +63,50 @@ router.get("/path-probabilities", async (req, res) => {
 
     const data = await simulatePlayoffPaths({ year, focusTeam, iterations, seed });
     res.json({ success: true, maxIterations: MAX_ITERATIONS, ...data });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/* ── League season simulation ──────────────────────────────────────────── */
+
+// Plays out the rest of the regular season for all 32 teams, then the
+// playoffs. Default settings share the cached run the other pages use; a
+// custom iteration count or seed runs fresh.
+router.get("/season-simulation", async (req, res) => {
+  try {
+    const year = Number(req.query.year) || undefined;
+    const iterations = Number(req.query.iterations) || SEASON_DEFAULT_ITERATIONS;
+    const seed = Number(req.query.seed) || undefined;
+    const focus = String(req.query.team || "DAL").toUpperCase();
+
+    const custom = iterations !== SEASON_DEFAULT_ITERATIONS || seed !== undefined;
+    const sim = custom
+      ? await simulateSeason({ year, iterations, seed })
+      : await getSeasonSimulation({ year });
+
+    res.json({
+      success: true,
+      maxIterations: SEASON_MAX_ITERATIONS,
+      ...sim,
+      focusTeam: focus,
+      teams: sim.teams
+        .map(publicTeam)
+        .sort((a, b) => b.playoffPct - a.playoffPct || b.avgWins - a.avgWins),
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/* ── Backtest on a finished season ─────────────────────────────────────── */
+
+router.get("/backtest", async (req, res) => {
+  try {
+    const year = Number(req.query.year) || getNFLSeasonYear() - 1;
+    const iterations = Math.max(500, Math.min(10000, Number(req.query.iterations) || 2000));
+    const data = await runBacktest({ year, iterations, checkpoints: DEFAULT_CHECKPOINTS });
+    res.json({ success: true, ...data });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -110,6 +164,7 @@ router.post("/adjustments", requireAdmin, (req, res) => {
   try {
     const adjustment = upsertAdjustment(req.body || {});
     _invalidateRatingsCache();
+    _invalidateSimulationCache();
     res.json({ success: true, adjustment });
   } catch (e) {
     res.status(400).json({ success: false, error: e.message });
@@ -119,6 +174,7 @@ router.post("/adjustments", requireAdmin, (req, res) => {
 router.delete("/adjustments/:team", requireAdmin, (req, res) => {
   const removed = removeAdjustments(req.params.team);
   _invalidateRatingsCache();
+  _invalidateSimulationCache();
   res.json({ success: true, removed });
 });
 

@@ -66,7 +66,7 @@ function movMultiplier(margin, winnerEloDiff) {
  * completed, date. Unknown teams are lazily seeded at ELO_BASE, or at their
  * entry in `initialElo` when a preseason prior is supplied.
  */
-function replayGamesToElo(games, initialElo = {}) {
+function replayGamesToElo(games, initialElo = {}, { k = ELO_K, homeField = ELO_HOME_FIELD } = {}) {
   const elo = {};
   const rated = [];
   const get = (abbr) => {
@@ -84,16 +84,16 @@ function replayGamesToElo(games, initialElo = {}) {
     const eloHome = get(home);
     const eloAway = get(away);
 
-    const pHome = eloWinProb(eloHome, eloAway, ELO_HOME_FIELD);
+    const pHome = eloWinProb(eloHome, eloAway, homeField);
     const margin = (g.homeScore || 0) - (g.awayScore || 0);
     const actualHome = margin > 0 ? 1 : margin < 0 ? 0 : 0.5;
 
     const winnerEloDiff =
       margin >= 0
-        ? eloHome + ELO_HOME_FIELD - eloAway
-        : eloAway - (eloHome + ELO_HOME_FIELD);
+        ? eloHome + homeField - eloAway
+        : eloAway - (eloHome + homeField);
 
-    const shift = ELO_K * movMultiplier(margin, winnerEloDiff) * (actualHome - pHome);
+    const shift = k * movMultiplier(margin, winnerEloDiff) * (actualHome - pHome);
     elo[home] = eloHome + shift;
     elo[away] = eloAway - shift;
     rated.push({ id: g.id, week: g.week, home, away, shift: Number(shift.toFixed(2)) });
@@ -288,7 +288,12 @@ function marketImpliedElo(oddsMap) {
  * synchronous-ish, deterministic and free of a network dependency; the live
  * feed refreshes that file on its own cadence.
  */
-async function computePreseasonPrior(year) {
+/**
+ * Last season's final Elo regressed one-third back toward 1500. Results only,
+ * no market input, so the backtest can use it without leaking the current
+ * futures board into a past season. Empty when the prior season is partial.
+ */
+async function computeCarryoverPrior(year) {
   const carryover = {};
   try {
     const { games } = await buildLeagueGames(year - 1);
@@ -298,7 +303,12 @@ async function computePreseasonPrior(year) {
         carryover[team] = ELO_BASE + (rating - ELO_BASE) * (2 / 3);
       }
     }
-  } catch (_err) { /* no carryover; the market alone may still be usable */ }
+  } catch (_err) { /* no carryover */ }
+  return carryover;
+}
+
+async function computePreseasonPrior(year) {
+  const carryover = await computeCarryoverPrior(year);
 
   let market = null;
   try {
@@ -471,6 +481,7 @@ function blendWithElo(baseProb, eloProb, weight = 0.5) {
 
 module.exports = {
   ELO_BASE,
+  ELO_K,
   ELO_HOME_FIELD,
   eloWinProb,
   movMultiplier,
@@ -484,6 +495,8 @@ module.exports = {
   getPowerRatings,
   computePowerRatings,
   computePreseasonPrior,
+  computeCarryoverPrior,
+  buildLeagueGames,
   marketImpliedElo,
   getEloSnapshot,
   blendWithElo,

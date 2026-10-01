@@ -161,19 +161,17 @@ The frontend will typically run on `http://localhost:5173`
 
 ## Prediction Algorithm
 
-The prediction engine calculates probabilities based on:
+The model has three layers.
 
-1. **Win Percentage** (30% weight) - Team's current season record
-2. **Offensive Rating** (25% weight) - Based on points scored, total yards, and turnovers
-3. **Defensive Rating** (25% weight) - Based on points allowed
-4. **Injury Impact** - Automatic Elo deltas from ESPN's injury report and depth charts: `(1 - P(plays)) × positional spread value × 25 Elo/pt`, starters only, faded for long absences, capped at -250 Elo per team. The upcoming game takes the full cost; season projections spread it over the games each player is expected to miss (ESPN return date, else 4 for IR, 1 for game designations). A manual QB/INJURY adjustment replaces the automatic delta for that team. See `backend/services/injuries.js`.
+1. **Power ratings** (`backend/services/ratingsEngine.js`). FiveThirtyEight-style Elo: K = 20, +48 home field, margin-of-victory multiplier, replayed from every completed game. The preseason prior is last season's final Elo regressed one-third toward 1500, blended 60/40 with a rating implied by de-vigged Super Bowl futures. QB, injury and trade news are applied as Elo deltas, and a small overlay from point differential and TSI is added.
+2. **League season simulation** (`backend/services/seasonSimulator.js`). Every remaining regular-season game, for all 32 teams, is played from those ratings. Ratings run "hot": each simulated result updates both teams' Elo, so uncertainty grows the further out the forecast is. Standings are settled with the NFL tiebreakers (head-to-head, division record, common games, conference record, strength of victory, strength of schedule, net points, coin flip), and seeds 1-7 go into a bracket that reseeds after the wild-card round. 10,000 seasons by default, up to 100,000.
+3. **Path analysis** (`backend/services/playoffPathEngine.js`). Every simulated postseason is logged jointly, which answers conditional questions such as a team's title odds when the other conference's #1 seed is upset.
 
-The algorithm outputs:
-- Playoff probability
-- Division win probability
-- Conference championship probability
-- Super Bowl win probability
-- Overall confidence score
+**Injury impact.** - Automatic Elo deltas from ESPN's injury report and depth charts: `(1 - P(plays)) × positional spread value × 25 Elo/pt`, starters only, faded for long absences, capped at -250 Elo per team. The upcoming game takes the full cost; season projections spread it over the games each player is expected to miss (ESPN return date, else 4 for IR, 1 for game designations). A manual QB/INJURY adjustment replaces the automatic delta for that team. See `backend/services/injuries.js`.
+
+Outputs per team: projected wins, playoff, division, #1-seed, conference and Super Bowl probabilities, seed distribution, and playoff odds by final win total.
+
+**Backtest.** `npm run backtest -- 2025` (in `backend/`) replays a finished season using only what the model knew each week. It reports game-level Brier score, log loss, accuracy and calibration against coin-flip and home-field baselines, and playoff-odds Brier at weeks 4, 8, 12 and 16. Add `--tune` to grid-search K and home field. The same report is served at `GET /api/model/backtest?year=2025` and shown in the Ratings Lab.
 
 ## Database Schema
 

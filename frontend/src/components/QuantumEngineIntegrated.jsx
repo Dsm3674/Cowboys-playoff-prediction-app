@@ -1,6 +1,93 @@
 import React from "react";
+import { api } from "../api";
 
-function QuantumEngineIntegrated({ teamData = {} }) {
+/* The live league model's read on one team: the rest of the season played
+   out for all 32 teams (hot Elo, NFL tiebreakers), then the playoffs. */
+function LiveModelPanel({ team, cardStyle, labelStyle, valueStyle }) {
+  const [sim, setSim] = React.useState(null);
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    let alive = true;
+    api.getSeasonSimulation(team)
+      .then((data) => { if (alive) setSim(data); })
+      .catch((err) => { if (alive) setError(err.message || "Live model unavailable."); });
+    return () => { alive = false; };
+  }, [team]);
+
+  const row = sim?.teams?.find((t) => t.code === team);
+  const seedBars = row
+    ? [
+        ...row.seedPct.map((p, i) => ({ label: `#${i + 1}`, p })),
+        { label: "Out", p: Math.max(0, 100 - row.playoffPct) },
+      ]
+    : [];
+  const maxBar = Math.max(1, ...seedBars.map((b) => b.p));
+
+  return (
+    <div style={{ ...cardStyle, marginBottom: "24px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "14px" }}>
+        <div style={labelStyle}>Live league model · {team}</div>
+        {sim && (
+          <div style={{ fontSize: "12px", color: "rgba(229,238,252,0.6)" }}>
+            {sim.iterations.toLocaleString()} seasons · {sim.gamesRemaining} games left ·{" "}
+            {sim.lastCompletedWeek ? `thru week ${sim.lastCompletedWeek}` : "preseason"}
+          </div>
+        )}
+      </div>
+
+      {error && <div style={{ color: "rgba(229,238,252,0.72)" }}>{error}</div>}
+      {!row && !error && <div style={{ color: "rgba(229,238,252,0.72)" }}>Simulating the league…</div>}
+
+      {row && (
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+              gap: "16px",
+              marginBottom: "18px",
+            }}
+          >
+            {[
+              ["Make playoffs", `${row.playoffPct.toFixed(1)}%`],
+              ["Win division", `${row.divisionPct.toFixed(1)}%`],
+              ["#1 seed (bye)", `${row.byePct.toFixed(1)}%`],
+              ["Win Super Bowl", `${row.winSBPct.toFixed(1)}%`],
+              ["Projected wins", row.avgWins.toFixed(1)],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <div style={labelStyle}>{label}</div>
+                <div style={valueStyle}>{value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={labelStyle}>Where the season lands</div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "120px" }}>
+            {seedBars.map((b) => (
+              <div key={b.label} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+                <div style={{ fontSize: "11px", color: "rgba(229,238,252,0.72)" }}>{b.p.toFixed(0)}%</div>
+                <div
+                  title={`${b.label}: ${b.p.toFixed(1)}%`}
+                  style={{
+                    width: "100%",
+                    height: `${Math.max(3, (b.p / maxBar) * 70)}px`,
+                    background: b.label === "Out" ? "rgba(148,163,184,0.45)" : "linear-gradient(180deg, #38bdf8, #2563eb)",
+                    borderRadius: "6px 6px 0 0",
+                  }}
+                />
+                <div style={{ fontSize: "11px", color: "rgba(229,238,252,0.72)" }}>{b.label}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function QuantumEngineIntegrated({ teamData = {}, team = "DAL" }) {
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
   const [result, setResult] = React.useState(null);
@@ -291,8 +378,9 @@ function QuantumEngineIntegrated({ teamData = {} }) {
             marginBottom: "8px",
           }}
         >
-          High-volume season simulation with volatility scoring, distribution analysis,
-          and playoff outlook.
+          The live model plays out the rest of the NFL season for every team, applies
+          the real tiebreakers, then runs the playoffs. Below it, a scenario sandbox
+          lets you test your own assumptions.
         </p>
 
         <div
@@ -304,6 +392,19 @@ function QuantumEngineIntegrated({ teamData = {} }) {
           {message}
         </div>
       </div>
+
+      <LiveModelPanel
+        team={team}
+        cardStyle={metricCardStyle}
+        labelStyle={labelStyle}
+        valueStyle={valueStyle}
+      />
+
+      <div style={{ ...labelStyle, color: "#7dd3fc", marginBottom: "4px" }}>Scenario sandbox</div>
+      <p style={{ color: "rgba(229,238,252,0.62)", marginTop: 0, marginBottom: "16px", fontSize: "13px" }}>
+        Your inputs, not the live model: set a base win rate and noise and see how the
+        season distribution moves. Playoff odds here use a flat 10-win line.
+      </p>
 
       <div
         style={{
@@ -488,7 +589,7 @@ function QuantumEngineIntegrated({ teamData = {} }) {
             maxWidth: "320px",
           }}
         >
-          {isProcessing ? "Running Simulation..." : "Initiate Quantum Audit"}
+          {isProcessing ? "Running Simulation..." : "Run Sandbox Simulation"}
         </button>
       </div>
 

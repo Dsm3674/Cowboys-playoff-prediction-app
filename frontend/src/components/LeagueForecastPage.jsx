@@ -86,7 +86,8 @@ function LeagueForecastPage({ year = new Date().getFullYear() }) {
               <th>Current Win %</th>
               <th>Proj Wins</th>
               <th>Remaining</th>
-              <th>Proj Score</th>
+              <th>Playoff %</th>
+              <th>Division %</th>
             </tr>
           </thead>
           <tbody>
@@ -98,7 +99,8 @@ function LeagueForecastPage({ year = new Date().getFullYear() }) {
                 <td>{(team.record.winPct * 100).toFixed(1)}%</td>
                 <td className="text-accent" style={{ fontWeight: 600 }}>{team.projectedWins}</td>
                 <td>{team.remainingGames}</td>
-                <td>{team.projectionScore}</td>
+                <td>{team.playoffProbability != null ? `${team.playoffProbability}%` : "--"}</td>
+                <td>{team.divisionProbability != null ? `${team.divisionProbability}%` : "--"}</td>
               </tr>
             ))}
           </tbody>

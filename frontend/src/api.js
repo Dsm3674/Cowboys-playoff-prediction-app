@@ -447,6 +447,16 @@
     });
   }
 
+  function getSeasonSimulation(team = "DAL", year, iterations) {
+    return request("/api/model/season-simulation", {
+      query: { team, year, iterations }
+    });
+  }
+
+  function getBacktest(year) {
+    return request("/api/model/backtest", { query: { year } });
+  }
+
   function getMarketValidation(year, iterations) {
     return request("/api/model/market-validation", {
       query: { year, iterations }
@@ -525,6 +535,8 @@
     startProCheckout,
     getPowerRatings,
     getPathProbabilities,
+    getSeasonSimulation,
+    getBacktest,
     getMarketValidation,
     getModelAdjustments,
     saveModelAdjustment,

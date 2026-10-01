@@ -6,8 +6,9 @@ const LOGO = (abbr) =>
 
 /* ─── offline fallback ────────────────────────────────────────────────────── */
 /* Used only when the live bracket endpoint is unavailable.
-   Divisional slot 0 = WC winners matchup (connects from top 2 WC games)
-   Divisional slot 1 = 1-seed bye vs WC3 winner (connects from bottom WC game) */
+   Divisional rounds are reseeded, as the API's are:
+   slot 0 = the two higher-seeded wild-card winners
+   slot 1 = 1-seed bye vs the lowest surviving seed */
 const FALLBACK_BRACKET = {
   year: 2026,
   superBowl: {

@@ -12,6 +12,8 @@ const {
   nextGameOf,
   ELO_HOME_FIELD,
 } = require("./services/ratingsEngine");
+const { getSeasonSimulation, playoffCurve } = require("./services/seasonSimulator");
+const { projectPlayoffProbability } = require("./seasonPath");
 
 function clamp(x, lo, hi) {
   return Math.max(lo, Math.min(hi, x));
@@ -62,8 +64,13 @@ function modelWinProb(modelType, features) {
   return clamp(logistic(z), 0.05, 0.95);
 }
 
-function monteCarloSeason(currentWins, remainingProbs, iterations) {
-  let playoffCount = 0;
+/**
+ * Win totals from the per-game probabilities, mapped to playoff odds through
+ * the team's simulated playoff-by-wins curve (its division and tiebreak
+ * context) rather than a flat 10-win cutoff.
+ */
+function monteCarloSeason(currentWins, remainingProbs, iterations, curve = null) {
+  let playoffSum = 0;
   let totalWins = 0;
 
   for (let i = 0; i < iterations; i++) {
@@ -74,11 +81,11 @@ function monteCarloSeason(currentWins, remainingProbs, iterations) {
     }
 
     totalWins += wins;
-    if (wins >= 10) playoffCount++;
+    playoffSum += projectPlayoffProbability(wins, curve);
   }
 
   return {
-    playoffProbability: playoffCount / iterations,
+    playoffProbability: playoffSum / iterations,
     expectedWins: totalWins / iterations,
   };
 }
@@ -90,10 +97,12 @@ async function generateEspnPrediction({
   scenarioModifier = 0,
   chaos = 0,
 }) {
-  const [cowboysGames, eloSnap] = await Promise.all([
+  const [cowboysGames, eloSnap, leagueSim] = await Promise.all([
     fetchCowboysGamesSeasonToDate(year),
     getEloSnapshot({ year }),
+    getSeasonSimulation({ year }).catch(() => null),
   ]);
+  const dalSim = leagueSim?.teams.find((t) => t.code === "DAL") || null;
   // Cowboys record is fine at default "DAL"
   const record = computeRecordFromGames(cowboysGames, "DAL");
   const cowAvg = computeTeamAveragesFromGames("DAL", cowboysGames);
@@ -139,7 +148,7 @@ async function generateEspnPrediction({
     probs.push(p);
   }
 
-  const sim = monteCarloSeason(record.wins, probs, iterations);
+  const sim = monteCarloSeason(record.wins, probs, iterations, playoffCurve(dalSim));
 
   return {
     playoffProbability: sim.playoffProbability,
@@ -148,6 +157,18 @@ async function generateEspnPrediction({
     modelUsed: modelType,
     generatedAt: new Date().toISOString(),
     perGameWinProbabilities: probs,
+    // Unadjusted league-simulation odds (no scenario or chaos applied).
+    league: dalSim
+      ? {
+          playoffProbability: dalSim.playoffPct / 100,
+          divisionProbability: dalSim.divisionPct / 100,
+          conferenceProbability: dalSim.reachSBPct / 100,
+          superbowlProbability: dalSim.winSBPct / 100,
+          expectedWins: dalSim.avgWins,
+          iterations: leagueSim.iterations,
+          engine: leagueSim.engine,
+        }
+      : null,
   };
 }
 

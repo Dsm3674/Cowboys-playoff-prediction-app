@@ -67,8 +67,8 @@ async function validateAgainstMarket({ year, iterations, method = "shin", blendW
   const { probs: marketProbs, overround, z, k } = devig(futures.odds, { method });
   const modelByTeam = Object.fromEntries(paths.teams.map((t) => [t.code, t.winSBPct]));
 
-  /* Model percentages are over the playoff field only; normalize to a
-     distribution before comparing it with one. */
+  /* Model percentages cover every team that reached the playoffs in at least
+     one simulated season; normalize to a distribution before comparing. */
   const modelTotal = Object.values(modelByTeam).reduce((s, v) => s + v, 0) || 1;
   const modelProbs = Object.fromEntries(
     Object.entries(modelByTeam).map(([code, pct]) => [code, pct / modelTotal])

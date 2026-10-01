@@ -13,7 +13,8 @@
     "init-db": "node initDatabase.js",
     "dev": "nodemon server.js",
     "seed": "node initDatabase.js",
-    "migrate": "node migrate_player_events.js"
+    "migrate": "node migrate_player_events.js",
+    "backtest": "node scripts/backtest.js"
   },
   "keywords": [
     "nfl",

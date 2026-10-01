@@ -80,6 +80,9 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
   const [loading, setLoading] = useState(true);
   const [pathLoading, setPathLoading] = useState(false);
   const [error, setError] = useState("");
+  const [backtest, setBacktest] = useState(null);
+  const [backtestLoading, setBacktestLoading] = useState(false);
+  const [backtestError, setBacktestError] = useState("");
 
   const [adjForm, setAdjForm] = useState({
     team: selectedTeam || "DAL", deltaElo: -60, tag: "QB",
@@ -160,6 +163,18 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
     }
   }
 
+  async function runBacktest() {
+    setBacktestLoading(true);
+    setBacktestError("");
+    try {
+      setBacktest(await api.getBacktest());
+    } catch (err) {
+      setBacktestError(err.message || "Backtest failed.");
+    } finally {
+      setBacktestLoading(false);
+    }
+  }
+
   function focusOn(code) {
     setFocusTeam(code);
     runPaths(code, iterations);
@@ -175,8 +190,10 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
           POWER<br />RATINGS
         </h1>
         <p className="rlab-hero__sub">
-          Results-replayed Elo. Weekly QB and injury deltas. Path-conditional
-          playoff odds, validated against de-vigged futures markets.
+          Results-replayed Elo. Weekly QB and injury deltas. The rest of the
+          season played out for all 32 teams with NFL tiebreakers, then
+          path-conditional playoff odds, checked against de-vigged futures and
+          scored on last season.
         </p>
         <div className="rlab-chip-row">
           <span className="rlab-chip">{iterations.toLocaleString()} SIMS / RUN</span>
@@ -328,15 +345,16 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
               <table className="rlab-table">
                 <thead>
                   <tr>
-                    <th>Seed</th><th>Team ({focusConf})</th><th>Reach CC</th><th>Reach SB</th>
+                    <th>Proj seed</th><th>Team ({focusConf})</th><th>Playoffs</th><th>Reach CC</th><th>Reach SB</th>
                     <th>Win SB</th><th>Win SB | {oppConf} upset</th><th>Upset lift</th>
                   </tr>
                 </thead>
                 <tbody>
                   {beneficiaries.map((t) => (
                     <tr key={t.code} className={t.code === focusTeam ? "focused" : ""}>
-                      <td>{t.seed}</td>
+                      <td>{t.seed ?? "—"}</td>
                       <td className="rlab-table__team">{t.name}</td>
+                      <td>{fmtPct(t.playoffPct)}</td>
                       <td>{fmtPct(t.reachCCPct)}</td>
                       <td>{fmtPct(t.reachSBPct)}</td>
                       <td>{fmtPct(t.winSBPct)}</td>
@@ -375,40 +393,37 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
                   )
                 ) : (
                   <p className="rlab-muted">
-                    {focusTeam} misses the projected field — pick a playoff team from the board.
+                    {focusTeam} never made the playoffs in this run — pick a contender from the board.
                   </p>
                 )}
               </div>
 
               <div className="rlab-panel">
-                <div className="rlab-panel__title">{focusTeam} — EXIT ROUNDS</div>
-                {paths.focusInField ? (
-                  <div className="rlab-exit-bars">
-                    {[
-                      ["Wild Card", paths.focusRoundExits.WILD_CARD],
-                      ["Divisional", paths.focusRoundExits.DIVISIONAL],
-                      ["Conf Champ", paths.focusRoundExits.CONF_CHAMPIONSHIP],
-                      ["SB Loss", paths.focusRoundExits.SB_LOSS],
-                      ["SB WIN", paths.focusRoundExits.SB_WIN],
-                    ].map(([label, count]) => {
-                      const p = (count / paths.iterations) * 100;
-                      return (
-                        <div key={label} className="rlab-exit-row">
-                          <span className="rlab-exit-label">{label}</span>
-                          <div className="rlab-exit-track">
-                            <div
-                              className={`rlab-exit-fill${label === "SB WIN" ? " win" : ""}`}
-                              style={{ width: `${Math.max(1.5, p)}%` }}
-                            />
-                          </div>
-                          <span className="rlab-exit-val">{p.toFixed(1)}%</span>
+                <div className="rlab-panel__title">{focusTeam} — HOW THE SEASON ENDS</div>
+                <div className="rlab-exit-bars">
+                  {[
+                    ["Missed", paths.focusRoundExits.MISSED || 0],
+                    ["Wild Card", paths.focusRoundExits.WILD_CARD],
+                    ["Divisional", paths.focusRoundExits.DIVISIONAL],
+                    ["Conf Champ", paths.focusRoundExits.CONF_CHAMPIONSHIP],
+                    ["SB Loss", paths.focusRoundExits.SB_LOSS],
+                    ["SB WIN", paths.focusRoundExits.SB_WIN],
+                  ].map(([label, count]) => {
+                    const p = (count / paths.iterations) * 100;
+                    return (
+                      <div key={label} className="rlab-exit-row">
+                        <span className="rlab-exit-label">{label}</span>
+                        <div className="rlab-exit-track">
+                          <div
+                            className={`rlab-exit-fill${label === "SB WIN" ? " win" : ""}`}
+                            style={{ width: `${Math.max(1.5, p)}%` }}
+                          />
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="rlab-muted">Out of the field at current seeding.</p>
-                )}
+                        <span className="rlab-exit-val">{p.toFixed(1)}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </>
@@ -468,7 +483,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
               </table>
             </div>
             <p className="rlab-muted rlab-footnote">
-              * outside the model's projected playoff field. Distance is total variation —
+              * never reached the playoffs in any simulated season. Distance is total variation —
               the share of probability mass that would have to move for the two to agree —
               and KL divergence measures the same disagreement in bits. Both read 0 only on
               an exact match, unlike correlation, which a model reporting double the market
@@ -478,6 +493,95 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
           </>
         ) : (
           <div className="rlab-loading">Loading market snapshot…</div>
+        )}
+      </section>
+
+      {/* ── Backtest scorecard ───────────────────────────────── */}
+      <section className="rlab-section" id="rlab-backtest">
+        <div className="rlab-section__head">
+          <h2 className="rlab-h2">MODEL SCORECARD</h2>
+          <span className="rlab-meta">
+            {backtest
+              ? `${backtest.year} season · ratings rebuilt week by week from results known at the time`
+              : "Last season replayed with only what the model knew each week"}
+          </span>
+        </div>
+
+        {!backtest && !backtestLoading && (
+          <button className="rlab-btn" type="button" onClick={runBacktest}>RUN BACKTEST</button>
+        )}
+        {backtestLoading && <div className="rlab-loading">Replaying last season…</div>}
+        {backtestError && <p className="rlab-muted">{backtestError}</p>}
+
+        {backtest && (
+          <>
+            <div className="rlab-stat-row">
+              <div className="rlab-stat">
+                <div className="rlab-stat__val">{backtest.games.brier}</div>
+                <div className="rlab-stat__label">GAME BRIER (LOWER IS BETTER)</div>
+              </div>
+              <div className="rlab-stat">
+                <div className="rlab-stat__val">{backtest.games.baselines.homeFieldOnly.brier}</div>
+                <div className="rlab-stat__label">HOME FIELD ONLY</div>
+              </div>
+              <div className="rlab-stat">
+                <div className="rlab-stat__val">{fmtPct(backtest.games.accuracy * 100)}</div>
+                <div className="rlab-stat__label">PICKS CORRECT ({backtest.games.n} GAMES)</div>
+              </div>
+              <div className="rlab-stat">
+                <div className="rlab-stat__val">{backtest.playoffs.overall.brier}</div>
+                <div className="rlab-stat__label">PLAYOFF-ODDS BRIER</div>
+              </div>
+            </div>
+
+            <div className="rlab-duo">
+              <div className="rlab-panel">
+                <div className="rlab-panel__title">PLAYOFF ODDS BY CHECKPOINT</div>
+                <table className="rlab-table rlab-table--tight">
+                  <thead>
+                    <tr><th>After wk</th><th>Brier</th><th>Naive</th><th>Biggest misses</th></tr>
+                  </thead>
+                  <tbody>
+                    {backtest.playoffs.checkpoints.map((c) => (
+                      <tr key={c.afterWeek}>
+                        <td>{c.afterWeek}</td>
+                        <td>{c.brier}</td>
+                        <td>{c.baselineBrier}</td>
+                        <td className="rlab-reason">
+                          {c.biggestMisses.map((m) => `${m.code} ${m.playoffPct}% (${m.madePlayoffs ? "in" : "out"})`).join(" · ")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="rlab-panel">
+                <div className="rlab-panel__title">GAME CALIBRATION</div>
+                <table className="rlab-table rlab-table--tight">
+                  <thead>
+                    <tr><th>Forecast</th><th>Games</th><th>Predicted</th><th>Happened</th></tr>
+                  </thead>
+                  <tbody>
+                    {backtest.games.calibration.map((b) => (
+                      <tr key={b.from}>
+                        <td>{Math.round(b.from * 100)}–{Math.round(b.to * 100)}%</td>
+                        <td>{b.n}</td>
+                        <td>{fmtPct(b.predicted * 100)}</td>
+                        <td>{fmtPct(b.observed * 100)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <p className="rlab-muted rlab-footnote">
+              Brier score is the average squared gap between forecast and result: a coin flip
+              scores 0.25 on games, and a well-calibrated model shows Predicted close to Happened
+              in every row. The naive playoff baseline gives every team 14/32. Scored on the
+              results-based Elo core; injury and news adjustments have no history to replay.
+            </p>
+          </>
         )}
       </section>
 

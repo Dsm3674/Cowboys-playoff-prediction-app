@@ -16,7 +16,8 @@ const {
   computeTeamAveragesFromGames,
   normalizeTeamAbbr
 } = require("../services/espn");
-const { getEloSnapshot, eloWinProb, ELO_BASE } = require("../services/ratingsEngine");
+const { getEloSnapshot, eloWinProb, ELO_BASE, ELO_HOME_FIELD } = require("../services/ratingsEngine");
+const { getSimulationByTeam, getSeasonSimulation } = require("../services/seasonSimulator");
 
 /* Stamp each row with the Elo engine's power number so downstream strength
    formulas can fold it in. No-op when Elo has nothing informative to say. */
@@ -165,17 +166,46 @@ function findHeadToHeadGames(team1, team2, games) {
   });
 }
 
-function buildForecast(rows) {
+/* Simulator odds for a team as the percentages the pages display. */
+function simOdds(sim) {
+  return sim
+    ? {
+        playoffProbability: Number(sim.playoffPct.toFixed(1)),
+        divisionProbability: Number(sim.divisionPct.toFixed(1)),
+        byeProbability: Number(sim.byePct.toFixed(1)),
+        superBowlProbability: Number(sim.winSBPct.toFixed(1)),
+      }
+    : {};
+}
+
+/**
+ * Projected records. With a league simulation (`simByCode`), wins are the
+ * simulated average; without one, the legacy blend of current win% and TSI.
+ */
+function buildForecast(rows, simByCode = {}) {
   return rows.map((team) => {
     const completedGames = (team.record.wins || 0) + (team.record.losses || 0) + (team.record.ties || 0);
     const remainingGames = Math.max(0, 17 - completedGames);
     const currentWinPct = team.record.winPct || 0;
-    const projectedWinRate = Math.max(
-      0,
-      Math.min(1, currentWinPct * 0.55 + (team.tsi / 100) * 0.45 + injuryWinShift(team))
-    );
-    const projectedWins = Number((team.record.wins + projectedWinRate * remainingGames).toFixed(1));
-    const projectedLosses = Number((team.record.losses + (1 - projectedWinRate) * remainingGames).toFixed(1));
+    const sim = simByCode[team.code];
+
+    let projectedWinRate;
+    let projectedWins;
+    let projectedLosses;
+    if (sim) {
+      projectedWins = Number(sim.avgWins.toFixed(1));
+      projectedLosses = Number(sim.avgLosses.toFixed(1));
+      projectedWinRate = remainingGames > 0
+        ? Math.max(0, Math.min(1, (sim.avgWins - (team.record.wins || 0)) / remainingGames))
+        : currentWinPct;
+    } else {
+      projectedWinRate = Math.max(
+        0,
+        Math.min(1, currentWinPct * 0.55 + (team.tsi / 100) * 0.45 + injuryWinShift(team))
+      );
+      projectedWins = Number((team.record.wins + projectedWinRate * remainingGames).toFixed(1));
+      projectedLosses = Number((team.record.losses + (1 - projectedWinRate) * remainingGames).toFixed(1));
+    }
 
     return {
       code: team.code,
@@ -189,7 +219,10 @@ function buildForecast(rows) {
       projectedLosses,
       projectedWinRate: Number((projectedWinRate * 100).toFixed(1)),
       remainingGames,
-      projectionScore: Number((projectedWinRate * 100 + team.tsi * 0.35).toFixed(1))
+      projectionScore: sim
+        ? Number(((sim.avgWins / 17) * 100).toFixed(1))
+        : Number((projectedWinRate * 100 + team.tsi * 0.35).toFixed(1)),
+      ...simOdds(sim)
     };
   }).sort((a, b) => b.projectionScore - a.projectionScore || b.projectedWinRate - a.projectedWinRate);
 }
@@ -281,6 +314,7 @@ router.get("/divisions", async (req, res) => {
   }
 });
 
+/* Legacy playoff score, used only when the league simulation is unavailable. */
 function computePlayoffProbability(team) {
   const winPct = team.record.winPct || 0;
   const pointDiff = team.averages.pointDiffPerGame || 0;
@@ -293,7 +327,7 @@ function computePlayoffProbability(team) {
   return Number(Math.max(5, Math.min(99, Math.round(adjusted * 10) / 10)).toFixed(1));
 }
 
-function buildPlayoffPulse(rows) {
+function buildPlayoffPulse(rows, simByCode = {}) {
   return rows
     .map((team) => ({
       code: team.code,
@@ -303,7 +337,9 @@ function buildPlayoffPulse(rows) {
       record: team.record,
       tsi: team.tsi,
       averagePointDiff: Number(team.averages.pointDiffPerGame.toFixed(1)),
-      playoffProbability: computePlayoffProbability(team)
+      playoffProbability: computePlayoffProbability(team),
+      ...simOdds(simByCode[team.code]),
+      source: simByCode[team.code] ? "league-simulation" : "legacy-formula"
     }))
     .sort((a, b) => b.playoffProbability - a.playoffProbability || b.tsi - a.tsi);
 }
@@ -327,12 +363,13 @@ function simulateMatchup(left, right) {
   };
 }
 
-function buildMatchupResponse(left, right, year) {
+function buildMatchupResponse(left, right, year, simByCode = {}) {
   const matchup = simulateMatchup(left, right);
   const teams = [left, right].map((team) => ({
     ...team,
     averagePointDiff: Number((team.averages?.pointDiffPerGame || 0).toFixed(1)),
-    playoffProbability: computePlayoffProbability(team)
+    playoffProbability: computePlayoffProbability(team),
+    ...simOdds(simByCode[team.code])
   }));
 
   return {
@@ -401,8 +438,8 @@ router.get("/forecast", async (req, res) => {
       teams.map((team) => fetchTeamSummary(team.code, year))
     );
 
-    await attachInjuries(rows, year);
-    const forecast = buildForecast(rows);
+    const [simByCode] = await Promise.all([getSimulationByTeam({ year }), attachInjuries(rows, year)]);
+    const forecast = buildForecast(rows, simByCode);
     res.json({ success: true, year: year || new Date().getFullYear(), forecast });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -432,8 +469,8 @@ router.get("/playoff", async (req, res) => {
       teams.map((team) => fetchTeamSummary(team.code, year))
     );
 
-    await attachInjuries(rows, year);
-    const pulse = buildPlayoffPulse(rows);
+    const [simByCode] = await Promise.all([getSimulationByTeam({ year }), attachInjuries(rows, year)]);
+    const pulse = buildPlayoffPulse(rows, simByCode);
     res.json({ success: true, year: year || new Date().getFullYear(), pulse });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -442,9 +479,11 @@ router.get("/playoff", async (req, res) => {
 
 /* ---------------------------------------------------------------------------
    Playoff bracket builder
-   Seeds a full 14-team postseason bracket from live season-to-date team data
-   (records, TSI, point differential) and projects every round forward using a
-   logistic matchup model. Returns the same shape the PlayoffBracket UI uses.
+   Seeds come from the league season simulation's most likely bracket (each
+   division to its most frequent winner, then the best remaining playoff odds).
+   Each game shows the Elo win probability and the favorite advances. Without
+   a simulation it falls back to seeding by the legacy strength blend.
+   Returns the same shape the PlayoffBracket UI uses.
 --------------------------------------------------------------------------- */
 
 const BRACKET_HOME_BUMP = 3; // higher seed hosts — small strength advantage
@@ -464,8 +503,11 @@ function byStrengthDesc(a, b) {
   return (b.record?.winPct || 0) - (a.record?.winPct || 0);
 }
 
-/* probability the first team beats the second, given a strength advantage */
+/* probability the first team beats the second; Elo when both teams carry it */
 function matchupProbability(teamA, teamB, homeBump = 0) {
+  if (Number.isFinite(teamA._elo) && Number.isFinite(teamB._elo)) {
+    return eloWinProb(teamA._elo, teamB._elo, homeBump ? ELO_HOME_FIELD : 0);
+  }
   const spread = teamStrength(teamA) - teamStrength(teamB) + homeBump;
   const p = 1 / (1 + Math.exp(-spread * 0.06));
   return Math.max(0.08, Math.min(0.92, p));
@@ -500,7 +542,14 @@ function stripGame(game) {
   return { top: game.top, bottom: game.bottom };
 }
 
-function buildConferenceBracket(confRows) {
+function buildConferenceBracket(confRows, seedCodes = null) {
+  const byCode = new Map(confRows.map((t) => [t.code, t]));
+  const projected = (seedCodes || []).map((code) => byCode.get(code)).filter(Boolean);
+  const seeds = projected.length === 7 ? projected : legacySeeds(confRows);
+  return playBracket(seeds);
+}
+
+function legacySeeds(confRows) {
   /* division winners (best team per division) take seeds 1–4 */
   const byDivision = confRows.reduce((acc, team) => {
     (acc[team.division] = acc[team.division] || []).push(team);
@@ -521,7 +570,10 @@ function buildConferenceBracket(confRows) {
     .sort(byStrengthDesc)
     .slice(0, 3);
 
-  const seeds = [...divisionWinners, ...wildcards];
+  return [...divisionWinners, ...wildcards];
+}
+
+function playBracket(seeds) {
   seeds.forEach((team, i) => { team._seed = i + 1; });
   const s = (n) => seeds[n - 1];
 
@@ -533,11 +585,12 @@ function buildConferenceBracket(confRows) {
   const wc2 = makeGame(s(3), s(6));
   const wc3 = makeGame(s(4), s(5));
 
-  /* Divisional round (fixed-path bracket):
-       slot 0 (top)    = WC1 winner vs WC2 winner
-       slot 1 (bottom) = 1-seed vs WC3 winner */
-  const d0 = makeGame(...orderBySeed(wc1._winner, wc2._winner));
-  const d1 = makeGame(...orderBySeed(s(1), wc3._winner));
+  /* Divisional round, reseeded as the NFL does:
+       slot 0 (top)    = the other two survivors
+       slot 1 (bottom) = 1-seed vs the lowest surviving seed */
+  const survivors = [wc1._winner, wc2._winner, wc3._winner].sort((a, b) => a._seed - b._seed);
+  const d0 = makeGame(...orderBySeed(survivors[0], survivors[1]));
+  const d1 = makeGame(...orderBySeed(s(1), survivors[2]));
 
   /* Conference Championship */
   const cc = makeGame(...orderBySeed(d0._winner, d1._winner));
@@ -550,12 +603,13 @@ function buildConferenceBracket(confRows) {
   };
 }
 
-function buildPlayoffBracket(rows, year) {
+function buildPlayoffBracket(rows, year, projectedSeeds = null) {
   const afcRows = rows.filter((t) => t.conference === "AFC");
   const nfcRows = rows.filter((t) => t.conference === "NFC");
+  const codes = (conf) => projectedSeeds?.[conf]?.map((t) => t.code) || null;
 
-  const afc = buildConferenceBracket(afcRows);
-  const nfc = buildConferenceBracket(nfcRows);
+  const afc = buildConferenceBracket(afcRows, codes("AFC"));
+  const nfc = buildConferenceBracket(nfcRows, codes("NFC"));
 
   if (!afc || !nfc) return null;
 
@@ -580,9 +634,12 @@ router.get("/bracket", async (req, res) => {
     const rows = await Promise.all(
       teams.map((team) => fetchTeamSummary(team.code, year))
     );
-    await attachElo(rows, year);
+    const [sim] = await Promise.all([
+      getSeasonSimulation({ year }).catch(() => null),
+      attachElo(rows, year)
+    ]);
 
-    const bracket = buildPlayoffBracket(rows, year);
+    const bracket = buildPlayoffBracket(rows, year, sim?.projectedSeeds);
     if (!bracket) {
       return res.json({ success: false, reason: "Not enough season data to seed a bracket yet." });
     }
@@ -600,9 +657,12 @@ router.get("/matchup", async (req, res) => {
     const year = Number(req.query.year) || undefined;
     const left = await fetchTeamSummary(team1, year);
     const right = await fetchTeamSummary(team2, year);
-    await attachElo([left, right], year);
-    await attachInjuries([left, right], year);
-    res.json(buildMatchupResponse(left, right, year));
+    const [simByCode] = await Promise.all([
+      getSimulationByTeam({ year }),
+      attachElo([left, right], year),
+      attachInjuries([left, right], year)
+    ]);
+    res.json(buildMatchupResponse(left, right, year, simByCode));
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -719,5 +779,6 @@ router.get("/metrics", async (req, res) => {
 router.buildMatchupResponse = buildMatchupResponse;
 router.buildForecast = buildForecast;
 router.buildPlayoffPulse = buildPlayoffPulse;
+router.buildPlayoffBracket = buildPlayoffBracket;
 
 module.exports = router;

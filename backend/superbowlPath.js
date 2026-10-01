@@ -79,20 +79,27 @@ router.post("/generate", async (req, res) => {
       modelType,
     });
 
+    // The league simulation supplies every rung of the ladder. The old fixed
+    // multipliers (division = playoff × 0.6, …) are only a fallback.
+    const league = result.league;
+    const playoffProb = league ? league.playoffProbability : result.playoffProbability;
+    const expectedWins = league ? league.expectedWins : result.expectedWins;
+
     const saved = await Prediction.create({
       seasonId: season.season_id,
-      playoffProb: result.playoffProbability,
-      divisionProb: Math.min(result.playoffProbability * 0.6, 0.9),
-      conferenceProb: Math.min(result.playoffProbability * 0.35, 0.7),
-      superbowlProb: Math.min(result.playoffProbability * 0.15, 0.4),
-      confidenceScore: Math.round(result.playoffProbability * 100),
+      playoffProb,
+      divisionProb: league ? league.divisionProbability : Math.min(playoffProb * 0.6, 0.9),
+      conferenceProb: league ? league.conferenceProbability : Math.min(playoffProb * 0.35, 0.7),
+      superbowlProb: league ? league.superbowlProbability : Math.min(playoffProb * 0.15, 0.4),
+      confidenceScore: Math.round(playoffProb * 100),
       factors: {
-        model: result.modelUsed,
+        model: league ? league.engine : result.modelUsed,
         perGameWinProbabilities: result.perGameWinProbabilities,
-        expectedWins: result.expectedWins,
+        expectedWins,
+        iterations: league ? league.iterations : undefined,
         source: "ESPN",
       },
-      modelVersion: `espn-mc-${modelType.toLowerCase()}`,
+      modelVersion: league ? "league-sim-v1" : `espn-mc-${modelType.toLowerCase()}`,
       userEmail: identity.userEmail,
       historyClientId: identity.historyClientId,
     });
@@ -104,7 +111,7 @@ router.post("/generate", async (req, res) => {
         division_probability: saved.division_probability,
         conference_probability: saved.conference_probability,
         superbowl_probability: saved.superbowl_probability,
-        expected_wins: result.expectedWins,
+        expected_wins: expectedWins,
         record: result.currentRecord,
         model_used: result.modelUsed,
       },
