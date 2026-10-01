@@ -337,7 +337,6 @@ Cowboys-playoff-prediction-app/
 │   └── src/components/
 │       ├── Maps.jsx            # Canvas visualization
 │       ├── RivalTeamImpactPage.jsx  # Impact analyzer
-│       └── RivalTeamImpactVisual.jsx # Rival cards
 ├── CURL_COMMANDS.md            # API testing guide
 ├── TESTING_GUIDE.md            # Test execution guide
 └── QUICK_REFERENCE.md          # This file

@@ -64,19 +64,19 @@
       <div class="pro-war-room-orbit__ring pro-war-room-orbit__ring--two"></div>
       <div class="pro-war-room-orbit__node pro-war-room-orbit__node--one">
         <span>DAL</span>
-        <b>67%</b>
+        <b id="pro-dal-odds">–</b>
       </div>
       <div class="pro-war-room-orbit__node pro-war-room-orbit__node--two">
         <span>SIM</span>
-        <b>100k</b>
+        <b id="pro-sims">–</b>
       </div>
       <div class="pro-war-room-orbit__node pro-war-room-orbit__node--three">
         <span>NFC</span>
-        <b>#2</b>
+        <b id="pro-seed">–</b>
       </div>
       <div class="pro-war-room-orbit__ticker">
         <span>LEVERAGE WATCH</span>
-        <strong>Week 14 swing +11.8</strong>
+        <strong id="pro-leverage">loading live model…</strong>
       </div>
     </div>
 
@@ -87,7 +87,7 @@
       </div>
       <div class="edu-stat">
         <strong>100k</strong>
-        <span>simulations per scenario</span>
+        <span>max simulations per run</span>
       </div>
       <div class="edu-stat">
         <strong>32</strong>
@@ -116,7 +116,7 @@
         <div class="edu-card__icon">🧠</div>
         <h3>Premium Quantum Engine views</h3>
         <p>
-          The full 100k-simulation model — not just the headline number. See the variance bands,
+          The full league simulation, up to 100,000 seasons — not just the headline number. See the variance bands,
           chaos parameter sweeps, and rival-impact deltas the free tier hides.
         </p>
       </div>
@@ -167,7 +167,7 @@
   <section class="edu-section edu-section--alt" id="engine">
     <div class="edu-section__head">
       <div class="edu-section__kicker">Inside the Quantum Engine</div>
-      <h2 class="edu-section__title">100,000 simulations. One season. Every Sunday.</h2>
+      <h2 class="edu-section__title">Up to 100,000 simulations. One season. Every Sunday.</h2>
       <p class="edu-section__sub">
         Pro unlocks the full output, not just the topline percentage. Here's what you actually see.
       </p>
@@ -178,7 +178,7 @@
         <div class="edu-outcome__num">01</div>
         <div>
           <h3>Full distribution view</h3>
-          <p>Don't just see "67% playoff odds." See the full simulation histogram — including how often Dallas misses, gets a wild card, wins the division, or earns the 1-seed.</p>
+          <p>Don't just see the headline playoff odds. See the full simulation histogram — including how often Dallas misses, gets a wild card, wins the division, or earns the 1-seed.</p>
         </div>
       </div>
       <div class="edu-outcome">
@@ -386,6 +386,30 @@
     getProPrice,
     openManageSubscriptions
   } from "/src/iap.js";
+
+  /* Live numbers for the hero orbit; dashes stay if the API is unreachable. */
+  (async function () {
+    var base = isNativeShell() ? "https://www.lstar.one" : "";
+    var set = function (id, text) { var el = document.getElementById(id); if (el) el.textContent = text; };
+    try {
+      var current = await (await fetch(base + "/api/prediction/current?team=DAL")).json();
+      var p = current && current.prediction;
+      if (p) {
+        set("pro-dal-odds", Math.round(p.playoff_probability * 100) + "%");
+        set("pro-seed", p.projected_seed ? "#" + p.projected_seed : "Out");
+      }
+      if (current && current.meta && current.meta.iterations) {
+        set("pro-sims", Math.round(current.meta.iterations / 1000) + "k");
+      }
+      var must = await (await fetch(base + "/api/teams/DAL/mustwin")).json();
+      var top = must && must.games && must.games[0];
+      set("pro-leverage", top
+        ? (top.isHome ? "vs " : "@ ") + top.opp + " swing " + (top.swing * 100).toFixed(1) + " pts"
+        : "no games left to rank");
+    } catch (_err) {
+      set("pro-leverage", "live model unavailable");
+    }
+  })();
 
   (function () {
     var reveals = document.querySelectorAll(".edu-reveal");

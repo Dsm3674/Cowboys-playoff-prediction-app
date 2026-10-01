@@ -183,7 +183,7 @@ function CommandPalette({ isOpen, onClose, onNavigate }) {
 
   const pages = [
     { id: 'dashboard',   label: 'Dashboard',        desc: 'Core season outlook' },
-    { id: 'bracket',     label: 'Playoff Bracket',  desc: 'AI-projected NFL playoff bracket' },
+    { id: 'bracket',     label: 'Playoff Bracket',  desc: 'Simulated NFL playoff bracket' },
     { id: 'games',       label: 'Games',             desc: 'Schedule and win probability' },
     { id: 'players',     label: 'Players',           desc: 'Roster profiles and comparison' },
     { id: 'predictions', label: 'Predictions',       desc: 'Model output and scenarios' },
@@ -455,7 +455,7 @@ function BracketPage({ year }) {
   return (
     <PageShell
       title="Playoff Bracket"
-      subtitle="AI-projected NFL playoff bracket with Monte Carlo win probabilities for all 32 teams."
+      subtitle="Simulated NFL playoff bracket with Monte Carlo win probabilities for all 32 teams."
     >
       <PlayoffBracket year={year} />
     </PageShell>

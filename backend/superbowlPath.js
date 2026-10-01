@@ -191,6 +191,8 @@ router.get("/current", async (req, res) => {
         conference_probability: toProb(row.reachSBPct),
         superbowl_probability: toProb(row.winSBPct),
         expected_wins: row.avgWins,
+        // Seed in the most likely bracket, or null when projected out.
+        projected_seed: Object.values(sim.projectedSeeds || {}).flat().find((t) => t.code === team)?.seed ?? null,
         sos_rank: sosRank,
         // Share of simulated seasons ending on each win total.
         win_distribution: row.winsDistribution,

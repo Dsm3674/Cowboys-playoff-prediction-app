@@ -10,7 +10,6 @@ function ClutchIndex({ season: seasonProp }) {
   const season = seasonProp ?? contextSeason;
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
-  const [selectedSituation, setSelectedSituation] = React.useState("all");
   const [sortBy, setSortBy] = React.useState("clutchIndex");
   const [sortOrder, setSortOrder] = React.useState("desc");
   const [expandedPlayer, setExpandedPlayer] = React.useState(null);

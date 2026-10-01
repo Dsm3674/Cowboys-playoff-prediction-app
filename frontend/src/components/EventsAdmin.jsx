@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DEFAULT_SEASON } from "../workspace";
+import { SEASONS, useSeason } from "../workspace";
 import { BASE_URL } from "../api";
 
 function EventsAdmin() {
@@ -9,7 +9,10 @@ function EventsAdmin() {
   const [eventType, setEventType] = useState("injury");
   const [eventDate, setEventDate] = useState(new Date().toISOString().split("T")[0]);
   const [impactScore, setImpactScore] = useState(5);
-  const [season, setSeason] = useState(DEFAULT_SEASON);
+  const workspaceSeason = useSeason();
+  const [season, setSeason] = useState(workspaceSeason);
+  // Follow the toolbar's season when it changes.
+  useEffect(() => { setSeason(workspaceSeason); }, [workspaceSeason]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -81,7 +84,9 @@ function EventsAdmin() {
 
       if (!res.ok) throw new Error("Failed to create event");
 
-      setSuccess("Event injected into simulation engine.");
+      // Events feed the season timeline and player views; injuries reach the
+      // forecast through the ESPN injury feed and Ratings Lab adjustments.
+      setSuccess("Event saved to the season timeline.");
       setPlayerQuery("");
       setSelectedPlayer(null);
       fetchRecentEvents();
@@ -107,7 +112,7 @@ function EventsAdmin() {
           <div className="intel-kicker">System Control</div>
           <h1 className="intel-title">Simulation Event Console</h1>
           <p className="intel-subtitle">
-            Inject real-world player events into the simulation engine and observe downstream effects across projections.
+            Log real-world player events (injuries, trades, returns) on the season timeline and player views.
           </p>
         </div>
 
@@ -184,6 +189,32 @@ function EventsAdmin() {
               >
                 {eventTypeOptions.map(t => (
                   <option key={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="intel-form-group">
+              <label className="intel-label" htmlFor="event-date">Date</label>
+              <input
+                id="event-date"
+                type="date"
+                className="intel-input"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="intel-form-group">
+              <label className="intel-label" htmlFor="event-season">Season</label>
+              <select
+                id="event-season"
+                className="intel-select"
+                value={season}
+                onChange={(e) => setSeason(Number(e.target.value))}
+              >
+                {SEASONS.map((y) => (
+                  <option key={y} value={y}>{y}</option>
                 ))}
               </select>
             </div>
