@@ -101,11 +101,15 @@ router.get("/season-simulation", async (req, res) => {
 
 /* ── Backtest on a finished season ─────────────────────────────────────── */
 
+// Finished seasons only; defaults to the last five. ?year= scores one season.
 router.get("/backtest", async (req, res) => {
   try {
-    const year = Number(req.query.year) || getNFLSeasonYear() - 1;
-    const iterations = Math.max(500, Math.min(10000, Number(req.query.iterations) || 2000));
-    const data = await runBacktest({ year, iterations, checkpoints: DEFAULT_CHECKPOINTS });
+    const last = getNFLSeasonYear() - 1;
+    const year = Number(req.query.year) || null;
+    const to = Math.min(last, year || Number(req.query.to) || last);
+    const from = Math.max(2004, Math.min(to, year || Number(req.query.from) || to - 4));
+    const iterations = Math.max(500, Math.min(10000, Number(req.query.iterations) || 1500));
+    const data = await runBacktest({ from, to, iterations, checkpoints: DEFAULT_CHECKPOINTS });
     res.json({ success: true, ...data });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

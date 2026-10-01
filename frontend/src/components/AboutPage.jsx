@@ -17,7 +17,7 @@ import { api } from "../api";
 /** Headline constants of the model, pulled from the copy below. */
 const FIGURES = [
   { value: "20", label: "Elo K-factor" },
-  { value: "+48", label: "Home field" },
+  { value: "+30", label: "Home field" },
   { value: "25k", label: "Simulations" },
   { value: "32", label: "Teams rated" },
 ];
@@ -26,13 +26,15 @@ const SECTIONS = [
   {
     title: "What this is",
     body: "LoneStar is a Dallas Cowboys season model. It rebuilds Elo power ratings from "
-      + "every completed game, simulates the playoff bracket under real NFL seeding rules, "
+      + "every completed game, plays out the rest of the season for all 32 teams with the NFL "
+      + "tiebreakers, simulates the playoff bracket under real NFL seeding rules, "
       + "and reports where the season is likely to land — with the working shown rather "
       + "than a single number handed down.",
   },
   {
     title: "How the ratings work",
-    body: "Elo with a margin-of-victory multiplier, a +48 home-field edge, and a K of 20. "
+    body: "Elo with a margin-of-victory multiplier, a +30 home-field edge (fit on recent "
+      + "seasons; home field has been shrinking), and a K of 20. "
       + "Ratings replay from scratch on every request, so a new result is folded in without "
       + "a weekly batch job. A persisted adjustment layer carries what results cannot yet "
       + "see: quarterback outs, injury clusters, trades.",

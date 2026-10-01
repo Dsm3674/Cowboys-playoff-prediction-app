@@ -149,29 +149,46 @@ The frontend will typically run on `http://localhost:5173`
 ├── initDatabase.js        # Database initialization script
 ├── schema.sql             # Database schema
 ├── seed.sql               # Initial seed data
-├── chance.js              # Prediction algorithm engine
-├── prediction.js          # Prediction model
+├── prediction.js          # Saved-prediction builder (odds from the league sim)
 ├── seasons.js             # Season model
 ├── teams.js               # Team model
 ├── superbowlPath.js       # Prediction routes
-├── team2.js               # Team routes
 ├── package.json           # Node dependencies
 └── .gitignore             # Git ignore rules
 ```
 
 ## Prediction Algorithm
 
-The model has three layers.
+The model has four parts.
 
-1. **Power ratings** (`backend/services/ratingsEngine.js`). FiveThirtyEight-style Elo: K = 20, +48 home field, margin-of-victory multiplier, replayed from every completed game. The preseason prior is last season's final Elo regressed one-third toward 1500, blended 60/40 with a rating implied by de-vigged Super Bowl futures. QB, injury and trade news are applied as Elo deltas, and a small overlay from point differential and TSI is added.
-2. **League season simulation** (`backend/services/seasonSimulator.js`). Every remaining regular-season game, for all 32 teams, is played from those ratings. Ratings run "hot": each simulated result updates both teams' Elo, so uncertainty grows the further out the forecast is. Standings are settled with the NFL tiebreakers (head-to-head, division record, common games, conference record, strength of victory, strength of schedule, net points, coin flip), and seeds 1-7 go into a bracket that reseeds after the wild-card round. 10,000 seasons by default, up to 100,000.
-3. **Path analysis** (`backend/services/playoffPathEngine.js`). Every simulated postseason is logged jointly, which answers conditional questions such as a team's title odds when the other conference's #1 seed is upset.
+1. **Power ratings** (`backend/services/ratingsEngine.js`). FiveThirtyEight-style Elo: K = 20, +30 home field (none at neutral sites), margin-of-victory multiplier, replayed from every completed game. The preseason prior is last season's final Elo regressed one-third toward 1500, blended 60/40 with a rating implied by de-vigged Super Bowl futures. QB, injury and trade news are applied as Elo deltas, plus a TSI overlay.
+2. **Game probabilities.** Elo, except where a game has a sportsbook line (this week's games, from ESPN): then the de-vigged line is used, because it scored better than Elo on 2012-25 games and blending Elo back in made it worse.
+3. **League season simulation** (`backend/services/seasonSimulator.js`). Every remaining regular-season game for all 32 teams. Ratings run "hot": each simulated result updates both teams' Elo, so uncertainty grows the further out the forecast is. Standings are settled with the NFL tiebreakers (head-to-head, division record, common games, conference record, strength of victory, strength of schedule, net points, coin flip), and seeds 1-7 go into a bracket that reseeds after the wild-card round. 10,000 seasons by default, up to 100,000.
+4. **Path analysis** (`backend/services/playoffPathEngine.js`). Every simulated postseason is logged jointly, which answers conditional questions such as a team's title odds when the other conference's #1 seed is upset.
 
-**Injury impact.** - Automatic Elo deltas from ESPN's injury report and depth charts: `(1 - P(plays)) × positional spread value × 25 Elo/pt`, starters only, faded for long absences, capped at -250 Elo per team. The upcoming game takes the full cost; season projections spread it over the games each player is expected to miss (ESPN return date, else 4 for IR, 1 for game designations). A manual QB/INJURY adjustment replaces the automatic delta for that team. See `backend/services/injuries.js`.
+**Injury impact.** Automatic Elo deltas from ESPN's injury report and depth charts: `(1 - P(plays)) × positional spread value × 25 Elo/pt`, starters only, faded for long absences, capped at -250 Elo per team. The upcoming game takes the full cost; season projections spread it over the games each player is expected to miss (ESPN return date, else 4 for IR, 1 for game designations). A manual QB/INJURY adjustment replaces the automatic delta for that team. See `backend/services/injuries.js`.
 
 Outputs per team: projected wins, playoff, division, #1-seed, conference and Super Bowl probabilities, seed distribution, and playoff odds by final win total.
 
-**Backtest.** `npm run backtest -- 2025` (in `backend/`) replays a finished season using only what the model knew each week. It reports game-level Brier score, log loss, accuracy and calibration against coin-flip and home-field baselines, and playoff-odds Brier at weeks 4, 8, 12 and 16. Add `--tune` to grid-search K and home field. The same report is served at `GET /api/model/backtest?year=2025` and shown in the Ratings Lab.
+### How it was validated
+
+All on nflverse data (every game since 1999 with closing lines):
+
+| Check | Result |
+|---|---|
+| Tiebreakers: replay each finished season 2002-25 | Seeds 1-6 match the NFL's every season; all 7 seeds match every season since the 2020 format |
+| Game forecasts 2021-25 (1,355 games), Brier, lower is better | Model 0.2245 (63.5% picked right) · Vegas closing 0.2117 (66.5%) · home field only 0.2485 · coin flip 0.25 |
+| Playoff odds 2021-25, all 32 teams | Brier 0.174 after week 4, 0.152 after week 8, 0.124 after week 12, vs 0.246 for a naive 14/32 |
+| Hot vs fixed ratings in the season sim, 2012-25 | Hot scored better at weeks 4, 8 and 12 |
+
+What the evidence changed:
+
+- **Home field 48 → 30 Elo.** The best fit fell from ~60 (2012-16) to ~40 (2017-20) to ~30 (2021-25), in line with research on shrinking home advantage (Lopez, Matthews & Baumer 2018).
+- **Removed the point-differential overlay.** Elo's margin-of-victory multiplier already uses scoring margin; adding it again made forecasts worse at every weight tried.
+- **Sportsbook lines for games that have one** (Baker & McHale 2013: models trail the market on game outcomes).
+- **QB injuries.** A backup QB start cost about 90 Elo in the backtest; the injury model prices a full QB absence at about 112, close enough to keep.
+
+**Run it yourself.** `npm run backtest` (in `backend/`) scores the last five seasons; `npm run backtest -- 2018 2025 --tune` scores a range and grid-searches K and home field. It downloads nflverse's games file (set `NFLVERSE_GAMES_FILE` to a local copy to run offline) and falls back to ESPN. The same report is at `GET /api/model/backtest?from=2021&to=2025` and in the Ratings Lab.
 
 ## Database Schema
 

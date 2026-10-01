@@ -62,7 +62,7 @@ function getHistoryIdentity(req) {
 --------------------------------------------------- */
 router.post("/generate", async (req, res) => {
   try {
-    const { modelType = "RandomForest" } = req.body;
+    const { modelType = "Balanced" } = req.body;
     const identity = getHistoryIdentity(req);
 
     const cowboys = await Team.findByName("Dallas Cowboys");

@@ -31,7 +31,13 @@ function applyChaos(p, chaos = 0) {
   return clamp(mixed, 0.05, 0.95);
 }
 
-function modelWinProb(modelType, features) {
+/* Hand-set logistic formulas, not trained models. They only supply the
+   per-game list on saved predictions; the odds come from the league
+   simulation. Older clients send "RandomForest"/"LogisticRegression". */
+const FORMULA_ALIASES = { RandomForest: "Balanced", LogisticRegression: "FormHeavy" };
+
+function modelWinProb(rawType, features) {
+  const modelType = FORMULA_ALIASES[rawType] || rawType;
   const {
     teamWinPct,
     oppWinPct,
@@ -43,12 +49,12 @@ function modelWinProb(modelType, features) {
 
   let z = 0;
 
-  if (modelType === "RandomForest") {
+  if (modelType === "Balanced") {
     z =
       1.8 * (teamWinPct - oppWinPct) +
       0.08 * (teamPointDiff - oppPointDiff) +
       (isHome ? 0.25 : -0.05);
-  } else if (modelType === "LogisticRegression") {
+  } else if (modelType === "FormHeavy") {
     z =
       2.2 * (teamWinPct - oppWinPct) +
       0.06 * (teamPointDiff - oppPointDiff) +
@@ -92,7 +98,7 @@ function monteCarloSeason(currentWins, remainingProbs, iterations, curve = null)
 
 async function generateEspnPrediction({
   year,
-  modelType = "RandomForest",
+  modelType = "Balanced",
   iterations = 20000,
   scenarioModifier = 0,
   chaos = 0,

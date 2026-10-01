@@ -297,3 +297,91 @@ describe("analytics pages read the league simulation", () => {
     expect([oneSeedGame.top.abbr, oneSeedGame.bottom.abbr].sort()).toEqual(["N1", "N7"]);
   });
 });
+
+describe("game lines and neutral sites", () => {
+  const { gameMarketProb } = require("../services/oddsMath");
+  const { parseEspnScheduleEvents } = require("../services/espn");
+  const { parseNflverseGames } = require("../services/backtest");
+  const { replayGamesToElo } = require("../services/ratingsEngine");
+
+  test("moneylines de-vig and spreads convert on the fitted scale", () => {
+    expect(gameMarketProb({ homeMoneyLine: -150, awayMoneyLine: 130 })).toBeCloseTo(0.5798, 3);
+    // Home favored by 7: negative home spread, about 73%.
+    expect(gameMarketProb({ homeSpread: -7 })).toBeCloseTo(1 / (1 + Math.exp(-1)), 6);
+    expect(gameMarketProb({ homeSpread: 3 })).toBeLessThan(0.5);
+    expect(gameMarketProb({})).toBeNull();
+  });
+
+  test("ESPN events carry neutral sites and lines for unplayed games only", () => {
+    const comp = (completed, odds) => ({
+      neutralSite: true,
+      status: { type: { completed, state: completed ? "post" : "pre" } },
+      competitors: [
+        { homeAway: "home", team: { abbreviation: "DAL" }, score: { value: 0 } },
+        { homeAway: "away", team: { abbreviation: "PHI" }, score: { value: 0 } },
+      ],
+      odds,
+    });
+    const odds = [{ spread: 3.5, homeTeamOdds: { favorite: false }, awayTeamOdds: { favorite: true } }];
+    const [upcoming, done] = parseEspnScheduleEvents([
+      { id: "1", competitions: [comp(false, odds)] },
+      { id: "2", competitions: [comp(true, odds)] },
+    ]);
+    expect(upcoming.neutralSite).toBe(true);
+    expect(upcoming.homeSpread).toBe(3.5); // away favored → home is +3.5
+    expect(upcoming.marketHomeProb).toBeLessThan(0.5);
+    expect(done.marketHomeProb).toBeNull();
+  });
+
+  test("neutral-site results move Elo without a home edge", () => {
+    const g = (neutralSite) => [{ homeTeamAbbr: "A", awayTeamAbbr: "B", completed: true, homeScore: 20, awayScore: 17, date: "2026-09-01", neutralSite }];
+    const home = replayGamesToElo(g(false)).elo.A;
+    const neutral = replayGamesToElo(g(true)).elo.A;
+    // Winning without home field was less expected, so it earns more.
+    expect(neutral).toBeGreaterThan(home);
+  });
+
+  test("the simulator plays a game at its market line", () => {
+    const { ratings, games } = syntheticLeague({ playedWeeks: 16 });
+    const target = games.find((g) => !g.completed);
+    const loser = target.homeTeamAbbr;
+    target.marketHomeProb = 0.001; // the market all but rules the home side out
+    const out = runSimulation({ ratings: ratings.ratings, games, iterations: 2000, seed: 4 });
+    expect(out.gamesWithMarketLines).toBe(1);
+    const base = runSimulation({
+      ratings: ratings.ratings,
+      games: games.map((g) => (g === target ? { ...g, marketHomeProb: null } : g)),
+      iterations: 2000,
+      seed: 4,
+    });
+    const wins = (sim) => sim.teams.find((t) => t.code === loser).avgWins;
+    expect(wins(out)).toBeLessThan(wins(base));
+  });
+
+  test("nflverse rows map franchise codes, neutral sites and closing lines", () => {
+    const csv = [
+      "game_id,season,game_type,week,gameday,away_team,away_score,home_team,home_score,location,away_moneyline,home_moneyline,spread_line,roof",
+      '2019_01_LA_OAK,2019,REG,1,2019-09-08,LA,30,OAK,24,Home,120,-140,2.5,""',
+      "2022_04_MIN_NO,2022,REG,4,2022-10-02,MIN,28,NO,25,Neutral,,,-4,outdoors",
+      "2022_19_X_Y,2022,WC,19,2023-01-14,MIN,28,NYG,31,Home,,,3,outdoors",
+    ].join("\n");
+    const by = parseNflverseGames(csv);
+    const [g1] = by[2019];
+    expect([g1.homeTeamAbbr, g1.awayTeamAbbr]).toEqual(["LV", "LAR"]);
+    expect(g1.closingHomeProb).toBeGreaterThan(0.5);
+    const [g2] = by[2022];
+    expect(by[2022]).toHaveLength(1); // playoff row dropped
+    expect(g2.neutralSite).toBe(true);
+    // spread_line -4 means the home side (NO) was a 4-point underdog.
+    expect(g2.closingHomeProb).toBeLessThan(0.5);
+  });
+
+  test("backtests report the Vegas baseline when closing lines exist", () => {
+    const decide = (h, a, rand) => rand() < 1 / (1 + 10 ** (-(h - a) / 400));
+    const { ratings, games } = syntheticLeague({ playedWeeks: 99, decide });
+    games.forEach((g) => { g.closingHomeProb = 0.55; });
+    const out = backtestFromData({ games, teams: ratings.ratings, includePlayoffs: false });
+    expect(out.games.baselines.vegas.n).toBe(out.games.n);
+    expect(out.games.baselines.vegas.modelOnSameGames).toBe(out.games.brier);
+  });
+});

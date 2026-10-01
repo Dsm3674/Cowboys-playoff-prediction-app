@@ -1,3 +1,5 @@
+const { gameMarketProb } = require("./oddsMath");
+
 function getNFLSeasonYear() {
   const now = new Date();
   const month = now.getMonth(); // Jan = 0
@@ -128,6 +130,29 @@ async function getNFLTeamList() {
   }));
 }
 
+/**
+ * The first sportsbook line on an ESPN competition, as a home win
+ * probability. ESPN quotes `spread` from the home side; the favorite flags,
+ * when present, settle the sign either way.
+ */
+function parseEspnLine(comp) {
+  const o = Array.isArray(comp?.odds) ? comp.odds[0] : null;
+  if (!o) return null;
+  let homeSpread = null;
+  const spread = Number(o.spread);
+  if (o.spread != null && Number.isFinite(spread)) {
+    if (o.homeTeamOdds?.favorite === true) homeSpread = -Math.abs(spread);
+    else if (o.awayTeamOdds?.favorite === true) homeSpread = Math.abs(spread);
+    else homeSpread = spread;
+  }
+  const prob = gameMarketProb({
+    homeMoneyLine: o.homeTeamOdds?.moneyLine,
+    awayMoneyLine: o.awayTeamOdds?.moneyLine,
+    homeSpread,
+  });
+  return Number.isFinite(prob) ? { marketHomeProb: prob, homeSpread, provider: o.provider?.name || null } : null;
+}
+
 function parseEspnScheduleEvents(events = []) {
   const getScore = (comp) => {
     if (!comp) return 0;
@@ -152,6 +177,9 @@ function parseEspnScheduleEvents(events = []) {
 
       if (!home || !away) return null;
 
+      const completed = isCompleted(comp.status?.type);
+      const line = completed ? null : parseEspnLine(comp);
+
       return {
         id: event.id,
         week: event.week?.number ?? null,
@@ -162,8 +190,11 @@ function parseEspnScheduleEvents(events = []) {
         awayTeamAbbr: normalizeTeamAbbr(away.team?.abbreviation, ""),
         homeScore: getScore(home),
         awayScore: getScore(away),
-        completed: isCompleted(comp.status?.type),
+        completed,
         status: comp.status?.type?.description ?? "Scheduled",
+        neutralSite: comp.neutralSite === true,
+        marketHomeProb: line ? line.marketHomeProb : null,
+        homeSpread: line ? line.homeSpread : null,
       };
     })
     .filter(Boolean);
@@ -296,8 +327,37 @@ function computeTeamAveragesFromGames(teamAbbr, games) {
   };
 }
 
+/* This week's scoreboard carries sportsbook lines that team schedules may
+   not. Keyed by event id; empty when ESPN is unreachable. */
+let _scoreboardCache = null;
+const SCOREBOARD_TTL_MS = 10 * 60 * 1000;
+
+function fetchScoreboardLines() {
+  if (_scoreboardCache && Date.now() - _scoreboardCache.ts < SCOREBOARD_TTL_MS) {
+    return _scoreboardCache.promise;
+  }
+  const promise = (async () => {
+    try {
+      const fetch = require("node-fetch");
+      const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard");
+      if (!res.ok) return {};
+      const data = await res.json();
+      const out = {};
+      for (const g of parseEspnScheduleEvents(data.events || [])) {
+        if (g.marketHomeProb != null) out[g.id] = g;
+      }
+      return out;
+    } catch (_err) {
+      return {};
+    }
+  })();
+  _scoreboardCache = { promise, ts: Date.now() };
+  return promise;
+}
+
 function _resetScheduleCache() {
   _scheduleCache.clear();
+  _scoreboardCache = null;
   _teamMapCache = null;
   _teamMapCacheTs = 0;
 }
@@ -313,5 +373,7 @@ module.exports = {
   getNFLTeamCatalog: () => NFL_TEAM_CATALOG,
   getNFLTeamMetadata: getNFLCatalogItem,
   normalizeTeamAbbr,
+  fetchScoreboardLines,
+  parseEspnScheduleEvents,
   _resetScheduleCache,
 };

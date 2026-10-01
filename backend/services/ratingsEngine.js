@@ -14,7 +14,8 @@
  * team replaces its automatic injury delta so the two never stack.
  *
  * Elo spec (FiveThirtyEight-style):
- *   base 1500, K = 20, home field = +48 Elo pts,
+ *   base 1500, K = 20, home field = +30 Elo pts (fit on 2021-25 results; see
+ *   ELO_HOME_FIELD), neutral sites get none,
  *   margin-of-victory multiplier ln(|margin|+1) * 2.2 / (0.001*winnerEloDiff + 2.2)
  */
 
@@ -26,6 +27,7 @@ const {
   getNFLTeamList,
   getNFLTeamMetadata,
   fetchTeamGamesSeasonToDate,
+  fetchScoreboardLines,
   computeRecordFromGames,
   computeTeamAveragesFromGames,
 } = require("./espn");
@@ -36,7 +38,10 @@ const { readFutures } = require("./marketFutures");
 
 const ELO_BASE = 1500;
 const ELO_K = 20;
-const ELO_HOME_FIELD = 48;
+/* Home-field advantage has been shrinking (Lopez, Matthews & Baumer 2018 and
+   later work). Fit on nflverse results, the best value fell from ~60 Elo in
+   2012-16 to ~40 in 2017-20 and ~30 in 2021-25; 30 is the current-era fit. */
+const ELO_HOME_FIELD = 30;
 const ADJUSTMENT_LIMIT = 150; // max |Elo delta| a single adjustment may apply
 const RATINGS_TTL_MS = 10 * 60 * 1000;
 
@@ -83,15 +88,16 @@ function replayGamesToElo(games, initialElo = {}, { k = ELO_K, homeField = ELO_H
     const away = String(g.awayTeamAbbr).toUpperCase();
     const eloHome = get(home);
     const eloAway = get(away);
+    const hfa = g.neutralSite ? 0 : homeField;
 
-    const pHome = eloWinProb(eloHome, eloAway, homeField);
+    const pHome = eloWinProb(eloHome, eloAway, hfa);
     const margin = (g.homeScore || 0) - (g.awayScore || 0);
     const actualHome = margin > 0 ? 1 : margin < 0 ? 0 : 0.5;
 
     const winnerEloDiff =
       margin >= 0
-        ? eloHome + homeField - eloAway
-        : eloAway - (eloHome + homeField);
+        ? eloHome + hfa - eloAway
+        : eloAway - (eloHome + hfa);
 
     const shift = k * movMultiplier(margin, winnerEloDiff) * (actualHome - pHome);
     elo[home] = eloHome + shift;
@@ -228,9 +234,10 @@ function powerForGame(entry, isNextGame = false) {
 
 async function buildLeagueGames(year) {
   const teams = await getNFLTeamList();
-  const schedules = await Promise.all(
-    teams.map((t) => fetchTeamGamesSeasonToDate(t.code, year))
-  );
+  const [schedules, lines] = await Promise.all([
+    Promise.all(teams.map((t) => fetchTeamGamesSeasonToDate(t.code, year))),
+    year === getNFLSeasonYear() ? fetchScoreboardLines() : Promise.resolve({}),
+  ]);
 
   const seen = new Set();
   const games = [];
@@ -239,7 +246,9 @@ async function buildLeagueGames(year) {
       const key = g.id || `${g.date}:${g.homeTeamAbbr}:${g.awayTeamAbbr}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      games.push(g);
+      // This week's sportsbook line, when the team schedule lacked one.
+      const line = !g.completed && g.marketHomeProb == null ? lines[g.id] : null;
+      games.push(line ? { ...g, marketHomeProb: line.marketHomeProb, homeSpread: line.homeSpread } : g);
     }
   }
   return { teams, games, schedules };
@@ -330,9 +339,12 @@ async function computePreseasonPrior(year) {
 
 /**
  * Full power-rating table: results-based Elo (seeded from a regressed
- * prior-season carryover), news adjustments, and an efficiency overlay from
- * per-game point differential (an EPA-lite proxy — true play-by-play EPA
- * needs pbp data ESPN's public schedule feed lacks).
+ * prior-season carryover), news and injury adjustments, and a TSI overlay.
+ *
+ * There is deliberately no point-differential overlay. Elo's margin-of-victory
+ * multiplier already uses scoring margin, and backtesting 2012-25 showed an
+ * extra overlay (±14 pts/game → ±42 Elo) made game forecasts worse at every
+ * weight tried: it counts the same evidence twice.
  */
 async function computePowerRatings({ year } = {}) {
   const resolvedYear = year || getNFLSeasonYear();
@@ -367,9 +379,6 @@ async function computePowerRatings({ year } = {}) {
     const injury = resolveInjuryDelta(team.code, injuryReport, adjustments, lastCompletedWeek, remainingGames);
     const adjustedElo = baseElo + newsDelta + injury.delta;
 
-    // Efficiency overlay: ±14 pts/game differential maps to ±42 Elo.
-    const efficiencyDelta = Math.max(-14, Math.min(14, averages.pointDiffPerGame || 0)) * 3;
-
     // TSI overlay: 50 is league-neutral; ±25 TSI maps to ±30 Elo.
     const tsiValue =
       tsiResults[i].status === "fulfilled" ? Number(tsiResults[i].value?.tsi) : NaN;
@@ -391,10 +400,9 @@ async function computePowerRatings({ year } = {}) {
       injuryOverridden: injury.overridden,
       injuries: injury.players.slice(0, 5),
       adjustedElo: Number(adjustedElo.toFixed(1)),
-      efficiencyDelta: Number(efficiencyDelta.toFixed(1)),
       tsi: Number.isFinite(tsiValue) ? Number(tsiValue.toFixed(1)) : null,
       tsiDelta: Number(tsiDelta.toFixed(1)),
-      power: Number((adjustedElo + efficiencyDelta + tsiDelta).toFixed(1)),
+      power: Number((adjustedElo + tsiDelta).toFixed(1)),
       adjustments: adjustments.filter((a) => a.team === team.code),
     };
   });
@@ -404,7 +412,7 @@ async function computePowerRatings({ year } = {}) {
 
   return {
     year: resolvedYear,
-    system: "Elo v2 · K=20 · MOV-weighted · HFA +48 · ⅓-regressed carryover · TSI overlay · ESPN injury deltas",
+    system: "Elo v3 · K=20 · MOV-weighted · HFA +30 · ⅓-regressed carryover · TSI overlay · ESPN injury deltas",
     priorSource,
     priorMarketWeight: priorSource === "carryover+market" ? MARKET_PRIOR_WEIGHT : 0,
     lastCompletedWeek,

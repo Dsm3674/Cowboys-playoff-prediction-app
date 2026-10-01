@@ -229,7 +229,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
       {/* ── Spec tiles ───────────────────────────────────────── */}
       <section className="rlab-spec-grid reveal-up">
         {[
-          { icon: "rings", label: "MOV-weighted · K=20 · HFA +48", title: "RATINGS" },
+          { icon: "rings", label: "MOV-weighted · K=20 · HFA +30", title: "RATINGS" },
           { icon: "orbit", label: "Every result replayed, auto-weekly", title: "CADENCE" },
           { icon: "pulse", label: "QB & injury Elo deltas, expiring", title: "ADJUSTMENTS" },
           { icon: "stack", label: "NFL reseeding · neutral-site SB", title: "SIMULATION" },
@@ -286,7 +286,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
               <thead>
                 <tr>
                   <th>#</th><th>Team</th><th>Conf</th><th>Record</th>
-                  <th>Elo</th><th>News Δ</th><th>Injury Δ</th><th>Eff Δ</th><th>Power</th>
+                  <th>Elo</th><th>News Δ</th><th>Injury Δ</th><th>TSI Δ</th><th>Power</th>
                 </tr>
               </thead>
               <tbody>
@@ -316,7 +316,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
                     >
                       {t.injuryOverridden ? "manual" : t.injuryDelta || 0}
                     </td>
-                    <td>{t.efficiencyDelta > 0 ? "+" : ""}{t.efficiencyDelta}</td>
+                    <td>{t.tsiDelta > 0 ? "+" : ""}{t.tsiDelta}</td>
                     <td className="rlab-table__power">{t.power}</td>
                   </tr>
                 ))}
@@ -502,54 +502,67 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
           <h2 className="rlab-h2">MODEL SCORECARD</h2>
           <span className="rlab-meta">
             {backtest
-              ? `${backtest.year} season · ratings rebuilt week by week from results known at the time`
-              : "Last season replayed with only what the model knew each week"}
+              ? `${backtest.from}–${backtest.to} · ${backtest.games.n.toLocaleString()} games · ratings rebuilt week by week from results known at the time`
+              : "Past seasons replayed with only what the model knew each week"}
           </span>
         </div>
 
         {!backtest && !backtestLoading && (
           <button className="rlab-btn" type="button" onClick={runBacktest}>RUN BACKTEST</button>
         )}
-        {backtestLoading && <div className="rlab-loading">Replaying last season…</div>}
+        {backtestLoading && <div className="rlab-loading">Replaying past seasons…</div>}
         {backtestError && <p className="rlab-muted">{backtestError}</p>}
 
         {backtest && (
           <>
             <div className="rlab-stat-row">
               <div className="rlab-stat">
+                <div className="rlab-stat__val">{fmtPct(backtest.games.accuracy * 100)}</div>
+                <div className="rlab-stat__label">GAMES PICKED RIGHT</div>
+              </div>
+              <div className="rlab-stat">
                 <div className="rlab-stat__val">{backtest.games.brier}</div>
-                <div className="rlab-stat__label">GAME BRIER (LOWER IS BETTER)</div>
+                <div className="rlab-stat__label">MODEL BRIER (LOWER IS BETTER)</div>
+              </div>
+              <div className="rlab-stat">
+                <div className="rlab-stat__val">{backtest.games.baselines.vegas?.brier ?? "—"}</div>
+                <div className="rlab-stat__label">VEGAS CLOSING LINE</div>
               </div>
               <div className="rlab-stat">
                 <div className="rlab-stat__val">{backtest.games.baselines.homeFieldOnly.brier}</div>
                 <div className="rlab-stat__label">HOME FIELD ONLY</div>
               </div>
-              <div className="rlab-stat">
-                <div className="rlab-stat__val">{fmtPct(backtest.games.accuracy * 100)}</div>
-                <div className="rlab-stat__label">PICKS CORRECT ({backtest.games.n} GAMES)</div>
-              </div>
-              <div className="rlab-stat">
-                <div className="rlab-stat__val">{backtest.playoffs.overall.brier}</div>
-                <div className="rlab-stat__label">PLAYOFF-ODDS BRIER</div>
-              </div>
             </div>
 
             <div className="rlab-duo">
               <div className="rlab-panel">
-                <div className="rlab-panel__title">PLAYOFF ODDS BY CHECKPOINT</div>
+                <div className="rlab-panel__title">PLAYOFF ODDS, ALL 32 TEAMS</div>
                 <table className="rlab-table rlab-table--tight">
                   <thead>
-                    <tr><th>After wk</th><th>Brier</th><th>Naive</th><th>Biggest misses</th></tr>
+                    <tr><th>Forecast after</th><th>Brier</th><th>Naive 14/32</th><th>Called in/out</th></tr>
                   </thead>
                   <tbody>
                     {backtest.playoffs.checkpoints.map((c) => (
                       <tr key={c.afterWeek}>
-                        <td>{c.afterWeek}</td>
+                        <td>Week {c.afterWeek}</td>
                         <td>{c.brier}</td>
                         <td>{c.baselineBrier}</td>
-                        <td className="rlab-reason">
-                          {c.biggestMisses.map((m) => `${m.code} ${m.playoffPct}% (${m.madePlayoffs ? "in" : "out"})`).join(" · ")}
-                        </td>
+                        <td>{fmtPct(c.accuracy * 100)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <table className="rlab-table rlab-table--tight" style={{ marginTop: "1rem" }}>
+                  <thead>
+                    <tr><th>Season</th><th>Model</th><th>Vegas</th><th>Picked right</th></tr>
+                  </thead>
+                  <tbody>
+                    {backtest.seasons.map((sz) => (
+                      <tr key={sz.year}>
+                        <td>{sz.year}</td>
+                        <td>{sz.games.brier}</td>
+                        <td>{sz.games.baselines.vegas?.brier ?? "—"}</td>
+                        <td>{fmtPct(sz.games.accuracy * 100)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -577,9 +590,11 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
             </div>
             <p className="rlab-muted rlab-footnote">
               Brier score is the average squared gap between forecast and result: a coin flip
-              scores 0.25 on games, and a well-calibrated model shows Predicted close to Happened
-              in every row. The naive playoff baseline gives every team 14/32. Scored on the
-              results-based Elo core; injury and news adjustments have no history to replay.
+              scores 0.25, and lower is better. Vegas is the de-vigged closing moneyline, the
+              sharpest public benchmark; in the live model, games that already have a line use
+              it. A well-calibrated model shows Predicted close to Happened in every row. Scored
+              on the results-based Elo core; injury and news adjustments have no history to
+              replay. Data: nflverse.
             </p>
           </>
         )}

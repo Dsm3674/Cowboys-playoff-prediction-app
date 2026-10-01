@@ -2,28 +2,23 @@ import React from "react";
 import { api } from "../api";
 
 function AIStorySimulator() {
-  const [modelType, setModelType] = React.useState("RandomForest");
+  const [modelType, setModelType] = React.useState("hot");
   const [scenario, setScenario] = React.useState("");
-  const [iterations, setIterations] = React.useState(500);
+  const [iterations, setIterations] = React.useState(5000);
   const [result, setResult] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
   const modelOptions = [
     {
-      value: "RandomForest",
-      label: "Random Forest",
-      note: "Balanced baseline model for structured season outcomes.",
+      value: "hot",
+      label: "League sim · hot Elo",
+      note: "The live model: ratings update after every simulated game. Scored better on past seasons.",
     },
     {
-      value: "Elo",
-      label: "Elo Rating",
-      note: "Momentum-driven projection using rating movement.",
-    },
-    {
-      value: "LSTM",
-      label: "Deep LSTM",
-      note: "Sequence-based model for trend-sensitive projections.",
+      value: "fixed",
+      label: "League sim · fixed Elo",
+      note: "Ratings frozen at today's values for the whole season. More confident, less accurate.",
     },
   ];
 
@@ -36,17 +31,17 @@ function AIStorySimulator() {
     {
       value: "injury_qb",
       label: "Major QB Injury",
-      note: "Stress test the offense under a quarterback shock.",
+      note: "Backup QB for the rest of the season: -90 Elo, the backtested cost of a backup start.",
     },
     {
       value: "easy_schedule",
       label: "Easy Schedule",
-      note: "Model a softer closing stretch.",
+      note: "Every remaining opponent 30 Elo weaker.",
     },
     {
       value: "weather_snow",
-      label: "Snow Game Chaos",
-      note: "Inject weather variance and game-state instability.",
+      label: "Chaos Season",
+      note: "All ratings pulled 30% toward average, so upsets pile up league-wide.",
     },
   ];
 
@@ -54,7 +49,7 @@ function AIStorySimulator() {
     if (!code) return "Baseline Season";
     if (code === "injury_qb") return "QB Injury Shock";
     if (code === "easy_schedule") return "Soft Schedule Advantage";
-    if (code === "weather_snow") return "Snow Game Chaos";
+    if (code === "weather_snow") return "Chaos Season";
     return code;
   };
 
@@ -68,7 +63,7 @@ function AIStorySimulator() {
       const payload = {
         modelType,
         scenario: scenario || null,
-        iterations: Number(iterations) || 500,
+        iterations: Number(iterations) || 5000,
       };
 
       const data = await api.runWhatIfSimulation(payload);
@@ -95,14 +90,14 @@ function AIStorySimulator() {
       <section className="intel-hero">
         <div className="intel-hero__copy">
           <div className="intel-kicker">Simulation Lab</div>
-          <h1 className="intel-title">AI Story Simulator</h1>
+          <h1 className="intel-title">What-If Simulator</h1>
           <p className="intel-subtitle">
-            Run controlled what-if scenarios and measure how model choice,
-            season shocks, and simulation depth change the Cowboys’ projected arc.
+            Run what-if scenarios through the live league model and see how a season
+            shock moves the Cowboys’ playoff odds against the unchanged baseline.
           </p>
           <p className="intel-note">
-            This is a narrative simulation board, not just a form. Use it to compare
-            baseline expectations against disruption scenarios and alternate model behavior.
+            Each run plays out the rest of the season for all 32 teams twice, once as
+            things stand and once with the shock applied, using the same random draws.
           </p>
         </div>
 
@@ -130,7 +125,7 @@ function AIStorySimulator() {
 
         <article className="intel-stat">
           <div className="intel-stat__label">Iterations</div>
-          <div className="intel-stat__value">{Number(iterations) || 500}</div>
+          <div className="intel-stat__value">{Number(iterations) || 5000}</div>
         </article>
 
         <article className="intel-stat intel-stat--success">
@@ -196,9 +191,9 @@ function AIStorySimulator() {
                 id="ai-story-iterations"
                 className="intel-input"
                 type="number"
-                min="50"
-                max="3000"
-                step="50"
+                min="1000"
+                max="20000"
+                step="1000"
                 value={iterations}
                 onChange={(e) => setIterations(e.target.value)}
               />
@@ -232,8 +227,8 @@ function AIStorySimulator() {
 
           {!result ? (
             <div className="intel-empty">
-              Run a simulation to generate projected record, win probability,
-              confidence score, and the narrative storyline.
+              Run a simulation to see the projected record, playoff odds, and how far
+              the scenario moves them from the baseline.
             </div>
           ) : (
             <div className="intel-stack">
@@ -246,16 +241,18 @@ function AIStorySimulator() {
                 </article>
 
                 <article className="intel-metric-card">
-                  <div className="intel-metric-card__label">Win Rate</div>
+                  <div className="intel-metric-card__label">Playoff Odds</div>
                   <div className="intel-metric-card__value">
-                    {Number(result.results?.winProbability || 0).toFixed(1)}%
+                    {Number(result.results?.playoffProbability ?? result.results?.winProbability ?? 0).toFixed(1)}%
                   </div>
                 </article>
 
                 <article className="intel-metric-card">
-                  <div className="intel-metric-card__label">Confidence</div>
+                  <div className="intel-metric-card__label">vs Baseline</div>
                   <div className="intel-metric-card__value">
-                    {Number(result.results?.confidenceScore || 0).toFixed(1)}%
+                    {result.results?.deltaPts == null
+                      ? "--"
+                      : `${result.results.deltaPts > 0 ? "+" : ""}${result.results.deltaPts.toFixed(1)} pts`}
                   </div>
                 </article>
 
@@ -269,7 +266,7 @@ function AIStorySimulator() {
 
               <section className="intel-story-panel">
                 <div className="intel-section-kicker">Narrative Output</div>
-                <h3 className="intel-story-title">AI Storyline</h3>
+                <h3 className="intel-story-title">What changed</h3>
                 <p className="intel-story-copy">
                   {result.results?.story || "No story returned by the engine."}
                 </p>

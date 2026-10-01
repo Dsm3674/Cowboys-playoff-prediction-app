@@ -18,9 +18,20 @@
  *     strength of schedule, net points, coin flip) instead of win totals, so
  *     a 10-7 team that loses the tiebreaker misses the playoffs here too.
  *
- * Simplifications: no tie games are simulated, neutral-site regular-season
- * games are treated as home games, and the tiebreak ladder stops at net points
- * in all games (the NFL's combined-ranking and net-touchdown steps are skipped).
+ *   - Where a game has a sportsbook line, its win probability is the market's.
+ *     Over 2012-25 closing lines beat this Elo on game forecasts (Brier 0.211
+ *     vs 0.221), and blending Elo back in only made them worse, which matches
+ *     Baker & McHale (2013). Lines exist for the coming week; later games use
+ *     Elo. Neutral-site games get no home-field edge.
+ *
+ * Validation: replaying every finished season 2002-25 reproduces the NFL's
+ * actual seeds 1-6 every year, and all seven seeds under the 2020+ format.
+ * Hot ratings scored better than fixed ones on 2012-25 playoff odds at weeks
+ * 4, 8 and 12.
+ *
+ * Simplifications: no tie games are simulated, and the tiebreak ladder stops
+ * at net points in all games (the NFL's combined-ranking and net-touchdown
+ * steps are skipped; no season since 2002 needed them for a seed).
  */
 
 const {
@@ -77,6 +88,8 @@ function buildLeague(ratings, games) {
       homeScore: Number(g.homeScore) || 0,
       awayScore: Number(g.awayScore) || 0,
       t: Date.parse(g.date) || 0,
+      neutral: g.neutralSite === true,
+      market: Number.isFinite(g.marketHomeProb) && !g.completed ? g.marketHomeProb : NaN,
     }))
     .sort((x, y) => x.t - y.t);
 
@@ -85,6 +98,8 @@ function buildLeague(ratings, games) {
   const A = Int32Array.from(schedule, (g) => g.a);
   const sameDiv = Uint8Array.from(schedule, (g) => (div[g.h] === div[g.a] ? 1 : 0));
   const sameConf = Uint8Array.from(schedule, (g) => (conf[g.h] === conf[g.a] ? 1 : 0));
+  const homeEdge = Float64Array.from(schedule, (g) => (g.neutral ? 0 : ELO_HOME_FIELD));
+  const market = Float64Array.from(schedule, (g) => g.market);
 
   const teamGames = Array.from({ length: N }, () => []);
   schedule.forEach((g, gi) => {
@@ -119,8 +134,9 @@ function buildLeague(ratings, games) {
   }
 
   return {
-    teams, N, index, conf, div, basePower, G, H, A, sameDiv, sameConf,
+    teams, N, index, conf, div, basePower, G, H, A, sameDiv, sameConf, homeEdge, market,
     teamGames, base, remaining: Int32Array.from(remaining),
+    marketGames: remaining.filter((gi) => !Number.isNaN(schedule[gi].market)).length,
   };
 }
 
@@ -332,7 +348,7 @@ function gaussian(rand) {
  */
 function runSimulation({ ratings, games, iterations, seed = DEFAULT_SEED, hot = true, onIteration = null }) {
   const league = buildLeague(ratings, games);
-  const { N, H, A, sameDiv, sameConf, basePower, remaining } = league;
+  const { N, H, A, sameDiv, sameConf, homeEdge, market, basePower, remaining } = league;
   const iters = clampIterations(iterations);
   const rand = mulberry32(seed);
   const conferences = [...new Set(league.conf)].sort();
@@ -355,17 +371,18 @@ function runSimulation({ ratings, games, iterations, seed = DEFAULT_SEED, hot = 
 
     for (const gi of remaining) {
       const h = H[gi], a = A[gi];
-      const pHome = eloWinProb(power[h], power[a], ELO_HOME_FIELD);
+      const hfa = homeEdge[gi];
+      const pHome = Number.isNaN(market[gi]) ? eloWinProb(power[h], power[a], hfa) : market[gi];
       const homeWins = rand() < pHome;
-      const spread = (power[h] + ELO_HOME_FIELD - power[a]) / ELO_PER_POINT;
+      const spread = (power[h] + hfa - power[a]) / ELO_PER_POINT;
       const winnerSpread = homeWins ? spread : -spread;
       const margin = Math.max(1, Math.round(Math.abs(winnerSpread + MARGIN_SD * gaussian(rand))));
       recordResult(s, gi, h, a, homeWins ? 1 : 0, homeWins ? margin : -margin, sameDiv[gi], sameConf[gi]);
 
       if (hot) {
         const winnerEloDiff = homeWins
-          ? power[h] + ELO_HOME_FIELD - power[a]
-          : power[a] - (power[h] + ELO_HOME_FIELD);
+          ? power[h] + hfa - power[a]
+          : power[a] - (power[h] + hfa);
         const shift = ELO_K * movMultiplier(margin, winnerEloDiff) * ((homeWins ? 1 : 0) - pHome);
         power[h] += shift;
         power[a] -= shift;
@@ -454,6 +471,7 @@ function runSimulation({ ratings, games, iterations, seed = DEFAULT_SEED, hot = 
     hot,
     gamesPlayed: league.G - remaining.length,
     gamesRemaining: remaining.length,
+    gamesWithMarketLines: league.marketGames,
     teams,
   };
 }

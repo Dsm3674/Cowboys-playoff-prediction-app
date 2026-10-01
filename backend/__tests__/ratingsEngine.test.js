@@ -23,9 +23,10 @@ describe("ratingsEngine — Elo math", () => {
   });
 
   test("home field pushes an even matchup above 50%", () => {
+    // +30 Elo, the 2021-25 fit, is about a 54% home win rate between equals.
     const p = eloWinProb(1500, 1500, ELO_HOME_FIELD);
-    expect(p).toBeGreaterThan(0.55);
-    expect(p).toBeLessThan(0.62);
+    expect(p).toBeGreaterThan(0.53);
+    expect(p).toBeLessThan(0.58);
   });
 
   test("probabilities are complementary", () => {

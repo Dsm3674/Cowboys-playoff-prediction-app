@@ -239,6 +239,27 @@ function totalVariation(p, q) {
   return sum / 2;
 }
 
+/* ── Single-game lines ─────────────────────────────────────────────────── */
+
+/* Points of spread per logit unit. Fit on 2012-25 closing lines: a home
+   spread of s maps to P(home win) = 1 / (1 + e^(-s/7)), which scores the same
+   as de-vigged moneylines. */
+const SPREAD_LOGIT_SCALE = 7;
+
+/**
+ * Home win probability implied by a game line. Prefers moneylines (de-vigged
+ * proportionally); falls back to the spread. `homeSpread` follows the usual
+ * quote: negative when the home team is favored. Null when nothing usable.
+ */
+function gameMarketProb({ homeMoneyLine, awayMoneyLine, homeSpread } = {}) {
+  const ph = americanToImplied(homeMoneyLine);
+  const pa = americanToImplied(awayMoneyLine);
+  if (ph != null && pa != null && ph + pa > 0) return ph / (ph + pa);
+  const s = Number(homeSpread);
+  if (homeSpread != null && Number.isFinite(s)) return 1 / (1 + Math.exp(s / SPREAD_LOGIT_SCALE));
+  return null;
+}
+
 /* ── Proper scoring rules (for backtesting settled seasons) ────────────── */
 
 /**
@@ -309,6 +330,8 @@ module.exports = {
   modelWeightForWeek,
   klDivergence,
   totalVariation,
+  gameMarketProb,
+  SPREAD_LOGIT_SCALE,
   brierScore,
   logLoss,
   calibrationBuckets,
