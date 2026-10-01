@@ -2,52 +2,28 @@
 
 const rateLimit = require("express-rate-limit");
 
-/**
- * General API limiter (safe default for most endpoints)
+/*
+ * Simulations run on the main thread: a 25k-season run blocks every other
+ * request for seconds, so they need their own, tighter limit. Keyed by client
+ * IP (server.js sets trust proxy for Railway).
  */
+
+/** Every /api route. Generous: one page view can make a dozen calls. */
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // allow 100 requests per IP per window
-  message: {
-    error: "Too Many Requests",
-    message: "You are sending too many requests. Please try again later."
-  },
+  windowMs: 15 * 60 * 1000,
+  max: 600,
+  message: { error: "Too many requests. Please try again in a few minutes." },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
-/**
- * Strict limiter for heavy simulation / analytics endpoints
- * (Monte Carlo, win probability, fantasy engines, etc.)
- */
+/** CPU-heavy simulation routes, and custom (uncached) simulation runs. */
 const simulationLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // very strict for heavy CPU operations
-  message: {
-    error: "Quantum Engine Overheating",
-    message:
-      "High-fidelity simulations are resource intensive. Please wait 15 minutes."
-  },
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  message: { error: "Too many simulation runs. Please wait a few minutes and try again." },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
-/**
- * Optional: Medium limiter for semi-heavy endpoints
- */
-const analyticsLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 20,
-  message: {
-    error: "Analytics Rate Limit Reached",
-    message: "Too many analytics requests. Please slow down."
-  },
-  standardHeaders: true,
-  legacyHeaders: false
-});
-
-module.exports = {
-  apiLimiter,
-  simulationLimiter,
-  analyticsLimiter
-};
+module.exports = { apiLimiter, simulationLimiter };

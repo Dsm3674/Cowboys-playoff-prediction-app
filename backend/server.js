@@ -104,6 +104,15 @@ const timelineRoutes = require("./routes/timeline");
 const warroomRoutes = require("./routes/warroom");
 const modelRoutes = require("./routes/model");
 
+// Rate limits: every API route, plus a tighter one for simulation-heavy
+// routes (season-simulation applies it itself, only to custom runs).
+const { apiLimiter, simulationLimiter } = require("./middleware/RateLimiter");
+app.use("/api", apiLimiter);
+app.use(
+  ["/api/model/path-probabilities", "/api/model/market-validation", "/api/model/backtest", "/api/simulation/run"],
+  simulationLimiter
+);
+
 app.use("/api/auth", authRoutes);
 // Mounted ahead of the Stripe router so /api/billing/apple/* is unambiguous.
 app.use("/api/billing/apple", appleIapRoutes);

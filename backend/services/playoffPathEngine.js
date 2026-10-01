@@ -65,7 +65,32 @@ function seedConference(rows) {
 
 /* ── Full path simulation with joint-outcome tracking ──────────────────── */
 
-async function simulatePlayoffPaths({
+/* Same inputs, same answer (the run is seeded), so repeat page loads share one
+   run per ratings window instead of re-simulating on the main thread. */
+const PATH_TTL_MS = 10 * 60 * 1000;
+const _pathCache = new Map();
+
+function simulatePlayoffPaths(opts = {}) {
+  if (opts.ratingsOverride || opts.gamesOverride) return runPlayoffPaths(opts);
+  const key = JSON.stringify([
+    opts.year || null,
+    String(opts.focusTeam || "DAL").toUpperCase(),
+    clampIterations(opts.iterations),
+    opts.seed ?? null,
+  ]);
+  const hit = _pathCache.get(key);
+  if (hit && Date.now() - hit.ts < PATH_TTL_MS) return hit.promise;
+  const promise = runPlayoffPaths(opts);
+  _pathCache.set(key, { promise, ts: Date.now() });
+  promise.catch(() => _pathCache.delete(key));
+  return promise;
+}
+
+function _invalidatePathCache() {
+  _pathCache.clear();
+}
+
+async function runPlayoffPaths({
   year,
   focusTeam = "DAL",
   iterations = DEFAULT_ITERATIONS,
@@ -192,6 +217,7 @@ module.exports = {
   DEFAULT_ITERATIONS,
   MAX_ITERATIONS,
   simulatePlayoffPaths,
+  _invalidatePathCache,
   seedConference,
   mulberry32,
   _internals: { clampIterations },

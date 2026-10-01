@@ -3,6 +3,13 @@
 const express = require("express");
 const router = express.Router();
 const { teamOr400 } = require("../middleware/teamParam");
+const { simulationLimiter } = require("../middleware/RateLimiter");
+
+/* Default runs come from the shared cache; only custom ones cost CPU. */
+function limitCustomRuns(req, res, next) {
+  const custom = req.query.iterations !== undefined || req.query.seed !== undefined;
+  return custom ? simulationLimiter(req, res, next) : next();
+}
 
 const {
   getPowerRatings,
@@ -14,6 +21,7 @@ const {
 const {
   simulatePlayoffPaths,
   MAX_ITERATIONS,
+  _invalidatePathCache,
 } = require("../services/playoffPathEngine");
 const {
   simulateSeason,
@@ -76,7 +84,7 @@ router.get("/path-probabilities", async (req, res) => {
 // Plays out the rest of the regular season for all 32 teams, then the
 // playoffs. Default settings share the cached run the other pages use; a
 // custom iteration count or seed runs fresh.
-router.get("/season-simulation", async (req, res) => {
+router.get("/season-simulation", limitCustomRuns, async (req, res) => {
   try {
     const year = Number(req.query.year) || undefined;
     const iterations = Number(req.query.iterations) || SEASON_DEFAULT_ITERATIONS;
@@ -189,6 +197,7 @@ router.post("/adjustments", requireAdmin, (req, res) => {
     const adjustment = upsertAdjustment(req.body || {});
     _invalidateRatingsCache();
     _invalidateSimulationCache();
+    _invalidatePathCache();
     res.json({ success: true, adjustment });
   } catch (e) {
     res.status(400).json({ success: false, error: e.message });
@@ -199,6 +208,7 @@ router.delete("/adjustments/:team", requireAdmin, (req, res) => {
   const removed = removeAdjustments(req.params.team);
   _invalidateRatingsCache();
   _invalidateSimulationCache();
+  _invalidatePathCache();
   res.json({ success: true, removed });
 });
 
