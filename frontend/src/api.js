@@ -453,6 +453,10 @@
     });
   }
 
+  function getRootingGuide(team = "DAL", year, limit = 10) {
+    return request("/api/model/rooting-guide", { query: { team, year, limit } });
+  }
+
   function getBacktest(year) {
     return request("/api/model/backtest", { query: { year } });
   }
@@ -536,6 +540,7 @@
     getPowerRatings,
     getPathProbabilities,
     getSeasonSimulation,
+    getRootingGuide,
     getBacktest,
     getMarketValidation,
     getModelAdjustments,

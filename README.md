@@ -161,10 +161,13 @@ The frontend will typically run on `http://localhost:5173`
 
 The model has four parts.
 
-1. **Power ratings** (`backend/services/ratingsEngine.js`). FiveThirtyEight-style Elo: K = 20, +30 home field (none at neutral sites), margin-of-victory multiplier, replayed from every completed game. The preseason prior is last season's final Elo regressed one-third toward 1500, blended 60/40 with a rating implied by de-vigged Super Bowl futures. QB, injury and trade news are applied as Elo deltas, plus a TSI overlay.
+1. **Power ratings** (`backend/services/ratingsEngine.js`). FiveThirtyEight-style Elo: K = 20, +30 home field (none at neutral sites), margin-of-victory multiplier, replayed from every completed game. The preseason prior is last season's final Elo regressed one-third toward 1500, blended 60/40 with a rating implied by de-vigged Super Bowl futures. QB, injury and trade news are applied as Elo deltas. TSI (a season-stats summary) is reported but not added to the rating.
 2. **Game probabilities.** Elo, except where a game has a sportsbook line (this week's games, from ESPN): then the de-vigged line is used, because it scored better than Elo on 2012-25 games and blending Elo back in made it worse.
 3. **League season simulation** (`backend/services/seasonSimulator.js`). Every remaining regular-season game for all 32 teams. Ratings run "hot": each simulated result updates both teams' Elo, so uncertainty grows the further out the forecast is. Standings are settled with the NFL tiebreakers (head-to-head, division record, common games, conference record, strength of victory, strength of schedule, net points, coin flip), and seeds 1-7 go into a bracket that reseeds after the wild-card round. 10,000 seasons by default, up to 100,000.
 4. **Path analysis** (`backend/services/playoffPathEngine.js`). Every simulated postseason is logged jointly, which answers conditional questions such as a team's title odds when the other conference's #1 seed is upset.
+5. **Game leverage** (`gameLeverage` in the simulator, used by `seasonPath.js` and `rivalAnalysis.js`). For every remaining game the simulation records each team's playoff rate when the home side wins and when the away side wins. That drives must-win swings (a team's own games), the rooting guide (`GET /api/model/rooting-guide?team=DAL`, everyone else's games) and the rival page's measured impact, with division races and tiebreakers included.
+
+The matchup simulator uses the same Elo game forecast; the season-path page lists the most likely win/loss sequences from the model's per-game odds.
 
 **Injury impact.** Automatic Elo deltas from ESPN's injury report and depth charts: `(1 - P(plays)) × positional spread value × 25 Elo/pt`, starters only, faded for long absences, capped at -250 Elo per team. The upcoming game takes the full cost; season projections spread it over the games each player is expected to miss (ESPN return date, else 4 for IR, 1 for game designations). A manual QB/INJURY adjustment replaces the automatic delta for that team. See `backend/services/injuries.js`.
 
@@ -184,7 +187,7 @@ All on nflverse data (every game since 1999 with closing lines):
 What the evidence changed:
 
 - **Home field 48 → 30 Elo.** The best fit fell from ~60 (2012-16) to ~40 (2017-20) to ~30 (2021-25), in line with research on shrinking home advantage (Lopez, Matthews & Baumer 2018).
-- **Removed the point-differential overlay.** Elo's margin-of-victory multiplier already uses scoring margin; adding it again made forecasts worse at every weight tried.
+- **Removed the point-differential and TSI overlays.** Elo's margin-of-victory multiplier already uses scoring margin; adding point differential made forecasts worse at every weight tried, and TSI (built from the same points and records) did too at the weight used (Brier 0.2210 vs 0.2207 without it, 2012-25).
 - **Sportsbook lines for games that have one** (Baker & McHale 2013: models trail the market on game outcomes).
 - **QB injuries.** A backup QB start cost about 90 Elo in the backtest; the injury model prices a full QB absence at about 112, close enough to keep.
 

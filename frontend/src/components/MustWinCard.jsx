@@ -57,6 +57,11 @@ function MustWinCard({ year, team = "DAL" }) {
               <div className="must-win-card__badge">
                 {(g.swing * 100).toFixed(1)}% Swing
               </div>
+              {g.forcedWinPlayoffProb != null && (
+                <div className="must-win-card__date">
+                  Win {(g.forcedWinPlayoffProb * 100).toFixed(0)}% · Lose {(g.forcedLossPlayoffProb * 100).toFixed(0)}%
+                </div>
+              )}
             </div>
           </div>
         ))}

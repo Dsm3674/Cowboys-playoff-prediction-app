@@ -8,21 +8,24 @@ function RivalTeamImpactPage({ year, selectedTeam = "DAL" }) {
   const [loading, setLoading] = React.useState(false);
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState("");
-  const [chaos, setChaos] = React.useState(0);
-  const [iterations, setIterations] = React.useState(1000);
+  const [rooting, setRooting] = React.useState(null);
   const [selectedRival, setSelectedRival] = React.useState(null);
   const [sortBy, setSortBy] = React.useState("impactScore");
 
   React.useEffect(() => {
     loadRivalImpactData();
-  }, [season, selectedTeam, chaos, iterations]);
+  }, [season, selectedTeam]);
 
   async function loadRivalImpactData() {
     try {
       setLoading(true);
       setError("");
-      const result = await api.getRivalImpact(selectedTeam, season, chaos, iterations);
+      const [result, guide] = await Promise.all([
+        api.getRivalImpact(selectedTeam, season),
+        api.getRootingGuide(selectedTeam, season, 8).catch(() => null),
+      ]);
       setData(result);
+      setRooting(guide);
     } catch (err) {
       setError(err.message || "Failed to load rival impact analysis.");
       setData(null);
@@ -67,45 +70,39 @@ function RivalTeamImpactPage({ year, selectedTeam = "DAL" }) {
         <div className="intel-banner intel-banner--warning">{error}</div>
       )}
 
-      {/* CONTROLS */}
+      {/* ROOTING GUIDE */}
       <section className="intel-panel">
-        <div className="intel-control-grid">
-
-          <div className="intel-form-group">
-            <label className="intel-label">Chaos ({chaos.toFixed(2)})</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={chaos}
-              onChange={(e) => setChaos(Number(e.target.value))}
-              className="intel-slider"
-            />
+        <div className="intel-section-kicker">Rooting guide · league simulation</div>
+        <h2 className="intel-section-title">Other games that move {selectedTeam}'s playoff odds</h2>
+        {rooting?.games?.length ? (
+          <div className="data-table-wrap">
+            <table>
+              <thead>
+                <tr><th>Game</th><th>Root for</th><th>{selectedTeam} odds if home wins</th><th>If away wins</th><th>Swing</th></tr>
+              </thead>
+              <tbody>
+                {rooting.games.map((g) => (
+                  <tr key={g.id || `${g.away}-${g.home}-${g.date}`}>
+                    <td>{g.away} @ {g.home}{g.week ? ` · wk ${g.week}` : ""}</td>
+                    <td style={{ fontWeight: 700 }}>{g.rootFor}</td>
+                    <td>{g.playoffPctIfHomeWins.toFixed(1)}%</td>
+                    <td>{g.playoffPctIfAwayWins.toFixed(1)}%</td>
+                    <td>{g.swingPts.toFixed(1)} pts</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          <div className="intel-form-group">
-            <label className="intel-label">Iterations ({iterations})</label>
-            <input
-              type="range"
-              min="100"
-              max="5000"
-              step="100"
-              value={iterations}
-              onChange={(e) => setIterations(Number(e.target.value))}
-              className="intel-slider"
-            />
-          </div>
-
-          <button
-            className="intel-button intel-button--primary"
-            onClick={loadRivalImpactData}
-            disabled={loading}
-          >
-            {loading ? "Running..." : "Apply"}
-          </button>
-
-        </div>
+        ) : (
+          <p className="intel-note">
+            {loading ? "Simulating the league…" : "No remaining games to rank yet."}
+          </p>
+        )}
+        <p className="intel-note">
+          Measured by playing out the rest of the season {rooting?.iterations?.toLocaleString() || "thousands of"} times
+          and comparing {selectedTeam}'s playoff rate when each side wins. Division races and
+          tiebreakers are included. The rival cards below are a quicker heuristic.
+        </p>
       </section>
 
       {/* STATS */}

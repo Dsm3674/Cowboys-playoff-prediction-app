@@ -1,22 +1,41 @@
 "use strict";
 
+/**
+ * seasonPath
+ * One team's remaining schedule: per-game win probabilities, the most likely
+ * win/loss paths, win-total scenarios, and which games carry the most
+ * playoff leverage.
+ *
+ * Game probabilities are the model's: the sportsbook line when a game has
+ * one, otherwise Elo (neutral sites get no home edge; the next game carries
+ * full current injury costs). "Chaos" pulls every game toward a coin flip,
+ * up to halving each edge at the maximum.
+ *
+ * Playoff odds for a final win total come from the team's measured curve in
+ * the league simulation. Must-win leverage comes straight from the league
+ * simulation when it is available: P(playoffs | win this game) minus
+ * P(playoffs | lose it), measured with every other game and tiebreaker in
+ * play, rather than through win totals.
+ */
+
 const {
   getNFLSeasonYear,
   fetchTeamGamesSeasonToDate,
   computeRecordFromGames,
-  computeTeamAveragesFromGames
 } = require("./services/espn");
 const {
   getEloSnapshot,
-  blendWithElo,
   eloWinProb,
   powerForGame,
   nextGameOf,
-  ELO_HOME_FIELD
+  ELO_HOME_FIELD,
 } = require("./services/ratingsEngine");
-const { getSeasonSimulation, playoffCurve } = require("./services/seasonSimulator");
+const { getSeasonSimulation, playoffCurve, gameLeverage } = require("./services/seasonSimulator");
+const { SPREAD_LOGIT_SCALE } = require("./services/oddsMath");
 
 const DEFAULT_ITERATIONS = 10000;
+const MAX_CHAOS = 1.5;
+const MAX_ENUMERATED_GAMES = 18;
 
 function asNumber(value, fallback = 0) {
   const n = Number(value);
@@ -37,40 +56,17 @@ function round(value, digits = 4) {
   return Math.round(asNumber(value, 0) * factor) / factor;
 }
 
-function sigmoid(x) {
-  return 1 / (1 + Math.exp(-x));
-}
-
 function normalizeAbbr(value, fallback = "DAL") {
   const raw = String(value || fallback).trim().toUpperCase();
   return raw || fallback;
 }
 
 function normalizeIterations(value) {
-  const n = asInteger(value, DEFAULT_ITERATIONS);
-  return clamp(n, 500, 50000);
+  return clamp(asInteger(value, DEFAULT_ITERATIONS), 500, 50000);
 }
 
 function normalizeChaos(value) {
-  return clamp(asNumber(value, 0), 0, 1.5);
-}
-
-function teamRecordWins(record) {
-  return asNumber(record?.wins, 0);
-}
-
-function teamRecordLosses(record) {
-  return asNumber(record?.losses, 0);
-}
-
-function totalGames(record) {
-  return teamRecordWins(record) + teamRecordLosses(record);
-}
-
-function recordWinPct(record) {
-  const total = totalGames(record);
-  if (!total) return 0.5;
-  return teamRecordWins(record) / total;
+  return clamp(asNumber(value, 0), 0, MAX_CHAOS);
 }
 
 function opponentOf(teamAbbr, game) {
@@ -87,91 +83,32 @@ function createSeededRng(seed) {
   };
 }
 
-function estimatePointDiffStrength(teamAverages) {
-  return asNumber(teamAverages?.avgPointDiff, teamAverages?.pointDifferential || 0);
+/* Pull a probability toward 0.5: chaos 0 leaves it, MAX_CHAOS halves the edge. */
+function applyChaos(p, chaos) {
+  return 0.5 + (p - 0.5) * (1 - chaos / (2 * MAX_CHAOS));
 }
 
-function estimateScoringStrength(teamAverages) {
-  return asNumber(teamAverages?.avgPointsFor, teamAverages?.pointsFor || 0);
-}
-
-function estimateDefenseStrength(teamAverages) {
-  return asNumber(teamAverages?.avgPointsAgainst, teamAverages?.pointsAgainst || 0);
-}
-
-function estimateOpponentStrength(game) {
-  return clamp(asNumber(game.opponentWinPct, game.oppWinPct || 0.5), 0, 1);
-}
-
-function estimateRestAdvantage(game) {
-  return clamp(asNumber(game.restAdvantage, 0), -10, 10);
-}
-
-function estimateSpread(game) {
-  return clamp(asNumber(game.spread, 0), -21, 21);
-}
-
-function estimateInjuryPenalty(game) {
-  return clamp(asNumber(game.injuryPenalty, 0), 0, 1.5);
-}
-
-function estimateTravelPenalty(game) {
-  return clamp(asNumber(game.travelPenalty, 0), 0, 1);
-}
-
-function estimateMotivationBoost(game) {
-  return clamp(asNumber(game.motivationBoost, 0), 0, 1);
-}
-
-function estimateGameWinProbability(teamAbbr, game, teamAverages, record, chaos = 0) {
+/**
+ * The model's probability that `teamAbbr` wins `game`, and where it came
+ * from. Falls back to a record-and-venue guess only when no ratings exist.
+ */
+function modelGameProb(teamAbbr, game, { eloSnap, isNext, record }) {
   const isHome = game.homeTeamAbbr === teamAbbr;
-  const pointDiff = estimatePointDiffStrength(teamAverages);
-  const scoring = estimateScoringStrength(teamAverages);
-  const defense = estimateDefenseStrength(teamAverages);
-  const winPct = recordWinPct(record);
-  const opponentStrength = estimateOpponentStrength(game);
-  const spread = estimateSpread(game);
-  const restAdvantage = estimateRestAdvantage(game);
-  const injuryPenalty = estimateInjuryPenalty(game);
-  const travelPenalty = estimateTravelPenalty(game);
-  const motivationBoost = estimateMotivationBoost(game);
-
-  const rating =
-    pointDiff * 0.085 +
-    (scoring - defense) * 0.01 +
-    (winPct - 0.5) * 1.45 +
-    (isHome ? 0.24 : -0.12) +
-    spread * 0.035 +
-    restAdvantage * 0.028 -
-    (opponentStrength - 0.5) * 1.2 -
-    injuryPenalty * 0.55 -
-    travelPenalty * 0.18 +
-    motivationBoost * 0.1 -
-    chaos * 0.08;
-
-  return clamp(sigmoid(rating), 0.04, 0.96);
-}
-
-function normalizeGame(teamAbbr, game, teamAverages, record, chaos, idx, eloProb = null) {
-  const base = estimateGameWinProbability(teamAbbr, game, teamAverages, record, chaos);
-  const pWin = Number.isFinite(eloProb) ? blendWithElo(base, eloProb, 0.5) : base;
-  return {
-    idx,
-    date: game.date || null,
-    completed: Boolean(game.completed),
-    status: game.status || null,
-    opp: opponentOf(teamAbbr, game),
-    isHome: game.homeTeamAbbr === teamAbbr,
-    homeTeamAbbr: game.homeTeamAbbr,
-    awayTeamAbbr: game.awayTeamAbbr,
-    pWin: round(pWin, 4),
-    opponentWinPct: round(estimateOpponentStrength(game), 4),
-    spread: round(estimateSpread(game), 2),
-    restAdvantage: round(estimateRestAdvantage(game), 2),
-    injuryPenalty: round(estimateInjuryPenalty(game), 3),
-    travelPenalty: round(estimateTravelPenalty(game), 3),
-    motivationBoost: round(estimateMotivationBoost(game), 3)
-  };
+  if (Number.isFinite(game.marketHomeProb)) {
+    return { p: isHome ? game.marketHomeProb : 1 - game.marketHomeProb, source: "market" };
+  }
+  if (eloSnap?.available) {
+    const teamElo = powerForGame(eloSnap.byTeam[teamAbbr], isNext);
+    const oppElo = powerForGame(eloSnap.byTeam[opponentOf(teamAbbr, game)], isNext);
+    if (Number.isFinite(teamElo) && Number.isFinite(oppElo)) {
+      const hfa = game.neutralSite ? 0 : ELO_HOME_FIELD;
+      return { p: eloWinProb(teamElo, oppElo, isHome ? hfa : -hfa), source: "elo" };
+    }
+  }
+  const games = (record?.wins || 0) + (record?.losses || 0) + (record?.ties || 0);
+  const winPct = games ? ((record.wins || 0) + 0.5 * (record.ties || 0)) / games : 0.5;
+  const z = (winPct - 0.5) * 1.45 + (game.neutralSite ? 0 : isHome ? 0.12 : -0.12);
+  return { p: clamp(1 / (1 + Math.exp(-z)), 0.04, 0.96), source: "record" };
 }
 
 /**
@@ -202,6 +139,8 @@ function classifyLeverage(swing) {
   return "NORMAL";
 }
 
+/* ── Win-total scenarios ───────────────────────────────────────────────── */
+
 function simulateSeasonOutcome({ currentWins, remainingGames, forcedGameIndex = null, forcedOutcome = null, seed = 1, curve = null }) {
   const rng = createSeededRng(seed);
   let wins = currentWins;
@@ -211,118 +150,146 @@ function simulateSeasonOutcome({ currentWins, remainingGames, forcedGameIndex = 
       if (forcedOutcome === "WIN") wins += 1;
       continue;
     }
-
     const p = clamp(asNumber(remainingGames[i].pWin, 0.5), 0.01, 0.99);
     if (rng() < p) wins += 1;
   }
 
-  const playoffProbability = projectPlayoffProbability(wins, curve);
-
-  return {
-    totalWins: wins,
-    playoffProbability
-  };
-}
-
-function summarizeSimulations(results) {
-  if (!results.length) {
-    return {
-      averageWins: 0,
-      averagePlayoffProbability: 0,
-      minWins: 0,
-      maxWins: 0,
-      winDistribution: {}
-    };
-  }
-
-  let totalWins = 0;
-  let totalPlayoffProbability = 0;
-  let minWins = results[0].totalWins;
-  let maxWins = results[0].totalWins;
-  const winDistribution = {};
-
-  for (const result of results) {
-    totalWins += result.totalWins;
-    totalPlayoffProbability += result.playoffProbability;
-    if (result.totalWins < minWins) minWins = result.totalWins;
-    if (result.totalWins > maxWins) maxWins = result.totalWins;
-    winDistribution[result.totalWins] = (winDistribution[result.totalWins] || 0) + 1;
-  }
-
-  return {
-    averageWins: round(totalWins / results.length, 4),
-    averagePlayoffProbability: round(totalPlayoffProbability / results.length, 4),
-    minWins,
-    maxWins,
-    winDistribution
-  };
+  return { totalWins: wins, playoffProbability: projectPlayoffProbability(wins, curve) };
 }
 
 function runScenario({ currentWins, remainingGames, iterations, seasonYear, forcedGameIndex = null, forcedOutcome = null, curve = null }) {
-  const results = [];
+  let totalWins = 0;
+  let totalPlayoff = 0;
+  let minWins = Infinity;
+  let maxWins = -Infinity;
+  const winDistribution = {};
 
   for (let i = 0; i < iterations; i += 1) {
-    results.push(
-      simulateSeasonOutcome({
-        currentWins,
-        remainingGames,
-        forcedGameIndex,
-        forcedOutcome,
-        curve,
-        seed: seasonYear * 100000 + i * 97 + (forcedGameIndex === null ? 7 : forcedGameIndex * 13) + (forcedOutcome === "WIN" ? 3 : 11)
-      })
-    );
+    const r = simulateSeasonOutcome({
+      currentWins,
+      remainingGames,
+      forcedGameIndex,
+      forcedOutcome,
+      curve,
+      seed: seasonYear * 100000 + i * 97 + (forcedGameIndex === null ? 7 : forcedGameIndex * 13) + (forcedOutcome === "WIN" ? 3 : 11),
+    });
+    totalWins += r.totalWins;
+    totalPlayoff += r.playoffProbability;
+    minWins = Math.min(minWins, r.totalWins);
+    maxWins = Math.max(maxWins, r.totalWins);
+    winDistribution[r.totalWins] = (winDistribution[r.totalWins] || 0) + 1;
   }
 
-  return summarizeSimulations(results);
+  if (!iterations) {
+    return { averageWins: 0, averagePlayoffProbability: 0, minWins: 0, maxWins: 0, winDistribution: {} };
+  }
+  return {
+    averageWins: round(totalWins / iterations, 4),
+    averagePlayoffProbability: round(totalPlayoff / iterations, 4),
+    minWins,
+    maxWins,
+    winDistribution,
+  };
 }
+
+/**
+ * The k most likely win/loss sequences over the remaining games, treating
+ * games as independent. Exact enumeration up to MAX_ENUMERATED_GAMES games.
+ */
+function mostLikelyPaths(games, k, curve, currentWins) {
+  const n = games.length;
+  if (!n || n > MAX_ENUMERATED_GAMES) return [];
+  const p = games.map((g) => clamp(g.pWin, 1e-6, 1 - 1e-6));
+  const top = [];
+  for (let mask = 0; mask < 1 << n; mask++) {
+    let prob = 1;
+    let wins = 0;
+    for (let i = 0; i < n; i++) {
+      if (mask & (1 << i)) { prob *= p[i]; wins++; } else prob *= 1 - p[i];
+    }
+    if (top.length < k) {
+      top.push({ mask, prob, wins });
+      top.sort((a, b) => b.prob - a.prob);
+    } else if (prob > top[k - 1].prob) {
+      top[k - 1] = { mask, prob, wins };
+      top.sort((a, b) => b.prob - a.prob);
+    }
+  }
+  return top.map(({ mask, prob, wins }) => ({
+    probability: round(prob, 6),
+    winsAdded: wins,
+    finalWins: currentWins + wins,
+    playoffProbability: round(projectPlayoffProbability(currentWins + wins, curve), 4),
+    outcomes: games.map((g, i) => ({ idx: g.idx, opp: g.opp, result: mask & (1 << i) ? "W" : "L" })),
+  }));
+}
+
+/* ── Model loading ─────────────────────────────────────────────────────── */
 
 async function loadSeasonModel({ teamAbbr = "DAL", year, chaos = 0 }) {
   const seasonYear = year || getNFLSeasonYear();
-  const normalizedTeam = normalizeAbbr(teamAbbr);
+  const team = normalizeAbbr(teamAbbr);
   const normalizedChaos = normalizeChaos(chaos);
 
   const [games, eloSnap, sim] = await Promise.all([
-    fetchTeamGamesSeasonToDate(normalizedTeam, seasonYear),
+    fetchTeamGamesSeasonToDate(team, seasonYear),
     getEloSnapshot({ year: seasonYear }),
-    getSeasonSimulation({ year: seasonYear }).catch(() => null)
+    getSeasonSimulation({ year: seasonYear }).catch(() => null),
   ]);
-  const record = computeRecordFromGames(games);
-  const teamAverages = computeTeamAveragesFromGames(normalizedTeam, games);
-
-  // Elo's read on each remaining game, blended into the legacy estimate.
-  // The next game carries full current injury costs; later ones the average.
+  const record = computeRecordFromGames(games, team);
   const nextGame = nextGameOf(games);
-  const eloProbFor = (game) => {
-    if (!eloSnap.available) return null;
-    const isNext = game === nextGame;
-    const teamElo = powerForGame(eloSnap.byTeam[normalizedTeam], isNext);
-    const oppElo = powerForGame(eloSnap.byTeam[opponentOf(normalizedTeam, game)], isNext);
-    if (!Number.isFinite(teamElo) || !Number.isFinite(oppElo)) return null;
-    const isHome = game.homeTeamAbbr === normalizedTeam;
-    return eloWinProb(teamElo, oppElo, isHome ? ELO_HOME_FIELD : -ELO_HOME_FIELD);
-  };
 
   const remainingGames = games
     .filter((game) => !game.completed)
-    .map((game, idx) =>
-      normalizeGame(normalizedTeam, game, teamAverages, record, normalizedChaos, idx, eloProbFor(game))
-    );
+    .map((game, idx) => {
+      const { p, source } = modelGameProb(team, game, { eloSnap, isNext: game === nextGame, record });
+      const pWin = applyChaos(p, normalizedChaos);
+      const logit = Math.log(pWin / (1 - pWin));
+      return {
+        idx,
+        id: game.id || null,
+        date: game.date || null,
+        completed: false,
+        status: game.status || null,
+        opp: opponentOf(team, game),
+        isHome: game.homeTeamAbbr === team,
+        neutralSite: Boolean(game.neutralSite),
+        homeTeamAbbr: game.homeTeamAbbr,
+        awayTeamAbbr: game.awayTeamAbbr,
+        pWin: round(pWin, 4),
+        // Implied point spread from the team's side (positive = favored).
+        spread: round(logit * SPREAD_LOGIT_SCALE, 1),
+        source,
+      };
+    });
+
+  const simTeam = sim?.teams.find((t) => t.code === team) || null;
 
   return {
     seasonYear,
-    teamAbbr: normalizedTeam,
+    teamAbbr: team,
     record,
-    teamAverages,
-    currentWins: teamRecordWins(record),
-    currentLosses: teamRecordLosses(record),
+    currentWins: asNumber(record.wins, 0),
+    currentLosses: asNumber(record.losses, 0),
     remainingGames,
     chaos: normalizedChaos,
-    playoffCurve: playoffCurve(sim?.teams.find((t) => t.code === normalizedTeam))
+    playoffCurve: playoffCurve(simTeam),
+    simPlayoffProbability: simTeam ? simTeam.playoffPct / 100 : null,
+    leverage: sim ? gameLeverage(sim, team) : [],
   };
 }
 
-async function buildSeasonPaths({ teamAbbr = "DAL", year, chaos = 0, iterations = DEFAULT_ITERATIONS } = {}) {
+/* Match a schedule game to the simulation's leverage row. */
+function leverageRow(model, game) {
+  return model.leverage.find((l) =>
+    (game.id && l.id === game.id) ||
+    (l.home === game.homeTeamAbbr && l.away === game.awayTeamAbbr && String(l.date) === String(game.date))
+  ) || null;
+}
+
+/* ── Public API ────────────────────────────────────────────────────────── */
+
+async function buildSeasonPaths({ teamAbbr = "DAL", year, chaos = 0, iterations = DEFAULT_ITERATIONS, k = 25 } = {}) {
   const model = await loadSeasonModel({ teamAbbr, year, chaos });
   const normalizedIterations = normalizeIterations(iterations);
 
@@ -331,7 +298,7 @@ async function buildSeasonPaths({ teamAbbr = "DAL", year, chaos = 0, iterations 
     remainingGames: model.remainingGames,
     iterations: normalizedIterations,
     seasonYear: model.seasonYear,
-    curve: model.playoffCurve
+    curve: model.playoffCurve,
   });
 
   return {
@@ -341,20 +308,9 @@ async function buildSeasonPaths({ teamAbbr = "DAL", year, chaos = 0, iterations 
     iterations: normalizedIterations,
     record: model.record,
     baseline,
-    remainingGames: model.remainingGames.map((game) => ({
-      idx: game.idx,
-      date: game.date,
-      opp: game.opp,
-      isHome: game.isHome,
-      status: game.status,
-      pWin: game.pWin,
-      spread: game.spread,
-      opponentWinPct: game.opponentWinPct,
-      restAdvantage: game.restAdvantage,
-      injuryPenalty: game.injuryPenalty,
-      travelPenalty: game.travelPenalty,
-      motivationBoost: game.motivationBoost
-    }))
+    leaguePlayoffProbability: model.simPlayoffProbability,
+    remainingGames: model.remainingGames,
+    paths: mostLikelyPaths(model.remainingGames, clamp(asInteger(k, 25), 1, 60), model.playoffCurve, model.currentWins),
   };
 }
 
@@ -364,12 +320,17 @@ async function computeMustWinGames({ teamAbbr = "DAL", year, chaos = 0, iteratio
 
   if (!model.remainingGames.length) return [];
 
+  // Without chaos, the league simulation measures each game's leverage
+  // directly. Chaos changes every game's odds, so it falls back to the
+  // win-total method on the chaos-adjusted probabilities.
+  const useSim = model.chaos === 0 && model.leverage.length > 0;
+
   const baseline = runScenario({
     currentWins: model.currentWins,
     remainingGames: model.remainingGames,
     iterations: normalizedIterations,
     seasonYear: model.seasonYear,
-    curve: model.playoffCurve
+    curve: model.playoffCurve,
   });
 
   const games = model.remainingGames.map((game, index) => {
@@ -380,9 +341,8 @@ async function computeMustWinGames({ teamAbbr = "DAL", year, chaos = 0, iteratio
       seasonYear: model.seasonYear,
       curve: model.playoffCurve,
       forcedGameIndex: index,
-      forcedOutcome: "WIN"
+      forcedOutcome: "WIN",
     });
-
     const forcedLoss = runScenario({
       currentWins: model.currentWins,
       remainingGames: model.remainingGames,
@@ -390,12 +350,23 @@ async function computeMustWinGames({ teamAbbr = "DAL", year, chaos = 0, iteratio
       seasonYear: model.seasonYear,
       curve: model.playoffCurve,
       forcedGameIndex: index,
-      forcedOutcome: "LOSS"
+      forcedOutcome: "LOSS",
     });
 
-    const swing = Math.abs(forcedWin.averagePlayoffProbability - forcedLoss.averagePlayoffProbability);
-    const averageWinDelta = forcedWin.averageWins - forcedLoss.averageWins;
+    let ifWin = forcedWin.averagePlayoffProbability;
+    let ifLoss = forcedLoss.averagePlayoffProbability;
+    let base = baseline.averagePlayoffProbability;
+    let method = "win-total";
 
+    const row = useSim ? leverageRow(model, game) : null;
+    if (row && row.playoffPctIfHomeWins != null && row.playoffPctIfAwayWins != null) {
+      ifWin = (game.isHome ? row.playoffPctIfHomeWins : row.playoffPctIfAwayWins) / 100;
+      ifLoss = (game.isHome ? row.playoffPctIfAwayWins : row.playoffPctIfHomeWins) / 100;
+      base = model.simPlayoffProbability ?? base;
+      method = "league-simulation";
+    }
+
+    const swing = Math.abs(ifWin - ifLoss);
     return {
       idx: game.idx,
       date: game.date,
@@ -403,16 +374,16 @@ async function computeMustWinGames({ teamAbbr = "DAL", year, chaos = 0, iteratio
       isHome: game.isHome,
       pWin: game.pWin,
       spread: game.spread,
-      opponentWinPct: game.opponentWinPct,
-      baselinePlayoffProb: baseline.averagePlayoffProbability,
-      forcedWinPlayoffProb: forcedWin.averagePlayoffProbability,
-      forcedLossPlayoffProb: forcedLoss.averagePlayoffProbability,
+      baselinePlayoffProb: round(base, 4),
+      forcedWinPlayoffProb: round(ifWin, 4),
+      forcedLossPlayoffProb: round(ifLoss, 4),
       baselineAverageWins: baseline.averageWins,
       forcedWinAverageWins: forcedWin.averageWins,
       forcedLossAverageWins: forcedLoss.averageWins,
-      averageWinDelta: round(averageWinDelta, 4),
+      averageWinDelta: round(forcedWin.averageWins - forcedLoss.averageWins, 4),
       swing: round(swing, 4),
-      leverage: classifyLeverage(swing)
+      leverage: classifyLeverage(swing),
+      method,
     };
   });
 
@@ -420,24 +391,62 @@ async function computeMustWinGames({ teamAbbr = "DAL", year, chaos = 0, iteratio
   return games;
 }
 
+/**
+ * Games the team is not playing in, ranked by how much their result moves
+ * the team's playoff odds: who to root for, measured in the league sim.
+ */
+async function computeRootingGuide({ teamAbbr = "DAL", year, limit = 10 } = {}) {
+  const team = normalizeAbbr(teamAbbr);
+  const sim = await getSeasonSimulation({ year });
+  const simTeam = sim.teams.find((t) => t.code === team);
+  const rows = gameLeverage(sim, team)
+    .filter((g) => g.home !== team && g.away !== team)
+    .filter((g) => g.playoffPctIfHomeWins != null && g.playoffPctIfAwayWins != null)
+    .map((g) => {
+      const diff = g.playoffPctIfHomeWins - g.playoffPctIfAwayWins;
+      return {
+        id: g.id,
+        week: g.week,
+        date: g.date,
+        home: g.home,
+        away: g.away,
+        homeWinPct: g.homeWinPct,
+        rootFor: diff >= 0 ? g.home : g.away,
+        playoffPctIfHomeWins: g.playoffPctIfHomeWins,
+        playoffPctIfAwayWins: g.playoffPctIfAwayWins,
+        swingPts: round(Math.abs(diff), 2),
+      };
+    })
+    .sort((a, b) => b.swingPts - a.swingPts)
+    .slice(0, clamp(asInteger(limit, 10), 1, 50));
+
+  return {
+    team,
+    year: sim.year,
+    playoffPct: simTeam ? simTeam.playoffPct : null,
+    iterations: sim.iterations,
+    games: rows,
+  };
+}
+
 async function computeScheduleSensitivity({ teamAbbr = "DAL", year, chaos = 0, iterations = DEFAULT_ITERATIONS } = {}) {
   const model = await loadSeasonModel({ teamAbbr, year, chaos });
   const normalizedIterations = normalizeIterations(iterations);
+  const shift = (d) => model.remainingGames.map((g) => ({ ...g, pWin: clamp(g.pWin + d, 0.04, 0.96) }));
 
   const lowChaos = runScenario({
     currentWins: model.currentWins,
-    remainingGames: model.remainingGames.map((game) => ({ ...game, pWin: clamp(game.pWin + 0.03, 0.04, 0.96) })),
+    remainingGames: shift(0.03),
     iterations: normalizedIterations,
     seasonYear: model.seasonYear,
-    curve: model.playoffCurve
+    curve: model.playoffCurve,
   });
-
   const highChaos = runScenario({
     currentWins: model.currentWins,
-    remainingGames: model.remainingGames.map((game) => ({ ...game, pWin: clamp(game.pWin - 0.03, 0.04, 0.96) })),
+    remainingGames: shift(-0.03),
     iterations: normalizedIterations,
     seasonYear: model.seasonYear,
-    curve: model.playoffCurve
+    curve: model.playoffCurve,
   });
 
   return {
@@ -446,15 +455,16 @@ async function computeScheduleSensitivity({ teamAbbr = "DAL", year, chaos = 0, i
     lowChaos,
     highChaos,
     deltaPlayoffProbability: round(lowChaos.averagePlayoffProbability - highChaos.averagePlayoffProbability, 4),
-    deltaAverageWins: round(lowChaos.averageWins - highChaos.averageWins, 4)
+    deltaAverageWins: round(lowChaos.averageWins - highChaos.averageWins, 4),
   };
 }
 
 module.exports = {
   buildSeasonPaths,
   computeMustWinGames,
+  computeRootingGuide,
   computeScheduleSensitivity,
-  estimateGameWinProbability,
   projectPlayoffProbability,
-  simulateSeasonOutcome
+  simulateSeasonOutcome,
+  _internals: { applyChaos, modelGameProb, mostLikelyPaths },
 };

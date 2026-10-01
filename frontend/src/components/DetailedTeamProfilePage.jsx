@@ -103,6 +103,13 @@ function DetailedTeamProfilePage({ year = new Date().getFullYear(), selectedTeam
 
   const upcoming = useMemo(() => schedule.filter(g => !g.completed).slice(0, 5), [schedule]);
   const topMustWin = useMemo(() => mustWin.slice(0, 3), [mustWin]);
+  // The league simulation's odds; the win-total estimate if it's unavailable.
+  const playoffOdds = paths?.leaguePlayoffProbability ?? paths?.baseline?.averagePlayoffProbability ?? null;
+  // Projected final win totals, low to high, as a sparkline.
+  const winSpread = useMemo(() => {
+    const dist = paths?.baseline?.winDistribution || {};
+    return Object.keys(dist).map(Number).sort((a, b) => a - b).map((w) => dist[w]);
+  }, [paths]);
   const pathRows = useMemo(() => (paths?.paths || []).slice(0, 5), [paths]);
 
   if (loading) {
@@ -129,12 +136,15 @@ function DetailedTeamProfilePage({ year = new Date().getFullYear(), selectedTeam
         <div className="metric-tile">
           <div className="metric-value">{tsi ? tsi.tsi : "—"}</div>
           <div className="metric-label">Team Strength Index</div>
-          {tsi && <Sparkline data={[10.2, 11.5, 11.1, 12.8, 13.5, 13.0, 14.1]} color="var(--accent)" />}
+          {tsi && <div className="metric-sub">Season stats summary · not used in the forecast</div>}
         </div>
         <div className="metric-tile">
-          <div className="metric-value">{paths?.paths?.[0] ? `${(paths.paths[0].probability * 100).toFixed(1)}%` : "—"}</div>
-          <div className="metric-label">Path Confidence</div>
-          {paths?.paths?.[0] && <Sparkline data={[45, 48, 52, 50, 58, 65, 71]} color="var(--accent-success)" />}
+          <div className="metric-value">{playoffOdds != null ? `${(playoffOdds * 100).toFixed(1)}%` : "—"}</div>
+          <div className="metric-label">Playoff Odds</div>
+          {paths?.baseline && (
+            <div className="metric-sub">{paths.baseline.averageWins.toFixed(1)} projected wins</div>
+          )}
+          {winSpread.length >= 3 && <Sparkline data={winSpread} color="var(--accent-success)" />}
         </div>
       </div>
 

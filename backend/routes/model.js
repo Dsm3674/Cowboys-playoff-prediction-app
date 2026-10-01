@@ -23,6 +23,7 @@ const {
   _invalidateSimulationCache,
 } = require("../services/seasonSimulator");
 const { runBacktest, DEFAULT_CHECKPOINTS } = require("../services/backtest");
+const { computeRootingGuide } = require("../seasonPath");
 const { getNFLSeasonYear } = require("../services/espn");
 const {
   getFutures,
@@ -94,6 +95,21 @@ router.get("/season-simulation", async (req, res) => {
         .map(publicTeam)
         .sort((a, b) => b.playoffPct - a.playoffPct || b.avgWins - a.avgWins),
     });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/* ── Rooting guide ─────────────────────────────────────────────────────── */
+
+// Other teams' games ranked by how much their result moves one team's
+// playoff odds, measured in the league simulation.
+router.get("/rooting-guide", async (req, res) => {
+  try {
+    const year = Number(req.query.year) || undefined;
+    const team = String(req.query.team || "DAL").toUpperCase();
+    const limit = Number(req.query.limit) || 10;
+    res.json({ success: true, ...(await computeRootingGuide({ teamAbbr: team, year, limit })) });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

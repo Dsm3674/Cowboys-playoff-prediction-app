@@ -31,14 +31,15 @@ describe("Analytics matchup response", () => {
     expect(response.matchup).toEqual({
       homeWinProbability: response.homeWinProbability,
       awayWinProbability: response.awayWinProbability,
-      expectedMargin: response.expectedMargin
+      expectedMargin: response.expectedMargin,
+      source: "strength-blend"
     });
     expect(response.teams).toHaveLength(2);
     expect(response.teams[0].averagePointDiff).toBe(3);
     expect(response.teams[0].playoffProbability).toEqual(expect.any(Number));
   });
 
-  test("converts internal strength ratings into realistic point margins", () => {
+  test("uses the Elo game forecast when both teams are rated", () => {
     const underdog = team("KC", 45, -12, 2, 15);
     const favorite = team("LAR", 90, 18, 15, 2);
     underdog._elo = 1200;
@@ -46,9 +47,18 @@ describe("Analytics matchup response", () => {
 
     const response = analyticsRouter.buildMatchupResponse(underdog, favorite, 2025);
 
-    expect(response.expectedMargin).toBe(-21);
-    expect(response.homeWinProbability).toBe(10);
-    expect(response.awayWinProbability).toBe(90);
+    expect(response.expectedMargin).toBe(-21); // capped
+    expect(response.homeWinProbability).toBeLessThan(5);
+    expect(response.homeWinProbability + response.awayWinProbability).toBeCloseTo(100, 5);
+    expect(response.matchup.source).toBe("elo");
+
+    const even = analyticsRouter.buildMatchupResponse(
+      { ...team("DAL", 60, 3, 10, 7), _elo: 1500 },
+      { ...team("PHI", 60, 3, 10, 7), _elo: 1500 },
+      2025
+    );
+    expect(even.expectedMargin).toBe(1.2); // 30 Elo of home field
+    expect(even.homeWinProbability).toBeCloseTo(54.3, 1);
   });
 
   test("includes a modest home-field edge for evenly matched teams", () => {

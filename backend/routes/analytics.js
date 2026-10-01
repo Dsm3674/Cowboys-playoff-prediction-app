@@ -344,7 +344,26 @@ function buildPlayoffPulse(rows, simByCode = {}) {
     .sort((a, b) => b.playoffProbability - a.playoffProbability || b.tsi - a.tsi);
 }
 
+/**
+ * Left team hosts. With Elo on both sides this is the model's own game
+ * forecast (well calibrated in the 2012-25 backtest), and the margin uses the
+ * 25-Elo-per-point convention. The strength-blend curve below is only the
+ * fallback when ratings are unavailable.
+ */
 function simulateMatchup(left, right) {
+  if (Number.isFinite(left._elo) && Number.isFinite(right._elo)) {
+    const diff = left._elo + ELO_HOME_FIELD - right._elo;
+    const expectedMargin = Number(Math.max(-21, Math.min(21, diff / 25)).toFixed(1));
+    const p = Math.max(0.02, Math.min(0.98, eloWinProb(left._elo, right._elo, ELO_HOME_FIELD)));
+    const homeWinProbability = Number((p * 100).toFixed(1));
+    return {
+      homeWinProbability,
+      awayWinProbability: Number((100 - homeWinProbability).toFixed(1)),
+      expectedMargin,
+      source: "elo"
+    };
+  }
+
   const leftScore = teamStrength(left);
   const rightScore = teamStrength(right);
   // teamStrength is an internal rating scale, not a football point spread.
@@ -359,7 +378,8 @@ function simulateMatchup(left, right) {
   return {
     homeWinProbability: winProbability,
     awayWinProbability: Number((100 - winProbability).toFixed(1)),
-    expectedMargin
+    expectedMargin,
+    source: "strength-blend"
   };
 }
 

@@ -76,7 +76,7 @@ router.get("/:team/paths", async (req, res) => {
     const chaos = Math.min(1, Math.max(0, Number(req.query.chaos) || 0));
     const iterations = Number(req.query.iterations) || undefined;
 
-    const data = await buildSeasonPaths({ teamAbbr: team, year, chaos, iterations });
+    const data = await buildSeasonPaths({ teamAbbr: team, year, chaos, iterations, k });
     res.json({ success: true, ...data });
   } catch (err) {
     console.error("Error building team season paths:", err);

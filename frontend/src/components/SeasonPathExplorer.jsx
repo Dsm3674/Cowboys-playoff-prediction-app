@@ -27,7 +27,14 @@ function SeasonPathExplorer({ year, team = "DAL" }) {
     <div className="content-area">
       <div className="card">
         <h2 style={{marginTop:0}}>{team} Season Path Explorer</h2>
-        <p>Visualizing the {paths.length} most likely remaining season outcomes for {team} based on current win probabilities.</p>
+        <p>
+          The {paths.length} most likely ways {team}'s remaining games go, from the model's
+          game-by-game odds (betting line where one exists, otherwise Elo). Playoff odds use
+          {team}'s win-total curve from the league simulation.
+        </p>
+        {paths.length === 0 && remainingGames.length > 0 && (
+          <p className="text-muted">Too many games left to list every path; check back later in the season.</p>
+        )}
 
         <div style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
           <table style={{ minWidth: '600px', fontSize: '0.85rem' }}>
@@ -35,10 +42,12 @@ function SeasonPathExplorer({ year, team = "DAL" }) {
               <tr>
                 <th>Probability</th>
                 <th>Final Wins</th>
+                <th>Playoff Odds</th>
                 {remainingGames.map(g => (
                   <th key={g.idx} style={{ textAlign: 'center' }}>
                     <div style={{fontSize:'0.7rem', color:'#aaa'}}>{g.date ? g.date.slice(5,10) : ''}</div>
-                    vs {g.opp}
+                    {g.isHome ? "vs" : "@"} {g.opp}
+                    <div style={{fontSize:'0.7rem', color:'#aaa'}}>{Math.round(g.pWin * 100)}%</div>
                   </th>
                 ))}
               </tr>
@@ -50,7 +59,10 @@ function SeasonPathExplorer({ year, team = "DAL" }) {
                     {(path.probability * 100).toFixed(1)}%
                   </td>
                   <td style={{ fontWeight: 'bold' }}>
-                    +{path.winsAdded}
+                    {path.finalWins ?? `+${path.winsAdded}`}
+                  </td>
+                  <td>
+                    {path.playoffProbability != null ? `${(path.playoffProbability * 100).toFixed(0)}%` : "—"}
                   </td>
                   {(path.outcomes || []).map((o, idx) => (
                     <td key={idx} style={{ textAlign: 'center' }}>

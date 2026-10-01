@@ -286,7 +286,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
               <thead>
                 <tr>
                   <th>#</th><th>Team</th><th>Conf</th><th>Record</th>
-                  <th>Elo</th><th>News Δ</th><th>Injury Δ</th><th>TSI Δ</th><th>Power</th>
+                  <th>Elo</th><th>News Δ</th><th>Injury Δ</th><th>TSI</th><th>Power</th>
                 </tr>
               </thead>
               <tbody>
@@ -316,7 +316,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
                     >
                       {t.injuryOverridden ? "manual" : t.injuryDelta || 0}
                     </td>
-                    <td>{t.tsiDelta > 0 ? "+" : ""}{t.tsiDelta}</td>
+                    <td title="Season stats summary; not part of Power (it hurt the backtest)">{t.tsi ?? "—"}</td>
                     <td className="rlab-table__power">{t.power}</td>
                   </tr>
                 ))}

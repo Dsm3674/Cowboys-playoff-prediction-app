@@ -90,6 +90,9 @@ function buildLeague(ratings, games) {
       t: Date.parse(g.date) || 0,
       neutral: g.neutralSite === true,
       market: Number.isFinite(g.marketHomeProb) && !g.completed ? g.marketHomeProb : NaN,
+      id: g.id ?? null,
+      week: g.week ?? null,
+      date: g.date ?? null,
     }))
     .sort((x, y) => x.t - y.t);
 
@@ -136,6 +139,13 @@ function buildLeague(ratings, games) {
   return {
     teams, N, index, conf, div, basePower, G, H, A, sameDiv, sameConf, homeEdge, market,
     teamGames, base, remaining: Int32Array.from(remaining),
+    remainingMeta: remaining.map((gi) => ({
+      id: schedule[gi].id,
+      week: schedule[gi].week,
+      date: schedule[gi].date,
+      home: teams[schedule[gi].h].code,
+      away: teams[schedule[gi].a].code,
+    })),
     marketGames: remaining.filter((gi) => !Number.isNaN(schedule[gi].market)).length,
   };
 }
@@ -360,6 +370,13 @@ function runSimulation({ ratings, games, iterations, seed = DEFAULT_SEED, hot = 
     winsHist: {}, playoffAtWins: {},
   }));
 
+  // Leverage: for each remaining game and each result, how often every team
+  // made the playoffs. Indexed ((r * 2 + homeWon) * N + team).
+  const R = remaining.length;
+  const homeWonCount = new Float64Array(R);
+  const playoffGivenResult = new Float64Array(R * 2 * N);
+  const inPlayoffs = new Uint8Array(N);
+
   // One working copy, reset from the base standings each iteration.
   const s = cloneState(league.base);
   const stateKeys = Object.keys(s);
@@ -428,6 +445,15 @@ function runSimulation({ ratings, games, iterations, seed = DEFAULT_SEED, hot = 
     }
     acc[sbWinner.idx].winSB++;
 
+    inPlayoffs.fill(0);
+    for (const c of conferences) for (const t of byConf[c].seeds) inPlayoffs[t.idx] = 1;
+    for (let r = 0; r < R; r++) {
+      const won = s.res[remaining[r]] === 1 ? 1 : 0;
+      homeWonCount[r] += won;
+      const base = (r * 2 + won) * N;
+      for (let i = 0; i < N; i++) playoffGivenResult[base + i] += inPlayoffs[i];
+    }
+
     if (onIteration) onIteration({ byConf, sbWinner, sbLoser, conferences });
   }
 
@@ -465,7 +491,7 @@ function runSimulation({ ratings, games, iterations, seed = DEFAULT_SEED, hot = 
     };
   });
 
-  return {
+  const out = {
     iterations: iters,
     seed,
     hot,
@@ -474,6 +500,38 @@ function runSimulation({ ratings, games, iterations, seed = DEFAULT_SEED, hot = 
     gamesWithMarketLines: league.marketGames,
     teams,
   };
+  // Raw leverage counts ride along without being serialized into responses.
+  Object.defineProperty(out, "_leverage", {
+    enumerable: false,
+    value: { meta: league.remainingMeta, homeWonCount, playoffGivenResult, N, iters, index: league.index },
+  });
+  return out;
+}
+
+/**
+ * How each remaining game moves one team's playoff odds, measured inside the
+ * simulation (division races and tiebreakers included). For every game:
+ * P(team makes playoffs | home wins) and P(... | away wins). Games with too
+ * few simulated outcomes on one side report null for that side.
+ */
+function gameLeverage(sim, teamCode, { minSamples = 30 } = {}) {
+  const lev = sim?._leverage;
+  if (!lev) return [];
+  const t = lev.index.get(String(teamCode || "").toUpperCase());
+  if (t === undefined) return [];
+  return lev.meta.map((m, r) => {
+    const homeWins = lev.homeWonCount[r];
+    const awayWins = lev.iters - homeWins;
+    const ifHome = lev.playoffGivenResult[(r * 2 + 1) * lev.N + t];
+    const ifAway = lev.playoffGivenResult[(r * 2) * lev.N + t];
+    const pct = (k, n) => (n >= minSamples ? Number(((k / n) * 100).toFixed(2)) : null);
+    return {
+      ...m,
+      homeWinPct: Number(((homeWins / lev.iters) * 100).toFixed(2)),
+      playoffPctIfHomeWins: pct(ifHome, homeWins),
+      playoffPctIfAwayWins: pct(ifAway, awayWins),
+    };
+  });
 }
 
 /**
@@ -557,7 +615,7 @@ async function simulateSeason({
   const games = gamesOverride || (ratingsOverride ? [] : (await buildLeagueGames(ratings.year)).games);
   const sim = runSimulation({ ratings: ratings.ratings, games, iterations, seed, hot, onIteration });
 
-  return {
+  const out = {
     year: ratings.year,
     engine: `League season sim · ${hot ? "hot Elo" : "fixed Elo"} · NFL tiebreakers · NFL reseeding`,
     ratingsUpdatedAt: ratings.updatedAt,
@@ -565,6 +623,8 @@ async function simulateSeason({
     ...sim,
     projectedSeeds: projectSeeds(sim.teams),
   };
+  Object.defineProperty(out, "_leverage", { enumerable: false, value: sim._leverage });
+  return out;
 }
 
 /* Promise cache: the pages that read playoff odds share one run per window. */
@@ -604,6 +664,7 @@ module.exports = {
   getSimulationByTeam,
   projectSeeds,
   playoffCurve,
+  gameLeverage,
   publicTeam,
   clampIterations,
   _invalidateSimulationCache,

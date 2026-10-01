@@ -339,12 +339,14 @@ async function computePreseasonPrior(year) {
 
 /**
  * Full power-rating table: results-based Elo (seeded from a regressed
- * prior-season carryover), news and injury adjustments, and a TSI overlay.
+ * prior-season carryover) plus news and injury adjustments.
  *
- * There is deliberately no point-differential overlay. Elo's margin-of-victory
- * multiplier already uses scoring margin, and backtesting 2012-25 showed an
- * extra overlay (±14 pts/game → ±42 Elo) made game forecasts worse at every
- * weight tried: it counts the same evidence twice.
+ * There are deliberately no overlays from season stats. Elo's margin-of-
+ * victory multiplier already uses scoring margin, and backtesting 2012-25
+ * showed a point-differential overlay (±42 Elo) and the TSI overlay (±30 Elo)
+ * both made game forecasts worse at the weights used: they count the same
+ * points and results twice. TSI is still computed and reported (`tsi`,
+ * `tsiDelta` shows what it would have added) but is not part of `power`.
  */
 async function computePowerRatings({ year } = {}) {
   const resolvedYear = year || getNFLSeasonYear();
@@ -379,7 +381,8 @@ async function computePowerRatings({ year } = {}) {
     const injury = resolveInjuryDelta(team.code, injuryReport, adjustments, lastCompletedWeek, remainingGames);
     const adjustedElo = baseElo + newsDelta + injury.delta;
 
-    // TSI overlay: 50 is league-neutral; ±25 TSI maps to ±30 Elo.
+    // What a TSI overlay would add (50 neutral, ±25 TSI → ±30 Elo). Reported
+    // for transparency only; the backtest showed it hurts, so power omits it.
     const tsiValue =
       tsiResults[i].status === "fulfilled" ? Number(tsiResults[i].value?.tsi) : NaN;
     const tsiDelta = Number.isFinite(tsiValue)
@@ -402,7 +405,7 @@ async function computePowerRatings({ year } = {}) {
       adjustedElo: Number(adjustedElo.toFixed(1)),
       tsi: Number.isFinite(tsiValue) ? Number(tsiValue.toFixed(1)) : null,
       tsiDelta: Number(tsiDelta.toFixed(1)),
-      power: Number((adjustedElo + tsiDelta).toFixed(1)),
+      power: Number(adjustedElo.toFixed(1)),
       adjustments: adjustments.filter((a) => a.team === team.code),
     };
   });
@@ -412,7 +415,7 @@ async function computePowerRatings({ year } = {}) {
 
   return {
     year: resolvedYear,
-    system: "Elo v3 · K=20 · MOV-weighted · HFA +30 · ⅓-regressed carryover · TSI overlay · ESPN injury deltas",
+    system: "Elo v3 · K=20 · MOV-weighted · HFA +30 · ⅓-regressed carryover · market prior · ESPN injury deltas",
     priorSource,
     priorMarketWeight: priorSource === "carryover+market" ? MARKET_PRIOR_WEIGHT : 0,
     lastCompletedWeek,

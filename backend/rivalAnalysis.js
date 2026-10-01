@@ -3,7 +3,7 @@
 const { computeTSI } = require("./tsi");
 const { getNFLTeamCatalog, getNFLTeamMetadata } = require("./services/espn");
 const { getEloSnapshot, blendWithElo, eloWinProb } = require("./services/ratingsEngine");
-const { getSimulationByTeam } = require("./services/seasonSimulator");
+const { getSeasonSimulation, gameLeverage } = require("./services/seasonSimulator");
 
 function normalizeTeamCode(code) {
   return String(code || "DAL").trim().toUpperCase();
@@ -349,6 +349,29 @@ function buildSummary(subject, rivalImpacts, context) {
   };
 }
 
+/**
+ * Replace the heuristic playoff impact with the measured one: across the
+ * rival's remaining games, how far each result moves the subject's playoff
+ * odds in the league simulation (summed swing, in points).
+ */
+function measureWithSimulation(impact, leverage, baseline) {
+  const games = leverage.filter(
+    (g) => (g.home === impact.team || g.away === impact.team) &&
+      g.playoffPctIfHomeWins != null && g.playoffPctIfAwayWins != null
+  );
+  if (!games.length) return { ...impact, impactSource: "heuristic" };
+  const swing = games.reduce((sum, g) => sum + Math.abs(g.playoffPctIfHomeWins - g.playoffPctIfAwayWins), 0);
+  const measured = round(swing, 2);
+  return {
+    ...impact,
+    playoffImpactPercentage: measured,
+    bestCaseScenario: round(clamp(baseline + measured, 0, 100), 1),
+    worstCaseScenario: round(clamp(baseline - measured, 0, 100), 1),
+    remainingGamesMeasured: games.length,
+    impactSource: "league-simulation",
+  };
+}
+
 async function fetchTeamData(teamConfig, year) {
   const result = await computeTSI({
     teamAbbr: teamConfig.code,
@@ -408,10 +431,12 @@ async function computeRivalImpact(options = {}) {
   }
 
   // Fold the Elo engine into rival threat scoring.
-  const [eloSnap, simByCode] = await Promise.all([
+  const [eloSnap, sim] = await Promise.all([
     getEloSnapshot({ year }),
-    getSimulationByTeam({ year }),
+    getSeasonSimulation({ year }).catch(() => null),
   ]);
+  const simByCode = sim ? Object.fromEntries(sim.teams.map((t) => [t.code, t])) : {};
+  const leverage = sim ? gameLeverage(sim, normalizedSubject.code) : [];
   for (const team of [normalizedSubject, ...rivals]) {
     const power = eloSnap.byTeam[team.code]?.power;
     team.elo = eloSnap.available && Number.isFinite(power) ? power : null;
@@ -421,10 +446,14 @@ async function computeRivalImpact(options = {}) {
   const subjectSnapshot = buildTeamSnapshot(normalizedSubject, simByCode[normalizedSubject.code]);
 
   const rivalImpacts = rivals
-    .map((rival) => calculateRivalImpact(
-      rival,
-      { ...normalizedSubject, baselinePlayoffProbability: subjectSnapshot.baselinePlayoffProbability },
-      context
+    .map((rival) => measureWithSimulation(
+      calculateRivalImpact(
+        rival,
+        { ...normalizedSubject, baselinePlayoffProbability: subjectSnapshot.baselinePlayoffProbability },
+        context
+      ),
+      leverage,
+      subjectSnapshot.baselinePlayoffProbability
     ))
     .sort(compareThreats);
 
