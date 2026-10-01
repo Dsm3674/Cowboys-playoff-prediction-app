@@ -19,7 +19,17 @@ import React from "react";
  * legacy shell pokes at) without blowing up.
  */
 
-export const SEASONS = [2027, 2026, 2025, 2024];
+/**
+ * The NFL season in progress, named for the year it kicks off. January and
+ * February still belong to the season that started the previous fall; the
+ * backend's getNFLSeasonYear() uses the same rule. A hard-coded 2027 here
+ * once made every page ask ESPN for a season with no games.
+ */
+export function currentNFLSeason(now = new Date()) {
+  return now.getMonth() < 2 ? now.getFullYear() - 1 : now.getFullYear();
+}
+
+export const SEASONS = [0, 1, 2, 3].map((back) => currentNFLSeason() - back);
 export const DEFAULT_SEASON = SEASONS[0];
 export const DEFAULT_TEAM = "DAL";
 

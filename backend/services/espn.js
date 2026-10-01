@@ -56,6 +56,12 @@ function normalizeTeamAbbr(teamAbbr, fallback = "DAL") {
   return NFL_TEAM_ALIASES[resolved] || resolved;
 }
 
+/** The catalog code for `raw` (aliases resolved), `fallback` when empty, or null if unknown. */
+function resolveTeamCode(raw, fallback = null) {
+  const code = normalizeTeamAbbr(raw, fallback || "");
+  return NFL_TEAM_CATALOG.some((t) => t.abbreviation === code) ? code : null;
+}
+
 function getNFLCatalogItem(teamAbbr) {
   const abbr = normalizeTeamAbbr(teamAbbr);
   return NFL_TEAM_CATALOG.find((item) => item.abbreviation === abbr) || null;
@@ -270,8 +276,11 @@ function fetchCowboysGamesSeasonToDate(year = getNFLSeasonYear()) {
   return fetchTeamGamesSeasonToDate("DAL", year);
 }
 
-function computeRecordFromGames(games, teamAbbr = "DAL") {
-  const abbr = normalizeTeamAbbr(teamAbbr);
+function computeRecordFromGames(games, teamAbbr) {
+  // No default team: a missing argument used to mean "DAL", which silently
+  // scored other teams' home wins as losses.
+  if (!teamAbbr) throw new Error("computeRecordFromGames needs a team code.");
+  const abbr = normalizeTeamAbbr(teamAbbr, "");
 
   let wins = 0;
   let losses = 0;
@@ -373,6 +382,7 @@ module.exports = {
   getNFLTeamCatalog: () => NFL_TEAM_CATALOG,
   getNFLTeamMetadata: getNFLCatalogItem,
   normalizeTeamAbbr,
+  resolveTeamCode,
   fetchScoreboardLines,
   parseEspnScheduleEvents,
   _resetScheduleCache,

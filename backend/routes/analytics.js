@@ -2,6 +2,7 @@
 
 const express = require("express");
 const router = express.Router();
+const { teamOr400 } = require("../middleware/teamParam");
 const cache = require("../cache");
 
 const { computeWinProbability } = require("../winprob");
@@ -14,10 +15,10 @@ const {
   fetchTeamGamesSeasonToDate,
   computeRecordFromGames,
   computeTeamAveragesFromGames,
-  normalizeTeamAbbr
+  getNFLSeasonYear
 } = require("../services/espn");
-const { getEloSnapshot, eloWinProb, ELO_BASE, ELO_HOME_FIELD } = require("../services/ratingsEngine");
-const { getSimulationByTeam, getSeasonSimulation } = require("../services/seasonSimulator");
+const { getEloSnapshot, eloWinProb, ELO_BASE, ELO_HOME_FIELD, buildLeagueGames } = require("../services/ratingsEngine");
+const { getSimulationByTeam, getSeasonSimulation, currentStandings } = require("../services/seasonSimulator");
 
 /* Stamp each row with the Elo engine's power number so downstream strength
    formulas can fold it in. No-op when Elo has nothing informative to say. */
@@ -59,13 +60,20 @@ function sortStandings(a, b) {
   return (b.tsi || 0) - (a.tsi || 0);
 }
 
-function buildDivisionStandings(rows) {
+/* Division order: NFL tiebreakers when `order` (code → { divisionRank, seed })
+   is available, the win%/point-differential sort otherwise. */
+function buildDivisionStandings(rows, order = {}) {
+  const byRank = (a, b) =>
+    order[a.code] && order[b.code]
+      ? order[a.code].divisionRank - order[b.code].divisionRank
+      : sortStandings(a, b);
   return rows
-    .sort(sortStandings)
+    .sort(byRank)
     .map((team) => ({
       code: team.code,
       name: team.name,
       record: team.record,
+      seed: order[team.code]?.seed ?? null,
       tsi: team.tsi,
       avgFor: Number(team.averages.avgFor.toFixed(1)),
       avgAgainst: Number(team.averages.avgAgainst.toFixed(1)),
@@ -82,11 +90,17 @@ function buildDivisionPower(rows) {
       teams: [],
       totalTSI: 0,
       totalWinPct: 0,
-      totalPointDiff: 0
+      totalPointDiff: 0,
+      totalPower: 0,
+      rated: 0
     };
 
     acc[key].teams.push(team);
     acc[key].totalTSI += team.tsi || 0;
+    if (Number.isFinite(team._elo)) {
+      acc[key].totalPower += team._elo;
+      acc[key].rated += 1;
+    }
     acc[key].totalWinPct += team.record.winPct || 0;
     acc[key].totalPointDiff += team.averages.pointDiffPerGame || 0;
     return acc;
@@ -102,6 +116,8 @@ function buildDivisionPower(rows) {
       averageTSI: Number((division.totalTSI / count).toFixed(1)),
       averageWinPct: Number((division.totalWinPct / count).toFixed(3)),
       averagePointDiff: Number((division.totalPointDiff / count).toFixed(1)),
+      // Elo power: the model's own strength measure (TSI is a stats summary).
+      averagePower: division.rated ? Number((division.totalPower / division.rated).toFixed(1)) : null,
       leader: {
         code: leader.code,
         name: leader.name,
@@ -113,6 +129,8 @@ function buildDivisionPower(rows) {
         name: team.name,
         record: team.record,
         tsi: team.tsi,
+        power: Number.isFinite(team._elo) ? Number(team._elo.toFixed(1)) : null,
+        components: team.components || {},
         pointDiffPerGame: Number(team.averages.pointDiffPerGame.toFixed(1))
       }))
     };
@@ -238,7 +256,8 @@ router.post("/winprob", (req, res) => {
 
 router.get("/tsi", async (req, res) => {
   try {
-    const team = (req.query.team || "DAL").toUpperCase();
+    const team = teamOr400(res, req.query.team);
+    if (!team) return;
     const year = Number(req.query.year) || undefined;
     const out = await computeTSI({ teamAbbr: team, year });
     res.json({ success: true, ...out });
@@ -249,7 +268,8 @@ router.get("/tsi", async (req, res) => {
 
 router.get("/paths", async (req, res) => {
   try {
-    const team = (req.query.team || "DAL").toUpperCase();
+    const team = teamOr400(res, req.query.team);
+    if (!team) return;
     const year = Number(req.query.year) || undefined;
     const k = Math.min(60, Math.max(5, Number(req.query.k) || 25));
     const chaos = Math.min(1, Math.max(0, Number(req.query.chaos) || 0));
@@ -263,7 +283,8 @@ router.get("/paths", async (req, res) => {
 
 router.get("/mustwin", async (req, res) => {
   try {
-    const team = (req.query.team || "DAL").toUpperCase();
+    const team = teamOr400(res, req.query.team);
+    if (!team) return;
     const year = Number(req.query.year) || undefined;
     const chaos = Math.min(1, Math.max(0, Number(req.query.chaos) || 0));
 
@@ -282,16 +303,28 @@ router.get("/standings", async (req, res) => {
       teams.map((team) => fetchTeamSummary(team.code, year))
     );
 
+    // Tiebreak order from the full league schedule; win% sort if unavailable.
+    let order = {};
+    try {
+      const { games } = await buildLeagueGames(year || getNFLSeasonYear());
+      order = currentStandings(
+        rows.map((r) => ({ code: r.code, conference: r.conference, division: r.division, power: 1500 })),
+        games
+      );
+    } catch (_err) {
+      order = {};
+    }
+
     const grouped = buildStandingsByConference(rows);
     const result = Object.entries(grouped).reduce((acc, [conference, divisions]) => {
       acc[conference] = Object.entries(divisions).reduce((divisionAcc, [division, teamsInDivision]) => {
-        divisionAcc[division] = buildDivisionStandings(teamsInDivision);
+        divisionAcc[division] = buildDivisionStandings(teamsInDivision, order);
         return divisionAcc;
       }, {});
       return acc;
     }, {});
 
-    res.json({ success: true, year: year || new Date().getFullYear(), standings: result });
+    res.json({ success: true, year: year || getNFLSeasonYear(), standings: result });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -305,10 +338,14 @@ router.get("/divisions", async (req, res) => {
       teams.map((team) => fetchTeamSummary(team.code, year))
     );
 
+    await attachElo(rows, year);
     const divisions = buildDivisionPower(rows)
-      .sort((a, b) => b.averageTSI - a.averageTSI || b.averageWinPct - a.averageWinPct);
+      .sort((a, b) =>
+        (b.averagePower ?? 0) - (a.averagePower ?? 0) ||
+        b.averageTSI - a.averageTSI ||
+        b.averageWinPct - a.averageWinPct);
 
-    res.json({ success: true, year: year || new Date().getFullYear(), divisions });
+    res.json({ success: true, year: year || getNFLSeasonYear(), divisions });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -394,7 +431,7 @@ function buildMatchupResponse(left, right, year, simByCode = {}) {
 
   return {
     success: true,
-    year: year || new Date().getFullYear(),
+    year: year || getNFLSeasonYear(),
     teams,
     matchup,
     // Keep the result available at the top level for existing clients.
@@ -420,15 +457,21 @@ function buildScheduleStrength(rows) {
         : 50;
 
       const remainingCount = remainingGames.length;
-      const strengthScore = Number(
-        Math.max(
-          0,
-          Math.min(
-            100,
-            60 + (averageOpponentTsi - 50) * 0.6 + remainingCount * 2 - team.averages.pointDiffPerGame * 0.4
-          )
-        ).toFixed(1)
-      );
+      // Difficulty = how often an average (1500 Elo) team would LOSE these
+      // exact games, at these venues: 50 is an average slate, higher is
+      // harder. The old score rose with games left and fell with the team's
+      // own point differential, neither of which is about the opponents.
+      const lossShares = remainingGames.map((game) => {
+        const home = String(game.homeTeamAbbr || "").toUpperCase();
+        const opponent = home === team.code ? String(game.awayTeamAbbr || "").toUpperCase() : home;
+        const oppElo = teamIndex.get(opponent)?._elo;
+        if (!Number.isFinite(oppElo)) return null;
+        const hfa = game.neutralSite ? 0 : home === team.code ? ELO_HOME_FIELD : -ELO_HOME_FIELD;
+        return 1 - eloWinProb(ELO_BASE, oppElo, hfa);
+      }).filter((x) => x != null);
+      const strengthScore = lossShares.length
+        ? Number(((lossShares.reduce((a, b) => a + b, 0) / lossShares.length) * 100).toFixed(1))
+        : Number(Math.max(0, Math.min(100, 50 + (averageOpponentTsi - 50) * 0.6)).toFixed(1));
 
       return {
         code: team.code,
@@ -460,7 +503,7 @@ router.get("/forecast", async (req, res) => {
 
     const [simByCode] = await Promise.all([getSimulationByTeam({ year }), attachInjuries(rows, year)]);
     const forecast = buildForecast(rows, simByCode);
-    res.json({ success: true, year: year || new Date().getFullYear(), forecast });
+    res.json({ success: true, year: year || getNFLSeasonYear(), forecast });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -474,8 +517,9 @@ router.get("/schedule-strength", async (req, res) => {
       teams.map((team) => fetchTeamSummary(team.code, year))
     );
 
+    await attachElo(rows, year);
     const scheduleStrength = buildScheduleStrength(rows);
-    res.json({ success: true, year: year || new Date().getFullYear(), scheduleStrength });
+    res.json({ success: true, year: year || getNFLSeasonYear(), scheduleStrength });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -491,7 +535,7 @@ router.get("/playoff", async (req, res) => {
 
     const [simByCode] = await Promise.all([getSimulationByTeam({ year }), attachInjuries(rows, year)]);
     const pulse = buildPlayoffPulse(rows, simByCode);
-    res.json({ success: true, year: year || new Date().getFullYear(), pulse });
+    res.json({ success: true, year: year || getNFLSeasonYear(), pulse });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -637,7 +681,7 @@ function buildPlayoffBracket(rows, year, projectedSeeds = null) {
   const afcProb = Math.round(matchupProbability(afc.champion, nfc.champion, 0) * 100);
 
   return {
-    year: year || new Date().getFullYear(),
+    year: year || getNFLSeasonYear(),
     superBowl: {
       afc: { seed: afc.champion._seed, abbr: afc.champion.code, name: afc.champion.name, prob: afcProb },
       nfc: { seed: nfc.champion._seed, abbr: nfc.champion.code, name: nfc.champion.name, prob: 100 - afcProb }
@@ -672,8 +716,10 @@ router.get("/bracket", async (req, res) => {
 
 router.get("/matchup", async (req, res) => {
   try {
-    const team1 = normalizeTeamAbbr(req.query.team1 || "DAL");
-    const team2 = normalizeTeamAbbr(req.query.team2 || "PHI");
+    const team1 = teamOr400(res, req.query.team1, "DAL");
+    if (!team1) return;
+    const team2 = teamOr400(res, req.query.team2, "PHI");
+    if (!team2) return;
     const year = Number(req.query.year) || undefined;
     const left = await fetchTeamSummary(team1, year);
     const right = await fetchTeamSummary(team2, year);
@@ -690,8 +736,10 @@ router.get("/matchup", async (req, res) => {
 
 router.get("/compare", async (req, res) => {
   try {
-    const team1 = normalizeTeamAbbr(req.query.team1 || "DAL");
-    const team2 = normalizeTeamAbbr(req.query.team2 || "PHI");
+    const team1 = teamOr400(res, req.query.team1, "DAL");
+    if (!team1) return;
+    const team2 = teamOr400(res, req.query.team2, "PHI");
+    if (!team2) return;
     const year = Number(req.query.year) || undefined;
 
     const left = await fetchTeamSummary(team1, year);
@@ -699,7 +747,7 @@ router.get("/compare", async (req, res) => {
     const headToHead = findHeadToHeadGames(team1, team2, left.games);
     const difference = summarizeComparison(left, right);
 
-    res.json({ success: true, year: year || new Date().getFullYear(), teams: [left, right], difference, headToHead });
+    res.json({ success: true, year: year || getNFLSeasonYear(), teams: [left, right], difference, headToHead });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -707,7 +755,8 @@ router.get("/compare", async (req, res) => {
 
 router.get("/rivalimpact", async (req, res) => {
   try {
-    const team = String(req.query.team || "DAL").toUpperCase();
+    const team = teamOr400(res, req.query.team);
+    if (!team) return;
     const year = Number(req.query.year) || undefined;
     const result = await computeRivalImpact({ teamAbbr: team, year });
 
@@ -800,5 +849,6 @@ router.buildMatchupResponse = buildMatchupResponse;
 router.buildForecast = buildForecast;
 router.buildPlayoffPulse = buildPlayoffPulse;
 router.buildPlayoffBracket = buildPlayoffBracket;
+router.buildDivisionStandings = buildDivisionStandings;
 
 module.exports = router;

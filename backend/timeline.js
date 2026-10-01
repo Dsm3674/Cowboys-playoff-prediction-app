@@ -1,4 +1,5 @@
 "use strict";
+const { getNFLSeasonYear } = require("./services/espn");
 
 const db = require("./databases");
 const espn = require("./services/espn");
@@ -32,7 +33,7 @@ function toNumber(value, fallback = 0) {
 function normalizeSeason(value) {
   const year = Number(value);
   if (Number.isInteger(year) && year >= 1900 && year <= 3000) return year;
-  return new Date().getFullYear();
+  return getNFLSeasonYear();
 }
 
 function toIsoDay(value) {

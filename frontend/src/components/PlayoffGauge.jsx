@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 
-function PlayoffGauge({ teamCode = "DAL", year = new Date().getFullYear() }) {
+function PlayoffGauge({ teamCode = "DAL", year = DEFAULT_SEASON }) {
   const [probability, setProbability] = useState(null);
   const [loading, setLoading] = useState(true);
   const canvasRef = useRef(null);

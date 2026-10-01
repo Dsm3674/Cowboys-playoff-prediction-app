@@ -1,4 +1,5 @@
 "use strict";
+const { getNFLSeasonYear } = require("../services/espn");
 
 const express = require("express");
 const router = express.Router();
@@ -9,7 +10,7 @@ const cache = require("../cache");
 function normalizeSeason(value) {
   const year = Number(value);
   if (Number.isInteger(year) && year >= 1900 && year <= 3000) return year;
-  return new Date().getFullYear();
+  return getNFLSeasonYear();
 }
 
 function normalizeLimit(value, fallback = 50, max = 500) {

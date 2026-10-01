@@ -18,7 +18,7 @@ import { api } from "../api";
 const FIGURES = [
   { value: "20", label: "Elo K-factor" },
   { value: "+30", label: "Home field" },
-  { value: "25k", label: "Simulations" },
+  { value: "10k", label: "Seasons per run" },
   { value: "32", label: "Teams rated" },
 ];
 
@@ -58,7 +58,9 @@ const SECTIONS = [
 
 const ENGINES = [
   { name: "Elo power ratings", detail: "Replayed from completed games, MOV-weighted" },
-  { name: "Playoff path simulator", detail: "25k Monte Carlo brackets, real reseeding" },
+  { name: "League season simulation", detail: "Every remaining game, NFL tiebreakers, 10k–100k seasons" },
+  { name: "Playoff path simulator", detail: "Conditional bracket odds, real reseeding" },
+  { name: "Backtest", detail: "Past seasons scored against Vegas closing lines" },
   { name: "Clutch index", detail: "Play-by-play scan of high-leverage snaps" },
   { name: "Performance map", detail: "Consistency against explosiveness by player" },
   { name: "Timeline", detail: "Cumulative season momentum by event" },
@@ -74,6 +76,11 @@ const SOURCES = [
     name: "The Odds API",
     detail: "Super Bowl futures, read from a stored book-consensus snapshot and refreshed "
       + "live when an API key is configured.",
+  },
+  {
+    name: "nflverse",
+    detail: "Every NFL game since 1999 with closing lines. The backtest and the model's "
+      + "settings (home field, which overlays to keep) are checked against it.",
   },
   {
     name: "Projected fallback",

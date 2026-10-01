@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { BASE_URL } from "../api";
 
 function EventsAdmin() {
@@ -8,7 +9,7 @@ function EventsAdmin() {
   const [eventType, setEventType] = useState("injury");
   const [eventDate, setEventDate] = useState(new Date().toISOString().split("T")[0]);
   const [impactScore, setImpactScore] = useState(5);
-  const [season, setSeason] = useState(new Date().getFullYear());
+  const [season, setSeason] = useState(DEFAULT_SEASON);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

@@ -34,7 +34,7 @@ import Timeline from "./components/Timeline";
 import Maps from "./components/Maps";
 import AboutPage from "./components/AboutPage";
 import WorkspaceBar from "./components/WorkspaceBar";
-import { WorkspaceProvider, useWorkspace } from "./workspace";
+import { WorkspaceProvider, useWorkspace, DEFAULT_SEASON } from "./workspace";
 import PlayoffBracket from "./components/PlayoffBracket";
 import UserProfileCard from "./components/UserProfileCard";
 import WarRoomPage from "./components/WarRoomPage";
@@ -282,7 +282,7 @@ function TabBar({ tabs, activeTab, onTabChange }) {
 
 /* ── Dashboard ──────────────────────────────────────────────── */
 
-function Dashboard({ year = new Date().getFullYear(), selectedTeam }) {
+function Dashboard({ year = DEFAULT_SEASON, selectedTeam }) {
   const teamInfo = NFL_TEAMS.find((t) => t.code === selectedTeam) || { name: selectedTeam };
 
   return (

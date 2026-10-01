@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 
-function LeagueInsightsPage({ year = new Date().getFullYear() }) {
+function LeagueInsightsPage({ year = DEFAULT_SEASON }) {
   const [standings, setStandings] = useState(null);
   const [divisionPower, setDivisionPower] = useState([]);
   const [forecast, setForecast] = useState([]);

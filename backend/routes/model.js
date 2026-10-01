@@ -2,6 +2,7 @@
 
 const express = require("express");
 const router = express.Router();
+const { teamOr400 } = require("../middleware/teamParam");
 
 const {
   getPowerRatings,
@@ -58,7 +59,8 @@ router.get("/power-ratings", async (req, res) => {
 router.get("/path-probabilities", async (req, res) => {
   try {
     const year = Number(req.query.year) || undefined;
-    const focusTeam = String(req.query.team || "DAL").toUpperCase();
+    const focusTeam = teamOr400(res, req.query.team);
+    if (!focusTeam) return;
     const iterations = Number(req.query.iterations) || undefined;
     const seed = Number(req.query.seed) || undefined;
 
@@ -79,7 +81,8 @@ router.get("/season-simulation", async (req, res) => {
     const year = Number(req.query.year) || undefined;
     const iterations = Number(req.query.iterations) || SEASON_DEFAULT_ITERATIONS;
     const seed = Number(req.query.seed) || undefined;
-    const focus = String(req.query.team || "DAL").toUpperCase();
+    const focus = teamOr400(res, req.query.team);
+    if (!focus) return;
 
     const custom = iterations !== SEASON_DEFAULT_ITERATIONS || seed !== undefined;
     const sim = custom
@@ -107,7 +110,8 @@ router.get("/season-simulation", async (req, res) => {
 router.get("/rooting-guide", async (req, res) => {
   try {
     const year = Number(req.query.year) || undefined;
-    const team = String(req.query.team || "DAL").toUpperCase();
+    const team = teamOr400(res, req.query.team);
+    if (!team) return;
     const limit = Number(req.query.limit) || 10;
     res.json({ success: true, ...(await computeRootingGuide({ teamAbbr: team, year, limit })) });
   } catch (e) {

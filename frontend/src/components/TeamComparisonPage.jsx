@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 
-function TeamComparisonPage({ year = new Date().getFullYear(), selectedTeam = "DAL" }) {
+function TeamComparisonPage({ year = DEFAULT_SEASON, selectedTeam = "DAL" }) {
   const [teams, setTeams] = useState([]);
   const [firstTeam, setFirstTeam] = useState(selectedTeam);
   const [secondTeam, setSecondTeam] = useState("PHI");

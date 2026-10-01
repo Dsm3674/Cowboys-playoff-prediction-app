@@ -385,3 +385,29 @@ describe("game lines and neutral sites", () => {
     expect(out.games.baselines.vegas.modelOnSameGames).toBe(out.games.brier);
   });
 });
+
+describe("standings as of today", () => {
+  const { currentStandings } = require("../services/seasonSimulator");
+  const analytics = require("../routes/analytics");
+
+  test("division order follows the tiebreakers and seeds appear once games are played", () => {
+    const { ratings, games } = syntheticLeague({ playedWeeks: 6 });
+    const order = currentStandings(ratings.ratings, games);
+    const seeds = Object.values(order).map((o) => o.seed).filter((x) => x != null).sort((a, b) => a - b);
+    expect(seeds).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7]);
+    for (const t of ratings.ratings) expect(order[t.code].divisionRank).toBeGreaterThanOrEqual(1);
+    const fresh = currentStandings(ratings.ratings, games.map((g) => ({ ...g, completed: false })));
+    expect(Object.values(fresh).every((o) => o.seed === null)).toBe(true);
+  });
+
+  test("standings rows are sorted by the supplied tiebreak order", () => {
+    const row = (code, winPct) => ({ code, name: code, record: { winPct }, tsi: 50,
+      averages: { avgFor: 20, avgAgainst: 20, pointDiffPerGame: 0 } });
+    // B has the better win% but A holds the tiebreak rank.
+    const out = analytics.buildDivisionStandings([row("B", 0.6), row("A", 0.4)], {
+      A: { divisionRank: 1, seed: 3 }, B: { divisionRank: 2, seed: null },
+    });
+    expect(out.map((r) => r.code)).toEqual(["A", "B"]);
+    expect(out[0].seed).toBe(3);
+  });
+});

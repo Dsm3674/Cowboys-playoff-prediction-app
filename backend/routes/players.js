@@ -1,3 +1,4 @@
+const { getNFLSeasonYear } = require("../services/espn");
 
 
 "use strict";
@@ -258,7 +259,7 @@ async function fetchRealCowboysDeepStats(year) {
 
 
 
-function normalizeSeason(value, fallback = new Date().getFullYear()) {
+function normalizeSeason(value, fallback = getNFLSeasonYear()) {
   const year = Number(value);
   return Number.isInteger(year) && year >= 1900 && year <= 3000 ? year : fallback;
 }

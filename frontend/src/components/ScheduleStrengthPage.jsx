@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 
-function ScheduleStrengthPage({ year = new Date().getFullYear() }) {
+function ScheduleStrengthPage({ year = DEFAULT_SEASON }) {
   const [scheduleStrength, setScheduleStrength] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -67,7 +68,7 @@ function ScheduleStrengthPage({ year = new Date().getFullYear() }) {
     <div>
       {hardest && (
         <div className="key-insight" style={{ marginBottom: "1.5rem" }}>
-          {hardest.code} faces the toughest remaining schedule with a strength score of {hardest.strengthScore}
+          {hardest.code} faces the toughest remaining schedule: an average team would lose {hardest.strengthScore}% of those games
         </div>
       )}
 

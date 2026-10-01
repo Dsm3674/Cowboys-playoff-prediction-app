@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 
-function MatchupSimulatorPage({ year = new Date().getFullYear(), selectedTeam = "DAL" }) {
+function MatchupSimulatorPage({ year = DEFAULT_SEASON, selectedTeam = "DAL" }) {
   const [teams, setTeams] = useState([]);
   const [team1, setTeam1] = useState(selectedTeam);
   const [team2, setTeam2] = useState("PHI");

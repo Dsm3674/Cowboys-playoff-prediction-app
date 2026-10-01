@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 
-function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DAL" }) {
+function DivisionPowerPage({ year = DEFAULT_SEASON, selectedTeam = "DAL" }) {
   const [divisions, setDivisions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -46,7 +47,9 @@ function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DA
       }))
     );
 
-    return rows.sort((a, b) => Number(b.tsi || 0) - Number(a.tsi || 0));
+    // Rank by Elo power, the model's strength measure; TSI only when unrated.
+    return rows.sort((a, b) =>
+      Number(b.power ?? 0) - Number(a.power ?? 0) || Number(b.tsi || 0) - Number(a.tsi || 0));
   }, [divisions]);
 
   const dallas =
@@ -230,7 +233,7 @@ function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DA
                     className="intel-metric-card__value"
                     style={{ fontSize: "2.1rem", lineHeight: 1.05 }}
                   >
-                    {team.code} — {formatNum(team.tsi)}
+                    {team.code} — {team.power != null ? Math.round(team.power) : formatNum(team.tsi)}
                   </div>
 
                   <div className="text-muted" style={{ marginTop: 6 }}>
@@ -254,6 +257,7 @@ function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DA
                 <tr>
                   <th>Team</th>
                   <th>Division</th>
+                  <th>Power</th>
                   <th>TSI</th>
                   <th>Win %</th>
                   <th>Diff</th>
@@ -267,6 +271,7 @@ function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DA
                     <tr key={`${team.division}-${team.code}`} className={isDallas ? "intel-row--active" : ""}>
                       <td>{team.code}</td>
                       <td>{team.division}</td>
+                      <td>{team.power != null ? Math.round(team.power) : "—"}</td>
                       <td>{formatNum(team.tsi)}</td>
                       <td>{(Number(team.record?.winPct || 0) * 100).toFixed(1)}%</td>
                       <td>{formatSigned(team.pointDiffPerGame)}</td>
@@ -298,7 +303,9 @@ function DivisionPowerPage({ year = new Date().getFullYear(), selectedTeam = "DA
               </div>
 
               <div className="intel-chip intel-chip--muted">
-                Avg TSI {formatNum(division.averageTSI)}
+                {division.averagePower != null
+                  ? `Avg power ${Math.round(division.averagePower)}`
+                  : `Avg TSI ${formatNum(division.averageTSI)}`}
               </div>
             </div>
 

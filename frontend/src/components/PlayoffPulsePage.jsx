@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 
-function PlayoffPulsePage({ year = new Date().getFullYear() }) {
+function PlayoffPulsePage({ year = DEFAULT_SEASON }) {
   const [pulse, setPulse] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

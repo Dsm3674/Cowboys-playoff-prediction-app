@@ -56,8 +56,9 @@ function LiveWinProbTool() {
             from score, field position, time pressure, and possession context.
           </p>
           <p className="intel-note">
-            This page is meant to feel like a live sideline intelligence tool, not
-            just a form.
+            Stern's (1994) Brownian-motion model: the final margin is treated as normal around
+            the current lead plus the value of the current possession, with spread shrinking as
+            the clock runs. Late-game numbers run slightly confident, so they stay within 1–99%.
           </p>
         </div>
 
@@ -132,7 +133,9 @@ function LiveWinProbTool() {
               </div>
 
               <div className="intel-form-group">
-                <label className="intel-label">Ball On</label>
+                <label className="intel-label" title="Yards from the offense's own goal line: 25 = its own 25, 75 = the other team's 25">
+                  Ball On (yards from offense's goal)
+                </label>
                 <input
                   className="intel-input"
                   type="number"

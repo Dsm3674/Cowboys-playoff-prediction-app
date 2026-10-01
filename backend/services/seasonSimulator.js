@@ -627,6 +627,38 @@ async function simulateSeason({
   return out;
 }
 
+/**
+ * Standings as of today under the NFL tiebreakers, using completed games
+ * only: each team's place in its division and the seed it would hold if the
+ * season ended now. Seeds are null before any games are played, when every
+ * tie would be a coin flip.
+ */
+function currentStandings(ratings, games) {
+  const league = buildLeague(ratings, games);
+  const tb = makeTiebreaker(league, league.base, mulberry32(DEFAULT_SEED));
+  const played = league.G - league.remaining.length;
+  const out = {};
+  for (const c of [...new Set(league.conf)]) {
+    const divisions = new Map();
+    for (let i = 0; i < league.N; i++) {
+      if (league.conf[i] !== c) continue;
+      if (!divisions.has(league.div[i])) divisions.set(league.div[i], []);
+      divisions.get(league.div[i]).push(i);
+    }
+    for (const teams of divisions.values()) {
+      tb.order(teams, "division").forEach((i, k) => {
+        out[league.teams[i].code] = { divisionRank: k + 1, seed: null };
+      });
+    }
+    if (played > 0) {
+      seedConference(league, c, tb).seeds.forEach((i, k) => {
+        out[league.teams[i].code].seed = k + 1;
+      });
+    }
+  }
+  return out;
+}
+
 /* Promise cache: the pages that read playoff odds share one run per window. */
 const _simCache = new Map();
 
@@ -665,6 +697,7 @@ module.exports = {
   projectSeeds,
   playoffCurve,
   gameLeverage,
+  currentStandings,
   publicTeam,
   clampIterations,
   _invalidateSimulationCache,

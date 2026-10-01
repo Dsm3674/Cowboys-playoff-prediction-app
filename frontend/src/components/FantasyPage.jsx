@@ -1,8 +1,9 @@
 import React from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 import { BASE_URL } from "../api";
 
-function FantasyPage({ year = new Date().getFullYear() }) {
+function FantasyPage({ year = DEFAULT_SEASON }) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
   const [data, setData] = React.useState(null);

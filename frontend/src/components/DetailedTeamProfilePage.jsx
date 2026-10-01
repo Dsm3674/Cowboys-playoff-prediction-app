@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 import Chart from "chart.js/auto";
 
@@ -56,7 +57,7 @@ function Sparkline({ data, color = "#00d4aa" }) {
   return <div style={{ height: "40px", width: "100%", marginTop: "0.75rem" }}><canvas ref={canvasRef}></canvas></div>;
 }
 
-function DetailedTeamProfilePage({ year = new Date().getFullYear(), selectedTeam = "DAL" }) {
+function DetailedTeamProfilePage({ year = DEFAULT_SEASON, selectedTeam = "DAL" }) {
   const [record, setRecord] = useState(null);
   const [tsi, setTsi] = useState(null);
   const [schedule, setSchedule] = useState([]);

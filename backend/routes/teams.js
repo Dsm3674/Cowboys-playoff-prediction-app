@@ -1,11 +1,12 @@
 const express = require("express");
 const router = express.Router();
+const { teamOr400 } = require("../middleware/teamParam");
 
 const {
   fetchTeamGamesSeasonToDate,
   computeRecordFromGames,
-  normalizeTeamAbbr,
   getNFLTeamList,
+  getNFLSeasonYear
 } = require("../services/espn");
 const { computeTSI } = require("../tsi");
 const { buildSeasonPaths, computeMustWinGames } = require("../seasonPath");
@@ -27,11 +28,12 @@ router.get("/", async (req, res) => {
 
 router.get("/:team/schedule", async (req, res) => {
   try {
-    const team = normalizeTeamAbbr(req.params.team);
+    const team = teamOr400(res, req.params.team, null);
+    if (!team) return;
     const year = parseYear(req.query.year);
     const games = await fetchTeamGamesSeasonToDate(team, year);
 
-    res.json({ success: true, team, year: year || new Date().getFullYear(), games });
+    res.json({ success: true, team, year: year || getNFLSeasonYear(), games });
   } catch (err) {
     console.error("Error fetching team schedule:", err);
     res.status(500).json({ success: false, error: "Failed to fetch team schedule" });
@@ -40,16 +42,17 @@ router.get("/:team/schedule", async (req, res) => {
 
 router.get("/:team/record", async (req, res) => {
   try {
-    const team = normalizeTeamAbbr(req.params.team);
+    const team = teamOr400(res, req.params.team, null);
+    if (!team) return;
     const year = parseYear(req.query.year);
     const games = await fetchTeamGamesSeasonToDate(team, year);
 
     if (!games || games.length === 0) {
-      return res.json({ success: true, team, year: year || new Date().getFullYear(), wins: 0, losses: 0, ties: 0 });
+      return res.json({ success: true, team, year: year || getNFLSeasonYear(), wins: 0, losses: 0, ties: 0 });
     }
 
     const record = computeRecordFromGames(games, team);
-    res.json({ success: true, team, year: year || new Date().getFullYear(), ...record });
+    res.json({ success: true, team, year: year || getNFLSeasonYear(), ...record });
   } catch (err) {
     console.error("Error computing team record:", err);
     res.status(500).json({ success: false, error: "Failed to compute team record" });
@@ -58,7 +61,8 @@ router.get("/:team/record", async (req, res) => {
 
 router.get("/:team/tsi", async (req, res) => {
   try {
-    const team = normalizeTeamAbbr(req.params.team);
+    const team = teamOr400(res, req.params.team, null);
+    if (!team) return;
     const year = parseYear(req.query.year);
     const data = await computeTSI({ teamAbbr: team, year });
     res.json({ success: true, ...data });
@@ -70,7 +74,8 @@ router.get("/:team/tsi", async (req, res) => {
 
 router.get("/:team/paths", async (req, res) => {
   try {
-    const team = normalizeTeamAbbr(req.params.team);
+    const team = teamOr400(res, req.params.team, null);
+    if (!team) return;
     const year = parseYear(req.query.year);
     const k = Math.min(60, Math.max(5, Number(req.query.k) || 25));
     const chaos = Math.min(1, Math.max(0, Number(req.query.chaos) || 0));
@@ -86,13 +91,14 @@ router.get("/:team/paths", async (req, res) => {
 
 router.get("/:team/mustwin", async (req, res) => {
   try {
-    const team = normalizeTeamAbbr(req.params.team);
+    const team = teamOr400(res, req.params.team, null);
+    if (!team) return;
     const year = parseYear(req.query.year);
     const chaos = Math.min(1, Math.max(0, Number(req.query.chaos) || 0));
     const iterations = Number(req.query.iterations) || undefined;
 
     const games = await computeMustWinGames({ teamAbbr: team, year, chaos, iterations });
-    res.json({ success: true, team, year: year || new Date().getFullYear(), games });
+    res.json({ success: true, team, year: year || getNFLSeasonYear(), games });
   } catch (err) {
     console.error("Error computing must-win games:", err);
     res.status(500).json({ success: false, error: "Failed to compute must-win games" });

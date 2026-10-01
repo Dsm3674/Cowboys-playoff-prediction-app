@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { teamOr400 } = require("../middleware/teamParam");
 
 const { getPowerRatings, buildLeagueGames, ELO_BASE } = require("../services/ratingsEngine");
 const { simulateSeason } = require("../services/seasonSimulator");
@@ -48,7 +49,8 @@ router.post("/run", async (req, res) => {
       team: rawTeam = "DAL",
     } = req.body || {};
 
-    const team = String(rawTeam || "DAL").toUpperCase();
+    const team = teamOr400(res, rawTeam);
+    if (!team) return;
     const mode = MODES[modelType] || MODES.hot; // older clients send other names
     const iters = Math.max(1000, Math.min(20000, Number(iterations) || 5000));
     const shock = SCENARIOS[scenario] || null;

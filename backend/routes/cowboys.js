@@ -1,12 +1,14 @@
 const express = require("express"); 
 const router = express.Router();
-const { fetchTeamGamesSeasonToDate, computeRecordFromGames } = require("../services/espn");
+const { teamOr400 } = require("../middleware/teamParam");
+const { fetchTeamGamesSeasonToDate, computeRecordFromGames, getNFLSeasonYear } = require("../services/espn");
 
 // GET /api/cowboys/schedule
 router.get("/schedule", async (req, res) => {
   try {
-    const year = Number(req.query.year) || new Date().getFullYear();
-    const team = String(req.query.team || "DAL").toUpperCase();
+    const year = Number(req.query.year) || getNFLSeasonYear();
+    const team = teamOr400(res, req.query.team);
+    if (!team) return;
     const games = await fetchTeamGamesSeasonToDate(team, year);
     res.json({ year, team, games });
   } catch (err) {
@@ -18,8 +20,9 @@ router.get("/schedule", async (req, res) => {
 // GET /api/cowboys/record
 router.get("/record", async (req, res) => {
   try {
-    const year = Number(req.query.year) || new Date().getFullYear();
-    const team = String(req.query.team || "DAL").toUpperCase();
+    const year = Number(req.query.year) || getNFLSeasonYear();
+    const team = teamOr400(res, req.query.team);
+    if (!team) return;
     const games = await fetchTeamGamesSeasonToDate(team, year);
 
     if (!games || games.length === 0) {

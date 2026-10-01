@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 
-function ConferenceRacePage({ year = new Date().getFullYear() }) {
+function ConferenceRacePage({ year = DEFAULT_SEASON }) {
   const [standings, setStandings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,8 +33,13 @@ function ConferenceRacePage({ year = new Date().getFullYear() }) {
     if (!standings) return [];
     return Object.entries(standings).map(([conference, divisions]) => {
       const teams = Object.values(divisions).flat();
-      const topTeams = [...teams].sort((a, b) => (b.record.winPct || 0) - (a.record.winPct || 0)).slice(0, 5);
-      return { conference, topTeams, divisions };
+      // The seven seeds under the NFL tiebreakers, if the season ended today;
+      // before any games are played there are no seeds, so show win% leaders.
+      const seeded = teams.filter((t) => t.seed != null).sort((a, b) => a.seed - b.seed);
+      const topTeams = seeded.length
+        ? seeded
+        : [...teams].sort((a, b) => (b.record.winPct || 0) - (a.record.winPct || 0)).slice(0, 5);
+      return { conference, topTeams, divisions, bySeed: seeded.length > 0 };
     });
   }, [standings]);
 
@@ -54,14 +60,16 @@ function ConferenceRacePage({ year = new Date().getFullYear() }) {
           <div className="section-label">{c.conference} Conference</div>
 
           <div style={{ marginBottom: "1.5rem" }}>
-            <h3 style={{ fontSize: "0.85rem", color: "var(--fg)", margin: "0 0 0.75rem 0" }}>Top Contenders</h3>
+            <h3 style={{ fontSize: "0.85rem", color: "var(--fg)", margin: "0 0 0.75rem 0" }}>
+              {c.bySeed ? "Playoff picture if the season ended today" : "Top Contenders"}
+            </h3>
             <div className="data-table-wrap">
               <table style={{ minWidth: "550px" }}>
-                <thead><tr><th>#</th><th>Team</th><th>Record</th><th>Win %</th><th>TSI</th><th>Diff</th></tr></thead>
+                <thead><tr><th>{c.bySeed ? "Seed" : "#"}</th><th>Team</th><th>Record</th><th>Win %</th><th>TSI</th><th>Diff</th></tr></thead>
                 <tbody>
                   {c.topTeams.map((team, i) => (
                     <tr key={team.code}>
-                      <td style={{ fontWeight: 700, color: "var(--fg)" }}>{i + 1}</td>
+                      <td style={{ fontWeight: 700, color: "var(--fg)" }}>{c.bySeed ? team.seed : i + 1}</td>
                       <td style={{ fontWeight: 600, color: "var(--fg)" }}>{team.code}</td>
                       <td>{team.record.wins}-{team.record.losses}-{team.record.ties}</td>
                       <td className="text-accent" style={{ fontWeight: 600 }}>{(team.record.winPct * 100).toFixed(1)}%</td>

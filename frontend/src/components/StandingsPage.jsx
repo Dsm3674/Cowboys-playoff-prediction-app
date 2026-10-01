@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 
-function StandingsPage({ year = new Date().getFullYear() }) {
+function StandingsPage({ year = DEFAULT_SEASON }) {
   const [standings, setStandings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,6 +52,7 @@ function StandingsPage({ year = new Date().getFullYear() }) {
                   <thead>
                     <tr>
                       <th>Team</th>
+                      <th title="Seed if the season ended today (NFL tiebreakers)">Seed</th>
                       <th>W</th>
                       <th>L</th>
                       <th>T</th>
@@ -65,6 +67,7 @@ function StandingsPage({ year = new Date().getFullYear() }) {
                     {teams.map((team) => (
                       <tr key={team.code}>
                         <td style={{ fontWeight: 600, color: "var(--fg)" }}>{team.code}</td>
+                        <td>{team.seed ?? "—"}</td>
                         <td>{team.record.wins}</td>
                         <td>{team.record.losses}</td>
                         <td>{team.record.ties}</td>

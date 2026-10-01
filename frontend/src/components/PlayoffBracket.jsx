@@ -1,5 +1,6 @@
 import React from "react";
 import { api } from "../api";
+import { currentNFLSeason } from "../workspace";
 
 const LOGO = (abbr) =>
   `https://static.www.nfl.com/t_q-best/league/api/clubs/logos/${abbr}`;
@@ -255,12 +256,7 @@ function ConfHalf({ conf, side }) {
 
 /* ─── Root ────────────────────────────────────────────────────────────────── */
 
-const CURRENT_SEASON = (() => {
-  const now = new Date();
-  /* NFL season is labeled by the year it starts; the playoffs run into the
-     following calendar year, so Jan–Feb still belong to the prior season. */
-  return now.getMonth() <= 1 ? now.getFullYear() - 1 : now.getFullYear();
-})();
+const CURRENT_SEASON = currentNFLSeason();
 
 /* "2026" -> "2026–27 NFL Playoff Bracket" */
 function seasonTitle(startYear) {
@@ -269,7 +265,7 @@ function seasonTitle(startYear) {
   return `${y}–${endYY} NFL Playoff Bracket`;
 }
 
-export default function PlayoffBracket() {
+export default function PlayoffBracket({ year = CURRENT_SEASON }) {
   const [bracket, setBracket] = React.useState(FALLBACK_BRACKET);
   const [source, setSource]   = React.useState("loading"); // loading | live | fallback
 
@@ -279,7 +275,7 @@ export default function PlayoffBracket() {
     async function load() {
       try {
         if (!api?.getPlayoffBracket) throw new Error("API unavailable");
-        const json = await api.getPlayoffBracket(CURRENT_SEASON);
+        const json = await api.getPlayoffBracket(year);
         if (cancelled) return;
         if (json?.success && json.afc && json.nfc && json.superBowl) {
           setBracket({ year: json.year, superBowl: json.superBowl, afc: json.afc, nfc: json.nfc });
@@ -292,9 +288,10 @@ export default function PlayoffBracket() {
       }
     }
 
+    setSource("loading");
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [year]);
 
   return (
     <div className="pbr-root">
@@ -622,7 +619,9 @@ export default function PlayoffBracket() {
       <p className="pbr-note">
         {source === "live"
           ? `Projected from live ${bracket.year} season data — win probabilities are model outputs, not a guarantee of results.`
-          : "Win probabilities are model outputs — not a guarantee of results."}
+          : source === "loading"
+            ? "Loading the live projection… the bracket shown is a sample layout."
+            : "Sample bracket for layout only: live season data is unavailable, so these teams and odds are not a projection."}
       </p>
     </div>
   );

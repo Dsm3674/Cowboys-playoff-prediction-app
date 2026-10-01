@@ -1,7 +1,8 @@
 import React from "react";
+import { DEFAULT_SEASON } from "../workspace";
 import { api } from "../api";
 
-function RivalTeamImpactVisual({ year = 2027 }) {
+function RivalTeamImpactVisual({ year = DEFAULT_SEASON }) {
   const [loading, setLoading] = React.useState(true);
   const [rivalImpacts, setRivalImpacts] = React.useState([]);
   const [rankedGames, setRankedGames] = React.useState([]);
