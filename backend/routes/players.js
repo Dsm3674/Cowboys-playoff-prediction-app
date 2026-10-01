@@ -215,11 +215,9 @@ async function fetchRealCowboysDeepStats(year) {
 
     const safeDiv = (num, den) => den > 0 ? (num / den) : baseEff;
 
+    // The clutch algorithm reads the raw situational counts below; only the
+    // fourth-quarter rate is needed here, for the radar's clutch axis.
     const fourthQEff = safeDiv(st.fourthQSuccess, st.fourthQPlays);
-    const thirdDownEff = safeDiv(st.thirdDownSuccess, st.thirdDownPlays);
-    const redZoneEff = safeDiv(st.redZoneSuccess, st.redZonePlays);
-    const closeGameEff = safeDiv(st.closeGameSuccess, st.closeGamePlays);
-    const pressureEff = safeDiv(st.pressureSuccess, Math.max(1, st.pressurePlays));
 
     playersData.push({
       id: pData.id,

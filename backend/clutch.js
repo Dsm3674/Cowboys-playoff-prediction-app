@@ -31,11 +31,7 @@ function computeClutchIndex(players = [], options = {}) {
     };
   }
 
-  const {
-    focusQB = true,
-    includeDefense = true,
-    season = 2025,
-  } = options;
+  const { season = null } = options;
 
   try {
     // Compute clutch metrics for each player

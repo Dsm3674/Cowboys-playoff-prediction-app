@@ -20,6 +20,9 @@ class Prediction {
           ON predictions (history_client_id, prediction_date DESC)
         `);
       })();
+      // A failed attempt (database briefly down) must not be remembered,
+      // or every later history and save request fails until a restart.
+      ownershipColumnsReady.catch(() => { ownershipColumnsReady = null; });
     }
 
     return ownershipColumnsReady;
