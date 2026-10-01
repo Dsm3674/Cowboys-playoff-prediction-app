@@ -6,6 +6,7 @@ const Prediction = require("./predictions");
 const { getSessionIdentity } = require("./middleware/sessionAuth");
 
 const { generateEspnPrediction } = require("./prediction");
+const { getSeasonSimulation } = require("./services/seasonSimulator");
 
 function normalizeEmail(email) {
   const normalized = String(email || "").trim().toLowerCase();
@@ -122,6 +123,58 @@ router.post("/generate", async (req, res) => {
   }
 });
 
+
+/* ---------------------------------------------------
+   GET /api/prediction/current
+   The live league simulation's read on the Cowboys plus league headlines.
+   Read-only (nothing is saved), so the landing page can call it on load.
+--------------------------------------------------- */
+const toProb = (pct) => Number((pct / 100).toFixed(4));
+
+router.get("/current", async (req, res) => {
+  try {
+    const team = String(req.query.team || "DAL").toUpperCase();
+    const sim = await getSeasonSimulation({});
+    const row = sim.teams.find((t) => t.code === team);
+    if (!row) return res.status(404).json({ error: `No simulation for ${team}` });
+
+    const favorite = sim.teams.slice().sort((a, b) => b.winSBPct - a.winSBPct)[0];
+    const bubble = sim.teams
+      .filter((t) => t.playoffPct >= 30 && t.playoffPct <= 70)
+      .sort((a, b) => Math.abs(a.playoffPct - 50) - Math.abs(b.playoffPct - 50))
+      .slice(0, 3)
+      .map((t) => t.code);
+
+    res.json({
+      success: true,
+      prediction: {
+        team,
+        playoff_probability: toProb(row.playoffPct),
+        division_probability: toProb(row.divisionPct),
+        bye_probability: toProb(row.byePct),
+        conference_probability: toProb(row.reachSBPct),
+        superbowl_probability: toProb(row.winSBPct),
+        expected_wins: row.avgWins,
+      },
+      league: {
+        topSeeds: {
+          AFC: sim.projectedSeeds.AFC?.[0]?.code || null,
+          NFC: sim.projectedSeeds.NFC?.[0]?.code || null,
+        },
+        superBowlFavorite: favorite ? { code: favorite.code, pct: favorite.winSBPct } : null,
+        bubble,
+      },
+      meta: {
+        engine: sim.engine,
+        iterations: sim.iterations,
+        lastCompletedWeek: sim.lastCompletedWeek,
+      },
+    });
+  } catch (err) {
+    console.error("Current prediction error:", err);
+    res.status(500).json({ error: "Prediction unavailable" });
+  }
+});
 
 router.get("/history", async (req, res) => {
   try {

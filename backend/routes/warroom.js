@@ -4,6 +4,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const db = require("../databases");
 const { getSessionIdentity } = require("../middleware/sessionAuth");
+const { getSimulationByTeam } = require("../services/seasonSimulator");
 
 
 const router = express.Router();
@@ -166,35 +167,41 @@ async function ensureTables() {
 }
 
 // Seed pools are house liquidity sized so the opening price matches the
-// Quantum Engine's model odds. House stakes don't belong to anyone; they
-// stay in the pot and sweeten the payout for early bettors.
+// league simulation's odds (`modelKey`, see liveModelOdds); `prob` is the
+// fallback when the simulation is unavailable. House stakes don't belong to
+// anyone; they stay in the pot and sweeten the payout for early bettors.
 const SEED_MARKETS = [
   {
     question: "Cowboys make the 2026-27 NFL playoffs",
+    modelKey: "playoff",
     detail: "Resolves YES if Dallas clinches any playoff berth this season.",
     category: "Cowboys",
     prob: 0.74
   },
   {
     question: "Cowboys win the NFC East",
+    modelKey: "division",
     detail: "Resolves YES if Dallas finishes first in the division.",
     category: "Cowboys",
     prob: 0.41
   },
   {
     question: "Cowboys win 12 or more regular-season games",
+    modelKey: "twelvePlus",
     detail: "Resolves YES at 12-5 or better.",
     category: "Cowboys",
     prob: 0.28
   },
   {
     question: "Cowboys reach the Super Bowl",
+    modelKey: "reachSB",
     detail: "Resolves YES if Dallas wins the NFC Championship.",
     category: "Cowboys",
     prob: 0.094
   },
   {
     question: "An NFC East team reaches the Super Bowl",
+    modelKey: "nfcEastSB",
     detail: "Resolves YES if DAL, PHI, NYG, or WAS wins the NFC.",
     category: "NFL",
     prob: 0.31
@@ -207,13 +214,46 @@ const SEED_MARKETS = [
   }
 ];
 
+/**
+ * The Cowboys' odds from the league season simulation, in the shape the
+ * markets and the analyst need. Null when the simulation can't run.
+ */
+async function liveModelOdds() {
+  const byCode = await getSimulationByTeam();
+  const dal = byCode.DAL;
+  if (!dal) return null;
+  const twelvePlus = Object.entries(dal.winsDistribution || {})
+    .filter(([wins]) => Number(wins) >= 12)
+    .reduce((sum, [, pct]) => sum + pct, 0);
+  const nfcEastSB = ["DAL", "PHI", "NYG", "WAS", "WSH"]
+    .reduce((sum, code) => sum + (byCode[code]?.reachSBPct || 0), 0);
+  return {
+    playoff: dal.playoffPct / 100,
+    division: dal.divisionPct / 100,
+    twelvePlus: twelvePlus / 100,
+    reachSB: dal.reachSBPct / 100,
+    winSB: dal.winSBPct / 100,
+    nfcEastSB: nfcEastSB / 100,
+    avgWins: dal.avgWins,
+    favorites: Object.values(byCode)
+      .sort((a, b) => b.winSBPct - a.winSBPct)
+      .slice(0, 3)
+      .map((t) => `${t.code} ${t.winSBPct.toFixed(1)}%`),
+  };
+}
+
+const pctText = (p) => `${Math.round(p * 100)}%`;
+
 async function seedMarkets() {
   const { rows } = await db.query("SELECT COUNT(*)::int AS n FROM wr_markets");
   if (rows[0].n > 0) return;
   const liquidity = 1000;
+  const odds = await liveModelOdds().catch(() => null);
   for (const m of SEED_MARKETS) {
-    const yes = Math.round(liquidity * m.prob * 100) / 100;
-    const no = Math.round(liquidity * (1 - m.prob) * 100) / 100;
+    const modelProb = odds && m.modelKey ? odds[m.modelKey] : null;
+    const prob = Number.isFinite(modelProb) ? Math.min(0.97, Math.max(0.03, modelProb)) : m.prob;
+    const yes = Math.round(liquidity * prob * 100) / 100;
+    const no = Math.round(liquidity * (1 - prob) * 100) / 100;
     await db.query(
       `
         INSERT INTO wr_markets (question, detail, category, yes_pool, no_pool)
@@ -649,20 +689,24 @@ async function marketContext() {
   }
 }
 
-function fallbackReply(text, markets) {
+function fallbackReply(text, markets, odds = null) {
   const q = String(text || "").toLowerCase();
   if (/playoff|chance|odds|make it/.test(q)) {
+    const read = odds
+      ? `The Quantum Engine has the Cowboys at ${pctText(odds.playoff)} to make the playoffs ` +
+        `and ${pctText(odds.division)} to win the NFC East, on ${odds.avgWins.toFixed(1)} projected wins. `
+      : "The Quantum Engine's live odds are refreshing right now. ";
     return (
-      "The Quantum Engine currently has the Cowboys around 74% to make the playoffs, " +
-      "and the crowd here agrees — check the 'Cowboys make the playoffs' market on the left. " +
+      read +
+      "Compare that with the 'Cowboys make the playoffs' market on the left to see whether the crowd agrees. " +
       "The biggest swing factors are the remaining NFC East games."
     );
   }
   if (/super bowl/.test(q)) {
-    return (
-      "Dallas reaching the Super Bowl is priced as a long shot — the model has it under 10%. " +
-      "If you believe, YES shares on that market are cheap right now."
-    );
+    const read = odds
+      ? `The model has Dallas reaching the Super Bowl ${pctText(odds.reachSB)} of the time and winning it ${pctText(odds.winSB)}.`
+      : "Dallas reaching the Super Bowl is a long shot in the model.";
+    return `${read} Compare that with the YES price on the Super Bowl market.`;
   }
   if (/bet|coin|market|price|share/.test(q)) {
     return (
@@ -702,11 +746,14 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
       return res.status(400).json({ error: "Send a message to the analyst." });
     }
 
-    const board = await marketContext();
+    const [board, odds] = await Promise.all([
+      marketContext(),
+      liveModelOdds().catch(() => null),
+    ]);
 
     if (!anthropicClient && !openRouterClient) {
       return res.json({
-        reply: fallbackReply(history[history.length - 1].content, board),
+        reply: fallbackReply(history[history.length - 1].content, board, odds),
         engine: "builtin"
       });
     }
@@ -719,7 +766,14 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
       "The page you live on hosts a Star Coin prediction market (parimutuel, Polymarket-style, " +
       "virtual coins with no cash value — never call it gambling or give real-money betting advice).\n\n" +
       "Current market board (YES price in cents = crowd probability):\n" +
-      (board || "(no open markets)");
+      (board || "(no open markets)") +
+      (odds
+        ? "\n\nThe site's model (league season simulation, hot Elo, NFL tiebreakers) for Dallas: " +
+          `playoffs ${pctText(odds.playoff)}, NFC East ${pctText(odds.division)}, ` +
+          `12+ wins ${pctText(odds.twelvePlus)}, reach Super Bowl ${pctText(odds.reachSB)}, ` +
+          `win Super Bowl ${pctText(odds.winSB)}, projected wins ${odds.avgWins.toFixed(1)}. ` +
+          `Super Bowl favorites: ${odds.favorites.join(", ")}. Quote these when asked about odds.`
+        : "");
 
     let reply = "";
     let engine = "";
@@ -762,7 +816,7 @@ router.post("/chat", requirePro, chatLimiter, async (req, res) => {
     }
 
     if (!reply && providerFailed) {
-      reply = fallbackReply(history[history.length - 1].content, board);
+      reply = fallbackReply(history[history.length - 1].content, board, odds);
       engine = "builtin";
     }
 

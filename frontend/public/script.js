@@ -20,8 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initializeLandingPrediction() {
-  showMockData();
-
   const currentEndpoints = ["/predictions/current", "/prediction/current"];
   const generateEndpoints = ["/predictions/generate", "/prediction/generate"];
 
@@ -31,6 +29,7 @@ async function initializeLandingPrediction() {
       const pred = extractPrediction(data);
       if (pred) {
         updatePredictionDisplay(pred);
+        updateRail(pred, data.league);
         return;
       }
     } catch (err) {
@@ -72,12 +71,28 @@ function extractPrediction(payload) {
   return null;
 }
 
-function showMockData() {
-  updatePredictionDisplay({
-    playoff_probability: 0.78,
-    division_probability: 0.22,
-    superbowl_probability: 0.094,
-    proj_wins: 11.2,
+/* Fill the scrolling ticker with live model values. Items the API doesn't
+   cover keep their markup text. */
+function updateRail(pred, league) {
+  const values = {
+    "AFC #1": league?.topSeeds?.AFC,
+    "NFC #1": league?.topSeeds?.NFC,
+    "SB Favorite": league?.superBowlFavorite
+      ? `${league.superBowlFavorite.code} ${toPercentOneDecimal(league.superBowlFavorite.pct)}%`
+      : null,
+    "DAL Proj Wins": pred.expected_wins != null ? Number(pred.expected_wins).toFixed(1) : null,
+    "DAL Playoff Odds": pred.playoff_probability != null ? `${toPercent(pred.playoff_probability)}%` : null,
+    "DAL SB Odds": pred.superbowl_probability != null ? `${toPercentOneDecimal(pred.superbowl_probability)}%` : null,
+    Bubble: league?.bubble?.length ? league.bubble.join(", ") : null,
+  };
+
+  document.querySelectorAll(".lp-rail__item").forEach((item) => {
+    const label = Object.keys(values).find((key) => item.textContent.includes(key));
+    const valueEl = item.querySelector(".lp-rail__val");
+    if (!label || values[label] == null || !valueEl) return;
+    valueEl.textContent = values[label];
+    // Static trend arrows would claim a movement we haven't measured.
+    item.querySelectorAll(".lp-rail__up, .lp-rail__down").forEach((el) => el.remove());
   });
 }
 

@@ -3,6 +3,7 @@
 const { computeTSI } = require("./tsi");
 const { getNFLTeamCatalog, getNFLTeamMetadata } = require("./services/espn");
 const { getEloSnapshot, blendWithElo, eloWinProb } = require("./services/ratingsEngine");
+const { getSimulationByTeam } = require("./services/seasonSimulator");
 
 function normalizeTeamCode(code) {
   return String(code || "DAL").trim().toUpperCase();
@@ -110,20 +111,24 @@ function compareThreats(a, b) {
   return b.winProbability - a.winProbability;
 }
 
-function buildTeamSnapshot(team) {
+/* Baseline playoff odds come from the league season simulation; the
+   record/TSI formula is only a fallback when the simulation is unavailable. */
+function buildTeamSnapshot(team, sim = null) {
   const winPct = getWinPct(team);
   const wins = getWins(team);
   const losses = getLosses(team);
-  const baselinePlayoffProbability = round(
-    clamp(
-      winPct * 100 +
-        (team.tsi - 50) * 0.45 +
-        (wins - losses) * 1.25,
-      5,
-      97
-    ),
-    1
-  );
+  const baselinePlayoffProbability = sim
+    ? round(sim.playoffPct, 1)
+    : round(
+        clamp(
+          winPct * 100 +
+            (team.tsi - 50) * 0.45 +
+            (wins - losses) * 1.25,
+          5,
+          97
+        ),
+        1
+      );
 
   return {
     code: team.code,
@@ -132,6 +137,9 @@ function buildTeamSnapshot(team) {
     division: team.division,
     tsi: round(team.tsi, 1),
     baselinePlayoffProbability,
+    playoffProbability: baselinePlayoffProbability,
+    divisionProbability: sim ? round(sim.divisionPct, 1) : null,
+    playoffSource: sim ? "league-simulation" : "legacy-formula",
     components: team.components,
     record: team.meta?.record || {}
   };
@@ -400,14 +408,17 @@ async function computeRivalImpact(options = {}) {
   }
 
   // Fold the Elo engine into rival threat scoring.
-  const eloSnap = await getEloSnapshot({ year });
+  const [eloSnap, simByCode] = await Promise.all([
+    getEloSnapshot({ year }),
+    getSimulationByTeam({ year }),
+  ]);
   for (const team of [normalizedSubject, ...rivals]) {
     const power = eloSnap.byTeam[team.code]?.power;
     team.elo = eloSnap.available && Number.isFinite(power) ? power : null;
   }
 
   const context = buildCompetitionContext(normalizedSubject, rivals);
-  const subjectSnapshot = buildTeamSnapshot(normalizedSubject);
+  const subjectSnapshot = buildTeamSnapshot(normalizedSubject, simByCode[normalizedSubject.code]);
 
   const rivalImpacts = rivals
     .map((rival) => calculateRivalImpact(
