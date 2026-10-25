@@ -13,6 +13,13 @@
     // guideline 4.2 (no repackaged-website feel).
     if (/^(capacitor|ionic|file):/.test(location.protocol)) {
       document.documentElement.classList.add("is-native");
+      // No league marks in the iOS app (guideline 4.1(a)): the logo badge
+      // reads "NFL" on the web; swap it for the LoneStar star.
+      document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".lp-logo__star, .sidebar__logo .star-icon").forEach(function (el) {
+          el.textContent = "★";
+        });
+      });
     }
   </script>
   <style>

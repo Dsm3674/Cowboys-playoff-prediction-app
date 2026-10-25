@@ -22,6 +22,18 @@
 
   <link rel="stylesheet" href="./educators.css" />
   <link rel="stylesheet" href="./pro.css" />
+  <script>
+    // Native iOS shell: purchases go through the App Store, so Stripe-only
+    // copy is swapped for App Store copy before first paint (guideline 3.1.1).
+    if (/^(capacitor|ionic|file):/.test(location.protocol)) {
+      document.documentElement.classList.add("is-native");
+    }
+  </script>
+  <style>
+    .native-copy { display: none; }
+    html.is-native .native-copy { display: revert; }
+    html.is-native .web-copy { display: none !important; }
+  </style>
 </head>
 <body class="pro-body">
 
@@ -311,7 +323,8 @@
     <div class="edu-faq edu-reveal">
       <details class="edu-faq__item">
         <summary>Is Pro live right now?</summary>
-        <p>Yes. Subscribe with a card via Stripe and Pro features unlock immediately. Cancel anytime from the link in your receipt email.</p>
+        <p class="web-copy">Yes. Subscribe with a card via Stripe and Pro features unlock immediately. Cancel anytime from the link in your receipt email.</p>
+        <p class="native-copy">Yes. Subscribe through the App Store and Pro unlocks immediately. Cancel anytime in your Apple ID subscription settings.</p>
       </details>
       <details class="edu-faq__item">
         <summary>Do I have to be a Cowboys fan?</summary>
@@ -319,13 +332,13 @@
       </details>
       <details class="edu-faq__item">
         <summary>Can I cancel anytime?</summary>
-        <p>Yes. Monthly, no contract, no annual lock-in. Cancel in one click and the account reverts to free at the end of the billing period.</p>
+        <p>Yes. Monthly, no contract, no annual lock-in. Cancel anytime and the account reverts to free at the end of the billing period.</p>
       </details>
       <details class="edu-faq__item">
         <summary>What about the off-season?</summary>
         <p>Pro stays active. The weekly report continues with draft analytics, free-agency win-impact, and offseason roster modeling. Many Pro users actually find the offseason content more useful than the in-season recaps.</p>
       </details>
-      <details class="edu-faq__item">
+      <details class="edu-faq__item web-copy">
         <summary>Will there be a yearly plan?</summary>
         <p>Yes — $10/year (two months free) is planned. For now Pro is monthly only at $1/month, cancel anytime.</p>
       </details>
@@ -333,7 +346,7 @@
         <summary>How is this different from sites like FiveThirtyEight or ESPN BPI?</summary>
         <p>Those sites show you a number. Pro shows you the model behind it, lets you tweak the inputs, save your own scenarios, and run your own what-ifs. It's the difference between reading a forecast and operating a forecast.</p>
       </details>
-      <details class="edu-faq__item">
+      <details class="edu-faq__item web-copy">
         <summary>What payment methods do you accept?</summary>
         <p>Any major card via Stripe's secure hosted checkout. Apple Pay and Google Pay work where your browser supports them. We never see or store card numbers.</p>
       </details>
@@ -349,9 +362,13 @@
     <div class="edu-contact">
       <div class="edu-contact__kicker">Subscribe</div>
       <h2 class="edu-contact__title">Unlock Pro in under a minute.</h2>
-      <p class="edu-contact__copy">
+      <p class="edu-contact__copy web-copy">
         Secure checkout via Stripe. $1/month, cancel anytime. You'll get an email receipt and
         access to every Pro feature the moment your subscription starts.
+      </p>
+      <p class="edu-contact__copy native-copy">
+        Billed monthly through your Apple ID and renews automatically until cancelled.
+        Manage or cancel it anytime in <a href="#" class="pro-manage-subscription">your App Store subscriptions</a>.
       </p>
       <a href="#" class="edu-btn edu-btn--primary pro-checkout-btn">Subscribe — $1/month</a>
       <div class="edu-contact__note">

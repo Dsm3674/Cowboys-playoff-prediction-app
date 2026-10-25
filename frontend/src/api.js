@@ -89,7 +89,7 @@
     return historyId;
   }
 
-  function getSignedInUser() {
+  export function getSignedInUser() {
     try {
       const stored = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
       if (isKnownUser(stored?.user)) {
@@ -495,6 +495,12 @@
     });
   }
 
+  // Permanently deletes the signed-in account and its server-side data
+  // (App Store guideline 5.1.1(v)). The session token proves who is asking.
+  function deleteAccount() {
+    return request("/api/auth/account", { method: "DELETE" });
+  }
+
   export const api = {
     getCowboysRecord,
     getRecord,
@@ -537,6 +543,7 @@
     sendWarRoomChat,
     claimSeasonReward,
     startProCheckout,
+    deleteAccount,
     getPowerRatings,
     getPathProbabilities,
     getSeasonSimulation,

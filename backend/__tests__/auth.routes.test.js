@@ -43,6 +43,18 @@ describe("Gmail account authentication", () => {
         accounts.set(params[1], params[0]);
         return { rows: [{ user_id: 1 }] };
       }
+      if (text.startsWith("DELETE FROM users")) {
+        const existed = accounts.delete(params[0]);
+        return { rows: [], rowCount: existed ? 1 : 0 };
+      }
+      if (text.startsWith("DELETE FROM")) {
+        if (text.includes("access_requests")) {
+          const missing = new Error("relation does not exist");
+          missing.code = "42P01";
+          throw missing;
+        }
+        return { rows: [], rowCount: 0 };
+      }
       throw new Error(`Unexpected SQL in test: ${text}`);
     });
   });
@@ -85,5 +97,37 @@ describe("Gmail account authentication", () => {
       .post("/api/auth/verify-otp")
       .send({ challengeId: Buffer.from("owner@gmail.com").toString("base64url"), code: "anything" });
     expect(response.status).toBe(410);
+  });
+
+  test("deletes the signed-in account and its data", async () => {
+    const started = await request(app)
+      .post("/api/auth/2fa/start")
+      .send({ email: "gone@gmail.com", password: "correct horse" });
+    const verified = await request(app)
+      .post("/api/auth/2fa/verify")
+      .send({ challengeId: started.body.challengeId, code: started.body.devCode });
+    expect(accounts.has("gone@gmail.com")).toBe(true);
+
+    const unauthenticated = await request(app).delete("/api/auth/account");
+    expect(unauthenticated.status).toBe(401);
+    expect(accounts.has("gone@gmail.com")).toBe(true);
+
+    const deleted = await request(app)
+      .delete("/api/auth/account")
+      .set("X-LoneStar-Session", verified.body.sessionToken);
+    expect(deleted.status).toBe(200);
+    expect(deleted.body).toMatchObject({ ok: true, deleted: "gone@gmail.com" });
+    expect(accounts.has("gone@gmail.com")).toBe(false);
+
+    const tables = db.query.mock.calls
+      .map(([sql]) => String(sql).match(/^DELETE FROM (\w+)/))
+      .filter(Boolean)
+      .map((m) => m[1]);
+    expect(tables).toEqual(["wr_positions", "wr_wallets", "subscriptions", "access_requests", "users"]);
+
+    const signIn = await request(app)
+      .post("/api/auth/session")
+      .send({ email: "gone@gmail.com", password: "correct horse" });
+    expect(signIn.status).toBe(401);
   });
 });

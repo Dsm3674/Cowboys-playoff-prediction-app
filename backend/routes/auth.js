@@ -5,7 +5,8 @@ const { promisify } = require("util");
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const db = require("../databases");
-const { createSessionToken } = require("../middleware/sessionAuth");
+const { createSessionToken, requireSession } = require("../middleware/sessionAuth");
+const warroom = require("./warroom");
 
 const router = express.Router();
 
@@ -479,6 +480,44 @@ router.post("/session", authLimiter, async (req, res) => {
     res.json(makeSession(email));
   } catch (_error) {
     res.status(500).json({ error: "Unable to sign in right now." });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Account deletion — App Store guideline 5.1.1(v).
+//
+// Permanently removes everything keyed to the signed-in identity: the Gmail
+// login row, War Room wallet and positions, subscription records and access
+// requests. Anonymous identities have no users row but do own War Room data.
+// Tables that were never created (a fresh database) are skipped.
+//
+// An Apple subscription keeps billing until it is cancelled with Apple — the
+// server can't do that — so the app points the user at their App Store
+// subscriptions before confirming.
+// ---------------------------------------------------------------------------
+
+const ACCOUNT_TABLES = [
+  ["wr_positions", "email"],
+  ["wr_wallets", "email"],
+  ["subscriptions", "email"],
+  ["access_requests", "email"],
+  ["users", "username"]
+];
+
+router.delete("/account", authLimiter, requireSession, async (req, res) => {
+  const identity = req.sessionUser;
+  try {
+    for (const [table, column] of ACCOUNT_TABLES) {
+      try {
+        await db.query(`DELETE FROM ${table} WHERE LOWER(${column}) = $1`, [identity]);
+      } catch (error) {
+        if (error.code !== "42P01") throw error; // undefined_table
+      }
+    }
+    warroom.invalidatePro(identity);
+    res.json({ ok: true, deleted: identity });
+  } catch (_error) {
+    res.status(500).json({ error: "Unable to delete the account right now." });
   }
 });
 

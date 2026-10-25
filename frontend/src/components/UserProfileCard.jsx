@@ -1,4 +1,108 @@
 import React from "react";
+import { api, getSignedInUser } from "../api";
+import { isNativeShell, openManageSubscriptions } from "../iap";
+
+// Keys index.html writes at sign-in. Deleting the account clears them so the
+// device can't sign straight back in to an identity that no longer exists.
+const ANON_KEY = "lsi_anon_key_v1";
+
+/*
+ * Account deletion — App Store guideline 5.1.1(v). Shown only in the iOS app;
+ * the web build is unchanged.
+ */
+function DeleteAccountPanel() {
+  const user = getSignedInUser();
+  const [stage, setStage] = React.useState("idle"); // idle | confirm | deleting
+  const [error, setError] = React.useState("");
+
+  async function confirmDelete() {
+    setStage("deleting");
+    setError("");
+    try {
+      await api.deleteAccount();
+    } catch (err) {
+      setError(err.message || "Unable to delete the account right now.");
+      setStage("confirm");
+      return;
+    }
+    try {
+      localStorage.removeItem(ANON_KEY);
+      localStorage.removeItem("ls_profile");
+      localStorage.removeItem("ls_pollResults");
+    } catch (_e) {}
+    window.alert("Your LoneStar AI account and its data have been permanently deleted.");
+    if (window.cowboysIQAuth) window.cowboysIQAuth.signOut();
+  }
+
+  return (
+    <article className="intel-panel">
+      <div className="intel-panel__header">
+        <h2 className="intel-section-title">Account</h2>
+      </div>
+
+      <div className="intel-stack">
+        <div className="intel-metric-card">
+          <div className="intel-metric-card__label">Signed in as</div>
+          <div className="intel-metric-card__value" style={{ wordBreak: "break-all" }}>
+            {user || "Not signed in"}
+          </div>
+        </div>
+
+        {!user ? null : stage === "idle" ? (
+          <button
+            className="intel-button"
+            type="button"
+            style={{ borderColor: "#e5484d", color: "#ff6b6f" }}
+            onClick={() => setStage("confirm")}
+          >
+            Delete Account
+          </button>
+        ) : (
+          <div className="intel-story-panel intel-stack">
+            <div>
+              <strong>Delete your account permanently?</strong> This removes your
+              login, Star Coin wallet, War Room positions and subscription
+              records from our servers. It can't be undone.
+            </div>
+            <div className="text-muted">
+              An App Store subscription is billed by Apple and keeps renewing
+              until you cancel it there.{" "}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openManageSubscriptions().catch(() => {});
+                }}
+              >
+                Manage subscriptions
+              </a>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <button
+                className="intel-button"
+                type="button"
+                disabled={stage === "deleting"}
+                onClick={() => setStage("idle")}
+              >
+                Cancel
+              </button>
+              <button
+                className="intel-button intel-button--primary"
+                type="button"
+                style={{ background: "#e5484d", borderColor: "#e5484d" }}
+                disabled={stage === "deleting"}
+                onClick={confirmDelete}
+              >
+                {stage === "deleting" ? "Deleting…" : "Delete permanently"}
+              </button>
+            </div>
+          </div>
+        )}
+        {error ? <div className="text-muted" role="alert">{error}</div> : null}
+      </div>
+    </article>
+  );
+}
 
 function UserProfileCard() {
   const [username, setUsername] = React.useState("");
@@ -88,6 +192,12 @@ function UserProfileCard() {
           <div className="intel-chip">{hasProfile ? username : "Guest"}</div>
         </div>
       </section>
+
+      {isNativeShell() ? (
+        <section className="intel-grid">
+          <DeleteAccountPanel />
+        </section>
+      ) : null}
 
       <section className="intel-grid intel-grid--main">
         <article className="intel-panel intel-panel--primary">

@@ -1,9 +1,26 @@
 import React from "react";
 import { api } from "../api";
 import { currentNFLSeason } from "../workspace";
+import { isNativeShell } from "../iap";
 
 const LOGO = (abbr) =>
   `https://static.www.nfl.com/t_q-best/league/api/clubs/logos/${abbr}`;
+
+// The iOS app shows no league or club marks (App Store guideline 4.1(a)); the
+// abbreviation beside each logo already names the team.
+const SHOW_LOGOS = !isNativeShell();
+
+function TeamLogo({ abbr, sb }) {
+  if (!SHOW_LOGOS) return null;
+  return (
+    <img
+      className={`pbr-logo${sb ? " pbr-logo--sb" : ""}`}
+      src={LOGO(abbr)}
+      alt={abbr}
+      onError={(e) => { e.target.style.display = "none"; }}
+    />
+  );
+}
 
 /* ─── offline fallback ────────────────────────────────────────────────────── */
 /* Used only when the live bracket endpoint is unavailable.
@@ -69,12 +86,7 @@ function TeamRow({ team, winner }) {
     <div className={`pbr-row${winner ? " pbr-row--w" : ""}`}>
       {winner && <div className="pbr-row-glow" />}
       <span className="pbr-seed">{team.seed}</span>
-      <img
-        className="pbr-logo"
-        src={LOGO(team.abbr)}
-        alt={team.abbr}
-        onError={(e) => { e.target.style.display = "none"; }}
-      />
+      <TeamLogo abbr={team.abbr} />
       <span className="pbr-abbr">{team.abbr}</span>
       <span className={`pbr-prob${winner ? " pbr-prob--w" : ""}`}>
         {team.prob}<span className="pbr-pct">%</span>
@@ -181,8 +193,7 @@ function SuperBowl({ game }) {
       <div className={`pbr-sb-row${afcW ? " pbr-sb-row--w" : ""}`}>
         <span className="pbr-sb-conf pbr-sb-conf--afc">AFC</span>
         <span className="pbr-seed pbr-seed--sb">{game.afc.seed}</span>
-        <img className="pbr-logo pbr-logo--sb" src={LOGO(game.afc.abbr)} alt={game.afc.abbr}
-          onError={(e) => { e.target.style.display = "none"; }} />
+        <TeamLogo abbr={game.afc.abbr} sb />
         <span className="pbr-sb-abbr">{game.afc.abbr}</span>
         <span className={`pbr-prob${afcW ? " pbr-prob--w" : ""}`}>
           {game.afc.prob}<span className="pbr-pct">%</span>
@@ -195,8 +206,7 @@ function SuperBowl({ game }) {
       <div className={`pbr-sb-row${!afcW ? " pbr-sb-row--w" : ""}`}>
         <span className="pbr-sb-conf pbr-sb-conf--nfc">NFC</span>
         <span className="pbr-seed pbr-seed--sb">{game.nfc.seed}</span>
-        <img className="pbr-logo pbr-logo--sb" src={LOGO(game.nfc.abbr)} alt={game.nfc.abbr}
-          onError={(e) => { e.target.style.display = "none"; }} />
+        <TeamLogo abbr={game.nfc.abbr} sb />
         <span className="pbr-sb-abbr">{game.nfc.abbr}</span>
         <span className={`pbr-prob${!afcW ? " pbr-prob--w" : ""}`}>
           {game.nfc.prob}<span className="pbr-pct">%</span>
