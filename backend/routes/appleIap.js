@@ -24,7 +24,7 @@ const router = express.Router();
 // root certificates before any row is written.
 // ---------------------------------------------------------------------------
 
-const BUNDLE_ID = process.env.APPLE_BUNDLE_ID || "one.lstar.app";
+const BUNDLE_ID = process.env.APPLE_BUNDLE_ID || "one.lstar.com";
 const PRO_PRODUCT_ID =
   process.env.APPLE_PRO_PRODUCT_ID || "one.lstar.app.pro.monthly";
 // Numeric App Store ID (App Store Connect → App Information → Apple ID).

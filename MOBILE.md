@@ -38,7 +38,7 @@ from Xcode — no other steps.
 
 ## App identity
 
-- **Bundle ID:** `one.lstar.app` (change in Xcode → App target → Signing &
+- **Bundle ID:** `one.lstar.com` (change in Xcode → App target → Signing &
   Capabilities if you prefer another)
 - **Display name:** LoneStar AI
 - **App icon:** replace the placeholder set in
@@ -64,7 +64,7 @@ At [appstoreconnect.apple.com](https://appstoreconnect.apple.com) →
 - **Platform:** iOS
 - **Name:** LoneStar AI (must be unique across the whole store)
 - **Primary language:** English (U.S.)
-- **Bundle ID:** `one.lstar.app` — pick it from the dropdown. If it isn't
+- **Bundle ID:** `one.lstar.com` — pick it from the dropdown. If it isn't
   listed, create it first under
   [Certificates, Identifiers & Profiles → Identifiers](https://developer.apple.com/account/resources/identifiers/list).
 - **SKU:** any private string, e.g. `lonestar-ai-ios`
@@ -166,7 +166,7 @@ and only then is the entitlement written.
 ### 2. Point the backend at Apple
 
 ```bash
-APPLE_BUNDLE_ID=one.lstar.app
+APPLE_BUNDLE_ID=one.lstar.com
 APPLE_PRO_PRODUCT_ID=one.lstar.app.pro.monthly
 APPLE_APP_APPLE_ID=<numeric Apple ID from App Information>
 # optional — defaults to backend/certs/apple
