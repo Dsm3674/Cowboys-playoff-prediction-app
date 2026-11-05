@@ -26,7 +26,7 @@ const router = express.Router();
 
 const BUNDLE_ID = process.env.APPLE_BUNDLE_ID || "one.lstar.com";
 const PRO_PRODUCT_ID =
-  process.env.APPLE_PRO_PRODUCT_ID || "one.lstar.com.pro.monthly";
+  process.env.APPLE_PRO_PRODUCT_ID || "lonestar.warroom.pro.monthly";
 // Numeric App Store ID (App Store Connect → App Information → Apple ID).
 // Apple requires it to verify production notifications; sandbox omits it.
 const APP_APPLE_ID = process.env.APPLE_APP_APPLE_ID

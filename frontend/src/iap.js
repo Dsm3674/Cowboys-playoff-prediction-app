@@ -16,7 +16,7 @@ import { BASE_URL, getSessionToken } from "./api.js";
 
 /// Must match the product ID created in App Store Connect and the backend's
 /// APPLE_PRO_PRODUCT_ID.
-export const PRO_PRODUCT_ID = "one.lstar.com.pro.monthly";
+export const PRO_PRODUCT_ID = "lonestar.warroom.pro.monthly";
 
 const StoreKit = registerPlugin("StoreKit");
 
