@@ -157,7 +157,7 @@ and only then is the entitlement written.
    "doesn't work".
 2. **Your app → Subscriptions** → create a group (e.g. `War Room`), then a
    subscription inside it:
-   - **Product ID:** `one.lstar.app.pro.monthly` — must match
+   - **Product ID:** `one.lstar.com.pro.monthly` — must match
      `PRO_PRODUCT_ID` in `frontend/src/iap.js` and `APPLE_PRO_PRODUCT_ID`
      on the server.
    - **Duration:** 1 month, **Price:** $0.99 (Apple's nearest tier to $1).
@@ -167,7 +167,7 @@ and only then is the entitlement written.
 
 ```bash
 APPLE_BUNDLE_ID=one.lstar.com
-APPLE_PRO_PRODUCT_ID=one.lstar.app.pro.monthly
+APPLE_PRO_PRODUCT_ID=one.lstar.com.pro.monthly
 APPLE_APP_APPLE_ID=<numeric Apple ID from App Information>
 # optional — defaults to backend/certs/apple
 APPLE_ROOT_CA_DIR=/path/to/apple/roots
@@ -244,7 +244,7 @@ App Store Connect settings.
    reviewer couldn't buy because the subscription wasn't reachable:
    - Paid Apps agreement active (Business → Agreements). Without it StoreKit
      returns no products.
-   - Subscription `one.lstar.app.pro.monthly` in **Ready to Submit** with
+   - Subscription `one.lstar.com.pro.monthly` in **Ready to Submit** with
      display name, description, price and a review screenshot.
    - On the new version page, **In-App Purchases and Subscriptions → +** and
      attach it. A first subscription is only reviewed with a binary.
