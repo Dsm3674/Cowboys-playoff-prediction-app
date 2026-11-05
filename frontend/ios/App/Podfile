@@ -21,4 +21,11 @@ end
 
 post_install do |installer|
   assertDeploymentTarget(installer)
+  # Capacitor's podspecs still declare iOS 13, which Xcode 27 refuses to
+  # build ("supported range is 15.0 to ..."). Match the app's own target.
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+    end
+  end
 end
