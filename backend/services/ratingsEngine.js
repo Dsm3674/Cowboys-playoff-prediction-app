@@ -350,14 +350,20 @@ async function computePreseasonPrior(year) {
  */
 async function computePowerRatings({ year } = {}) {
   const resolvedYear = year || getNFLSeasonYear();
-  const [{ teams, games, schedules }, priorResult, injuryReport] = await Promise.all([
+  const [{ teams, games, schedules }, priorResult, liveInjuryReport] = await Promise.all([
     buildLeagueGames(resolvedYear),
     computePreseasonPrior(resolvedYear),
     getInjuryDeltas(),
   ]);
   const { prior, source: priorSource } = priorResult;
   const { elo, ratedGames } = replayGamesToElo(games, prior);
-  const adjustments = listAdjustments();
+
+  // The injury report and manual adjustments describe today's rosters. A
+  // finished season is rated on its results alone; otherwise this week's
+  // injuries would rewrite last year's ratings and bracket.
+  const pastSeason = resolvedYear < getNFLSeasonYear();
+  const injuryReport = pastSeason ? { available: false, byTeam: {} } : liveInjuryReport;
+  const adjustments = pastSeason ? [] : listAdjustments();
 
   const lastCompletedWeek = games
     .filter((g) => g.completed)
@@ -422,7 +428,7 @@ async function computePowerRatings({ year } = {}) {
     gamesRated: ratedGames.length,
     updatedAt: new Date().toISOString(),
     cadence: "Ratings replay all completed games on request; news and ESPN injury deltas applied live.",
-    injuryFeed: injuryReport.available ? "espn" : "unavailable",
+    injuryFeed: pastSeason ? "not-applied" : injuryReport.available ? "espn" : "unavailable",
     ratings: rows,
   };
 }
