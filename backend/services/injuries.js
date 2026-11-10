@@ -23,8 +23,22 @@
  * over the games he's expected to miss: ESPN's return date when given, else
  * 4 for IR/PUP/NFI (the minimum stint) and 1 for game-status designations.
  *
- * Only depth-chart starters count; a backup's absence is noise. Every piece
- * fails soft: if ESPN is down or reshapes a payload the delta is 0.
+ * Only starters count; a backup's absence is noise. Every piece fails soft:
+ * if ESPN is down or reshapes a payload the delta is 0.
+ *
+ * Three ESPN sources are merged per team:
+ *   league injury report  newest 25 items per team, most of them news notes;
+ *                         carries the injury detail and expected return date.
+ *   team roster           every player's current designation, however old,
+ *                         plus salary. This is what catches a starter who went
+ *                         on IR a month ago and has left the league report.
+ *   depth chart           playing order. ESPN lists healthy players first, so
+ *                         an injured starter sits below his replacement.
+ *
+ * A starter is whoever tops his slot. A player listed lower who cannot play
+ * also counts when he is the first unavailable name at the slot and is paid
+ * at least DISPLACED_SALARY_RATIO times the man now starting: the replacement
+ * was promoted over him by the injury, not by merit.
  */
 
 const { getNflTeamIdMap, normalizeTeamAbbr } = require("./espn");
@@ -35,6 +49,15 @@ const INJURY_TTL_MS = 30 * 60 * 1000;
 const DEPTH_TTL_MS = 6 * 60 * 60 * 1000;
 const OFF_CHART_RECENT_DAYS = 21;
 const OFF_CHART_WEIGHT = 0.5;
+const ROSTER_TTL_MS = 30 * 60 * 1000;
+const DISPLACED_SALARY_RATIO = 1.5;
+/* Game-status tags are reissued weekly; an old one the league report no
+   longer mentions is a leftover, not a current designation. */
+const STALE_GAME_STATUS_DAYS = 8;
+/* An "Out" that has stood this long is a long-term absence (PUP, NFI). */
+const LONG_OUT_DAYS = 10;
+const rosterUrl = (teamId) =>
+  `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${teamId}/roster`;
 
 const INJURIES_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries";
 const depthUrl = (teamId) =>
@@ -100,6 +123,10 @@ function expectedGamesOut(inj, now = Date.now()) {
       s.includes("physically unable") || s.includes("non-football")) {
     return LONG_TERM_MIN_GAMES;
   }
+  const since = Date.parse(inj?.date);
+  if (s.includes("out") && Number.isFinite(since) && now - since > LONG_OUT_DAYS * 86400000) {
+    return LONG_TERM_MIN_GAMES;
+  }
   return 1;
 }
 
@@ -158,6 +185,7 @@ function parseInjuryReport(payload, idToAbbr = {}) {
 function parseDepthChart(payload) {
   const byId = {};
   const byName = {};
+  const slots = {};
   const formations = payload?.depthchart || payload?.depthCharts || payload?.items || [];
   const note = (athlete, rank, slot) => {
     if (!athlete) return;
@@ -176,9 +204,110 @@ function parseDepthChart(payload) {
       if (special && !ST_SLOTS.has(key)) continue;
       const athletes = Array.isArray(slot?.athletes) ? slot.athletes : [];
       athletes.forEach((a, i) => note(a?.athlete || a, Number(a?.rank) > 0 ? a.rank - 1 : i, key));
+      if (!slots[key]) {
+        slots[key] = athletes.map((a) => {
+          const who = a?.athlete || a || {};
+          return {
+            id: who.id != null ? String(who.id) : null,
+            name: String(who.displayName || who.fullName || "").toLowerCase(),
+          };
+        });
+      }
     }
   }
-  return { byId, byName, available: Object.keys(byId).length + Object.keys(byName).length > 0 };
+  return { byId, byName, slots, available: Object.keys(byId).length + Object.keys(byName).length > 0 };
+}
+
+/**
+ * Team roster → { injured: [rows shaped like parseInjuryReport's], salaryById,
+ * salaryByName }. Practice-squad players are left out: they were never
+ * playing on Sunday.
+ */
+function parseRoster(payload) {
+  const injured = [];
+  const salaryById = {};
+  const salaryByName = {};
+  const groups = Array.isArray(payload?.athletes) ? payload.athletes : [];
+  for (const group of groups) {
+    const items = Array.isArray(group?.items) ? group.items : group?.id ? [group] : [];
+    for (const a of items) {
+      const id = a?.id != null ? String(a.id) : null;
+      const name = a?.displayName || a?.fullName || "";
+      const salary = Number(a?.contract?.salary) || 0;
+      if (salary > 0) {
+        if (id) salaryById[id] = salary;
+        if (name) salaryByName[name.toLowerCase()] = salary;
+      }
+      if (/practice/i.test(a?.status?.type || a?.status?.name || "")) continue;
+      const inj = Array.isArray(a?.injuries) ? a.injuries[0] : null;
+      if (!inj?.status || !name) continue;
+      injured.push({
+        athleteId: id,
+        name,
+        position: String(a?.position?.abbreviation || "").toUpperCase(),
+        status: String(inj.status),
+        date: inj.date || null,
+        detail: null,
+        returnDate: null,
+      });
+    }
+  }
+  return { injured, salaryById, salaryByName, available: groups.length > 0 };
+}
+
+/**
+ * One team's injury list from the league report and its roster. The report
+ * wins where both mention a player (it is newer and carries the detail); the
+ * roster adds everyone the report has dropped.
+ */
+function mergeInjuries(reportRows = [], rosterRows = [], { now = Date.now() } = {}) {
+  const byName = new Map();
+  for (const row of reportRows) {
+    const key = row.name.toLowerCase();
+    if (!byName.has(key)) byName.set(key, { ...row });
+  }
+  for (const row of rosterRows) {
+    const key = row.name.toLowerCase();
+    const seen = byName.get(key);
+    if (seen) {
+      if (!seen.athleteId) seen.athleteId = row.athleteId;
+      if (!seen.position) seen.position = row.position;
+      // A news note older than the roster's designation says nothing about it.
+      const note = playProbability(seen.status) == null;
+      if (!(note && Date.parse(row.date) > Date.parse(seen.date))) continue;
+      byName.delete(key);
+    }
+    const p = playProbability(row.status);
+    if (p == null) continue;
+    const t = Date.parse(row.date);
+    const ageDays = Number.isFinite(t) ? (now - t) / 86400000 : 0;
+    if (p > 0 && ageDays > STALE_GAME_STATUS_DAYS) continue;
+    byName.set(key, { ...row });
+  }
+  return [...byName.values()];
+}
+
+/**
+ * True when a player listed below the top of his slot is the starter the
+ * injury displaced: nobody unavailable is listed above him there, and he is
+ * paid well above the man now starting.
+ */
+function isDisplacedStarter(inj, depth, salaries, unavailable) {
+  if (!salaries || !depth?.slots) return false;
+  const name = inj.name.toLowerCase();
+  const pay = (p) => (p.id && salaries.salaryById?.[p.id]) || salaries.salaryByName?.[p.name] || 0;
+  const is = (p) => (inj.athleteId && p.id === inj.athleteId) || p.name === name;
+
+  for (const order of Object.values(depth.slots)) {
+    const at = order.findIndex(is);
+    if (at <= 0) continue;
+    const above = order.slice(0, at);
+    if (above.some((p) => unavailable.has(p.name))) continue;
+    const mine = pay(order[at]);
+    const starters = pay(above[0]);
+    if (mine > 0 && starters > 0 && mine >= starters * DISPLACED_SALARY_RATIO) return true;
+  }
+  return false;
 }
 
 /* ── Scoring ────────────────────────────────────────────────────────────── */
@@ -188,8 +317,15 @@ function parseDepthChart(payload) {
  * (chart unavailable), in which case every listed injury counts at half
  * weight because starter status is unknown.
  */
-function scoreTeamInjuries(injuries = [], depth = null, { now = Date.now() } = {}) {
+function scoreTeamInjuries(injuries = [], depth = null, { now = Date.now(), salaries = null } = {}) {
   const players = [];
+  const unavailable = new Set(
+    injuries.filter((i) => playProbability(i.status) === 0).map((i) => i.name.toLowerCase())
+  );
+  const isRecent = (inj) => {
+    const t = Date.parse(inj.date);
+    return !Number.isFinite(t) || now - t <= OFF_CHART_RECENT_DAYS * 86400000;
+  };
   for (const inj of injuries) {
     const pPlay = playProbability(inj.status);
     if (pPlay == null || pPlay >= 1) continue;
@@ -200,9 +336,12 @@ function scoreTeamInjuries(injuries = [], depth = null, { now = Date.now() } = {
 
     let starterWeight;
     if (!depth?.available) {
+      if (!isRecent(inj)) continue;
       starterWeight = OFF_CHART_WEIGHT;
     } else if (chart) {
-      if (chart.rank !== 0) continue;
+      const displaced =
+        chart.rank !== 0 && pPlay === 0 && isDisplacedStarter(inj, depth, salaries, unavailable);
+      if (chart.rank !== 0 && !displaced) continue;
       starterWeight = 1;
     } else {
       // ESPN often drops IR'd starters from the chart. Count a recent
@@ -276,18 +415,46 @@ async function getDepthChart(teamId) {
   return value;
 }
 
+const _rosterCache = new Map();
+
+async function getRoster(teamId) {
+  const hit = _rosterCache.get(teamId);
+  if (hit && Date.now() - hit.ts < ROSTER_TTL_MS) return hit.value;
+  let value = null;
+  try {
+    value = parseRoster(await fetchJson(rosterUrl(teamId)));
+  } catch (err) {
+    console.warn(`[injuries] roster ${teamId} unavailable: ${err.message}`);
+  }
+  _rosterCache.set(teamId, { value, ts: Date.now() });
+  return value;
+}
+
 async function computeInjuryDeltas() {
   const teamMap = await getNflTeamIdMap();
   const idToAbbr = {};
   for (const [abbr, t] of Object.entries(teamMap)) idToAbbr[t.id] = abbr;
 
   const report = parseInjuryReport(await fetchJson(INJURIES_URL), idToAbbr);
-  const abbrs = Object.keys(report).filter((a) => teamMap[a]);
-  const charts = await Promise.all(abbrs.map((a) => getDepthChart(teamMap[a].id)));
+  const abbrs = Object.keys(teamMap);
+  const [charts, rosters] = await Promise.all([
+    Promise.all(abbrs.map((a) => getDepthChart(teamMap[a].id))),
+    Promise.all(abbrs.map((a) => getRoster(teamMap[a].id))),
+  ]);
 
   const byTeam = {};
-  abbrs.forEach((abbr, i) => { byTeam[abbr] = scoreTeamInjuries(report[abbr], charts[i]); });
-  return { available: true, byTeam, updatedAt: new Date().toISOString() };
+  abbrs.forEach((abbr, i) => {
+    const roster = rosters[i]?.available ? rosters[i] : null;
+    const injuries = mergeInjuries(report[abbr] || [], roster?.injured || []);
+    byTeam[abbr] = scoreTeamInjuries(injuries, charts[i], { salaries: roster });
+  });
+  const rostersOk = rosters.filter((r) => r?.available).length;
+  return {
+    available: true,
+    byTeam,
+    rosterCoverage: `${rostersOk}/${abbrs.length}`,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 let _cache = null;
@@ -310,6 +477,7 @@ function getInjuryDeltas() {
 function _resetInjuryCache() {
   _cache = null;
   _depthCache.clear();
+  _rosterCache.clear();
 }
 
 module.exports = {
@@ -322,6 +490,8 @@ module.exports = {
   seasonDelta,
   parseInjuryReport,
   parseDepthChart,
+  parseRoster,
+  mergeInjuries,
   scoreTeamInjuries,
   getInjuryDeltas,
   _resetInjuryCache,
