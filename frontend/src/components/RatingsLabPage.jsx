@@ -613,7 +613,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
             {adjustments.length ? (
               <table className="rlab-table rlab-table--tight">
                 <thead>
-                  <tr><th>Team</th><th>Δ Elo</th><th>Tag</th><th>Reason</th><th>Expires</th></tr>
+                  <tr><th>Team</th><th>Δ Elo</th><th>Tag</th><th>Reason</th><th>Applies</th></tr>
                 </thead>
                 <tbody>
                   {adjustments.map((a) => (
@@ -624,7 +624,7 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
                       </td>
                       <td>{a.tag}</td>
                       <td className="rlab-reason">{a.reason}</td>
-                      <td>{a.expiresWeek ? `wk ${a.expiresWeek}` : "open"}</td>
+                      <td>{a.expiresWeek ? `through wk ${a.expiresWeek}` : "rest of season"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -668,10 +668,10 @@ function RatingsLabPage({ year, selectedTeam = "DAL" }) {
                 </select>
               </label>
               <label>
-                Expires wk
+                Last NFL week it applies
                 <input
                   className="rlab-input" type="number" min="1" max="22"
-                  placeholder="open"
+                  placeholder="rest of season"
                   value={adjForm.expiresWeek}
                   onChange={(e) => setAdjForm({ ...adjForm, expiresWeek: e.target.value })}
                 />

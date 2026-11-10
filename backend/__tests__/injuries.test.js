@@ -203,6 +203,14 @@ describe("ratingsEngine — injury delta resolution", () => {
     expect(resolveInjuryDelta("DAL", report, adj, 3, 1).delta).toBe(-120);
   });
 
+  test("an adjustment covers games through its expiry week and no further", () => {
+    const adj = [{ team: "DAL", tag: "QB", deltaElo: -90, expiresWeek: 4 }];
+    // Week 3 is done, so week 4 is next: still covered.
+    expect(resolveInjuryDelta("DAL", report, adj, 3).overridden).toBe(true);
+    // Week 4 is done: the next game is week 5, past the expiry.
+    expect(resolveInjuryDelta("DAL", report, adj, 4).overridden).toBe(false);
+  });
+
   test("unknown team or unavailable feed is zero", () => {
     expect(resolveInjuryDelta("NYG", report, [], 3).delta).toBe(0);
     expect(resolveInjuryDelta("DAL", { available: false, byTeam: {} }, [], 3).delta).toBe(0);

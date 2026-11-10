@@ -11,7 +11,17 @@ jest.mock("../services/espn", () => ({
   fetchScoreboardLines: async () => ({}),
 }));
 jest.mock("../tsi", () => ({ computeTSI: async () => ({ tsi: 50 }) }));
-jest.mock("../services/marketFutures", () => ({ readFutures: () => ({ odds: null }) }));
+jest.mock("../services/marketFutures", () => ({
+  // A full 32-team board; if it were read for a past season the prior
+  // source would say so.
+  readFutures: () => ({
+    odds: Object.fromEntries(
+      ["ARI","ATL","BAL","BUF","CAR","CHI","CIN","CLE","DAL","DEN","DET","GB","HOU","IND","JAX","KC",
+       "LV","LAC","LAR","MIA","MIN","NE","NO","NYG","NYJ","PHI","PIT","SF","SEA","TB","TEN","WAS"]
+        .map((code, i) => [code, 400 + i * 300])
+    ),
+  }),
+}));
 jest.mock("../services/injuries", () => ({
   ...jest.requireActual("../services/injuries"),
   getInjuryDeltas: async () => ({
@@ -33,6 +43,7 @@ describe("ratingsEngine — injuries and past seasons", () => {
     const r = await getPowerRatings({ year: 2026 });
     expect(sea(r).injuryDelta).toBe(-112.5);
     expect(r.injuryFeed).toBe("espn");
+    expect(r.priorSource).toBe("market");
   });
 
   test("a finished season ignores today's injuries", async () => {
@@ -41,5 +52,11 @@ describe("ratingsEngine — injuries and past seasons", () => {
     expect(sea(r).nextGameInjuryDelta).toBe(0);
     expect(sea(r).power).toBe(sea(r).elo);
     expect(r.injuryFeed).toBe("not-applied");
+  });
+
+  test("a finished season is not seeded from today's futures board", async () => {
+    const r = await getPowerRatings({ year: 2025 });
+    expect(r.priorSource).not.toMatch(/market/);
+    expect(sea(r).elo).toBe(1500);
   });
 });

@@ -172,10 +172,18 @@ function removeAdjustments(team) {
   return list.length - kept.length;
 }
 
+/**
+ * `expiresWeek` is the last NFL week whose games the adjustment applies to.
+ * `currentWeek` is the last completed week, so the next games are week + 1.
+ */
+function adjustmentActive(adjustment, currentWeek) {
+  return adjustment.expiresWeek == null || currentWeek == null || currentWeek < adjustment.expiresWeek;
+}
+
 function activeAdjustmentTotal(team, adjustments, currentWeek) {
   return adjustments
     .filter((a) => a.team === team)
-    .filter((a) => a.expiresWeek == null || currentWeek == null || currentWeek <= a.expiresWeek)
+    .filter((a) => adjustmentActive(a, currentWeek))
     .reduce((sum, a) => sum + a.deltaElo, 0);
 }
 
@@ -193,7 +201,7 @@ function resolveInjuryDelta(team, injuryReport, adjustments, currentWeek, remain
     (a) =>
       a.team === team &&
       (a.tag === "QB" || a.tag === "INJURY") &&
-      (a.expiresWeek == null || currentWeek == null || currentWeek <= a.expiresWeek)
+      adjustmentActive(a, currentWeek)
   );
   if (manual) return { ...none, overridden: true, players: auto.players };
   return {
@@ -319,10 +327,14 @@ async function computeCarryoverPrior(year) {
 async function computePreseasonPrior(year) {
   const carryover = await computeCarryoverPrior(year);
 
+  // The stored futures board prices the season being played now. It says
+  // nothing about how an earlier season opened, so that one uses carryover.
   let market = null;
-  try {
-    market = marketImpliedElo(readFutures().odds);
-  } catch (_err) { market = null; }
+  if (!(year < getNFLSeasonYear())) {
+    try {
+      market = marketImpliedElo(readFutures().odds);
+    } catch (_err) { market = null; }
+  }
 
   const hasCarryover = Object.keys(carryover).length > 0;
   if (!market) return { prior: carryover, source: hasCarryover ? "carryover" : "none" };
@@ -506,6 +518,7 @@ module.exports = {
   listAdjustments,
   upsertAdjustment,
   resolveInjuryDelta,
+  adjustmentActive,
   powerForGame,
   nextGameOf,
   removeAdjustments,
