@@ -180,6 +180,15 @@ function adjustmentActive(adjustment, currentWeek) {
   return adjustment.expiresWeek == null || currentWeek == null || currentWeek < adjustment.expiresWeek;
 }
 
+/**
+ * The week just before a team's next game, which is what an adjustment's
+ * expiry is compared with. Falls back to the league's last completed week.
+ */
+function weekBeforeNextGame(teamGames, lastCompletedWeek) {
+  const upcoming = nextGameOf(teamGames);
+  return Number.isFinite(upcoming?.week) ? upcoming.week - 1 : lastCompletedWeek;
+}
+
 function activeAdjustmentTotal(team, adjustments, currentWeek) {
   return adjustments
     .filter((a) => a.team === team)
@@ -380,6 +389,10 @@ async function computePowerRatings({ year } = {}) {
   const lastCompletedWeek = games
     .filter((g) => g.completed)
     .reduce((max, g) => Math.max(max, g.week || 0), 0) || null;
+  // Earliest week that still has a game to play.
+  const nextWeek = games
+    .filter((g) => !g.completed && g.week > 0)
+    .reduce((min, g) => Math.min(min, g.week), Infinity);
 
   // TSI flows back into the power score (the engines cross-pollinate both
   // ways: Elo feeds the legacy models, TSI feeds the Elo power number).
@@ -394,9 +407,12 @@ async function computePowerRatings({ year } = {}) {
     const averages = computeTeamAveragesFromGames(team.code, teamGames);
 
     const baseElo = elo[team.code] ?? prior[team.code] ?? ELO_BASE;
-    const newsDelta = activeAdjustmentTotal(team.code, adjustments, lastCompletedWeek);
+    // Expiry is judged against this team's own next game. The league-wide
+    // last completed week moves on Thursday night, before most teams play.
+    const teamWeek = weekBeforeNextGame(teamGames, lastCompletedWeek);
+    const newsDelta = activeAdjustmentTotal(team.code, adjustments, teamWeek);
     const remainingGames = teamGames.filter((g) => !g.completed).length;
-    const injury = resolveInjuryDelta(team.code, injuryReport, adjustments, lastCompletedWeek, remainingGames);
+    const injury = resolveInjuryDelta(team.code, injuryReport, adjustments, teamWeek, remainingGames);
     const adjustedElo = baseElo + newsDelta + injury.delta;
 
     // What a TSI overlay would add (50 neutral, ±25 TSI → ±30 Elo). Reported
@@ -437,6 +453,7 @@ async function computePowerRatings({ year } = {}) {
     priorSource,
     priorMarketWeight: priorSource === "carryover+market" ? MARKET_PRIOR_WEIGHT : 0,
     lastCompletedWeek,
+    nextWeek: Number.isFinite(nextWeek) ? nextWeek : null,
     gamesRated: ratedGames.length,
     updatedAt: new Date().toISOString(),
     cadence: "Ratings replay all completed games on request; news and ESPN injury deltas applied live.",
@@ -519,6 +536,7 @@ module.exports = {
   upsertAdjustment,
   resolveInjuryDelta,
   adjustmentActive,
+  weekBeforeNextGame,
   powerForGame,
   nextGameOf,
   removeAdjustments,

@@ -12,7 +12,7 @@ const {
   expectedGamesOut,
   seasonDelta,
 } = require("../services/injuries");
-const { resolveInjuryDelta, powerForGame, nextGameOf } = require("../services/ratingsEngine");
+const { resolveInjuryDelta, powerForGame, nextGameOf, weekBeforeNextGame } = require("../services/ratingsEngine");
 const analyticsRouter = require("../routes/analytics");
 const cache = require("../cache");
 
@@ -209,6 +209,19 @@ describe("ratingsEngine — injury delta resolution", () => {
     expect(resolveInjuryDelta("DAL", report, adj, 3).overridden).toBe(true);
     // Week 4 is done: the next game is week 5, past the expiry.
     expect(resolveInjuryDelta("DAL", report, adj, 4).overridden).toBe(false);
+  });
+
+  test("expiry follows the team's own next game, not Thursday night", () => {
+    const adj = [{ team: "DAL", tag: "QB", deltaElo: -90, expiresWeek: 10 }];
+    const sunday = [{ week: 9, completed: true }, { week: 10, completed: false, date: "2026-11-15T18:00Z" }];
+    // Another team's Thursday game has pushed the league to week 10 complete.
+    const dalWeek = weekBeforeNextGame(sunday, 10);
+    expect(dalWeek).toBe(9);
+    expect(resolveInjuryDelta("DAL", report, adj, dalWeek).overridden).toBe(true);
+    // On a bye in week 10 the next game is week 11: the adjustment is over.
+    const bye = [{ week: 9, completed: true }, { week: 11, completed: false, date: "2026-11-22T18:00Z" }];
+    expect(resolveInjuryDelta("DAL", report, adj, weekBeforeNextGame(bye, 10)).overridden).toBe(false);
+    expect(weekBeforeNextGame([{ week: 18, completed: true }], 18)).toBe(18);
   });
 
   test("unknown team or unavailable feed is zero", () => {

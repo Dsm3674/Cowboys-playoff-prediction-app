@@ -198,12 +198,12 @@ router.post("/adjustments", requireAdmin, async (req, res) => {
     // that never applies, with nothing on screen to say so.
     const expires = Number((req.body || {}).expiresWeek);
     if (Number.isFinite(expires) && expires > 0) {
-      const played = await getPowerRatings().then((r) => r.lastCompletedWeek, () => null);
-      if (played != null && expires <= played) {
+      const nextWeek = await getPowerRatings().then((r) => r.nextWeek, () => null);
+      if (nextWeek != null && expires < nextWeek) {
         return res.status(400).json({
           success: false,
           error: `Week ${expires} has already been played, so this would never apply. ` +
-            `Enter the last NFL week it should cover (${played + 1} or later), or leave it blank for the rest of the season.`,
+            `Enter the last NFL week it should cover (${nextWeek} or later), or leave it blank for the rest of the season.`,
         });
       }
     }

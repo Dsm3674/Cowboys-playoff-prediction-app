@@ -148,3 +148,30 @@ describe("injuries — news notes older than a designation", () => {
     expect(merged.find((p) => p.name === "Franchise QB").status).toBe("Injured Reserve");
   });
 });
+
+describe("injuries — quarterbacks need a franchise contract to be promoted", () => {
+  const chart = parseDepthChart({
+    depthchart: [{
+      name: "3WR 1TE",
+      positions: { qb: { athletes: [{ id: "1", displayName: "Rookie Starter" }, { id: "2", displayName: "Veteran Backup" }] } },
+    }],
+  });
+  const squad = (backupSalary) => parseRoster({
+    athletes: [{
+      position: "offense",
+      items: [
+        player("1", "Rookie Starter", "QB", 4000000),
+        player("2", "Veteran Backup", "QB", backupSalary, { status: "Injured Reserve", date: daysAgo(3) }),
+      ],
+    }],
+  });
+  const priced = (r) => scoreTeamInjuries(mergeInjuries([], r.injured, { now: NOW }), chart, { now: NOW, salaries: r }).players;
+
+  test("a better-paid veteran backup behind a rookie-deal starter is not a starter", () => {
+    expect(priced(squad(7000000))).toHaveLength(0);
+  });
+
+  test("a franchise contract is", () => {
+    expect(priced(squad(45000000))).toHaveLength(1);
+  });
+});

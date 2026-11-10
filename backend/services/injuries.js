@@ -38,7 +38,8 @@
  * A starter is whoever tops his slot. A player listed lower who cannot play
  * also counts when he is the first unavailable name at the slot and is paid
  * at least DISPLACED_SALARY_RATIO times the man now starting: the replacement
- * was promoted over him by the injury, not by merit.
+ * was promoted over him by the injury, not by merit. Quarterbacks need a
+ * higher bar (see DISPLACED_QB_*).
  */
 
 const { getNflTeamIdMap, normalizeTeamAbbr } = require("./espn");
@@ -51,6 +52,11 @@ const OFF_CHART_RECENT_DAYS = 21;
 const OFF_CHART_WEIGHT = 0.5;
 const ROSTER_TTL_MS = 30 * 60 * 1000;
 const DISPLACED_SALARY_RATIO = 1.5;
+/* A quarterback is worth five times any other position, so a wrong call is
+   costly, and starters on rookie deals are often paid less than a veteran
+   backup. Only a clear franchise contract counts. */
+const DISPLACED_QB_SALARY_RATIO = 2;
+const DISPLACED_QB_MIN_SALARY = 10000000;
 /* Game-status tags are reissued weekly; an old one the league report no
    longer mentions is a leftover, not a current designation. */
 const STALE_GAME_STATUS_DAYS = 8;
@@ -305,7 +311,12 @@ function isDisplacedStarter(inj, depth, salaries, unavailable) {
     if (above.some((p) => unavailable.has(p.name))) continue;
     const mine = pay(order[at]);
     const starters = pay(above[0]);
-    if (mine > 0 && starters > 0 && mine >= starters * DISPLACED_SALARY_RATIO) return true;
+    if (!(mine > 0 && starters > 0)) continue;
+    if (inj.position === "QB") {
+      if (mine >= DISPLACED_QB_MIN_SALARY && mine >= starters * DISPLACED_QB_SALARY_RATIO) return true;
+    } else if (mine >= starters * DISPLACED_SALARY_RATIO) {
+      return true;
+    }
   }
   return false;
 }
